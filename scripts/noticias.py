@@ -73,7 +73,8 @@ def main():
             fontes[chave] = ler_feed(bruto)
             print(f"{chave}: {len(fontes[chave])} itens")
             if not fontes[chave]:
-                print("  amostra:", bruto[:400])
+                i = bruto.find(b"<item")
+                print("  tamanho:", len(bruto), "itens brutos:", bruto.count(b"<item"), "trecho:", bruto[i:i+700] if i >= 0 else bruto[-400:])
         except Exception as e:  # mantém o que já existia se o feed falhar
             fontes[chave] = anterior.get("fontes", {}).get(chave, [])
             erros[chave] = str(e)[:200]
