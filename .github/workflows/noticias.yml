@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - scripts/noticias.py
+      - scripts/probe.py
       - .github/workflows/noticias.yml
 
 permissions:
@@ -26,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Buscar feeds do InfoMoney
-        run: python scripts/noticias.py
+        run: python scripts/noticias.py && python scripts/probe.py
       - name: Salvar se mudou
         run: |
           if [ -n "$(git status --porcelain data/)" ]; then
