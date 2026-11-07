@@ -7,83 +7,201 @@
 <title>Mercado ao vivo · Rico.Work</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  main { max-width: 1240px; }
+  .topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .topline h1 { margin: 0; display: flex; align-items: center; }
+  .topline .meta { font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .strip { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 16px; min-height: 72px; }
+
+  /* Destaques */
+  .lead-grid { display: grid; gap: 14px; margin-bottom: 18px; }
+  @media (min-width: 900px) { .lead-grid { grid-template-columns: 1.5fr 1fr; } }
+  .lead {
+    display: flex; flex-direction: column; justify-content: flex-end; min-height: 290px; padding: 22px;
+    border-radius: 18px; text-decoration: none; color: #fff; position: relative; overflow: hidden;
+    background: radial-gradient(circle at 90% 10%, rgba(255,122,26,.55), transparent 45%), linear-gradient(140deg, var(--indigo) 30%, var(--indigo-2));
+  }
+  .lead::after { content: ""; position: absolute; right: -40px; top: -40px; width: 220px; height: 220px; border-radius: 50%; border: 36px solid rgba(255,255,255,.05); }
+  .lead .kick { font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--orange-2); margin-bottom: 8px; }
+  .lead .ttl { font-size: 28px; line-height: 1.18; font-weight: 800; letter-spacing: -.3px; }
+  .lead .when { margin-top: 12px; font-size: 13px; color: rgba(255,255,255,.75); }
+  .lead:hover .ttl { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  @media (max-width: 640px) { .lead { min-height: 230px; padding: 18px; } .lead .ttl { font-size: 22px; } }
+  .subs { display: grid; gap: 10px; }
+  .sub { display: block; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; text-decoration: none; color: var(--ink); border-left: 4px solid var(--orange); }
+  .sub .kick { font-size: 11px; font-weight: 800; color: var(--orange); text-transform: uppercase; letter-spacing: .5px; }
+  .sub .ttl { font-weight: 800; font-size: 15.5px; line-height: 1.3; margin-top: 3px; color: var(--indigo); }
+  .sub .when { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .sub:hover .ttl { color: var(--orange); }
+
+  /* Corpo */
+  .body-grid { display: grid; gap: 18px; }
+  @media (min-width: 1000px) { .body-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; } }
+  .sec-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 3px solid var(--indigo); padding-bottom: 8px; margin-bottom: 4px; }
+  .sec-h h2 { margin: 0; font-size: 19px; text-transform: uppercase; letter-spacing: .4px; }
+  .sec-h h2::before { content: ""; display: inline-block; width: 10px; height: 10px; background: var(--orange); border-radius: 2px; margin-right: 8px; vertical-align: 2px; }
+
+  /* Linha do tempo "Últimas" */
+  .feed { list-style: none; margin: 0; padding: 0; }
+  .feed li { display: grid; grid-template-columns: 58px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); position: relative; }
+  .feed .hr { font-weight: 800; color: var(--orange); font-size: 14px; padding-top: 1px; }
+  .feed .hr small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
+  .feed a { text-decoration: none; color: var(--ink); }
+  .feed .cat { font-size: 11px; font-weight: 800; color: var(--indigo-2); text-transform: uppercase; letter-spacing: .5px; }
+  .feed .ttl { font-weight: 700; font-size: 16px; line-height: 1.35; margin-top: 2px; }
+  .feed a:hover .ttl { color: var(--orange); }
+  .feed .new { background: var(--orange); color: #fff; font-size: 10px; font-weight: 800; padding: 1px 7px; border-radius: 99px; margin-left: 6px; vertical-align: 1px; }
+  .more { margin-top: 12px; }
+  .body-grid > *, .lead-grid > *, .sections > * { min-width: 0; }
+  .sec-h .news-tabs { max-width: 100%; min-width: 0; }
+  .feed li > a { min-width: 0; overflow-wrap: anywhere; }
+
+  /* Blocos por editoria */
+  .sections { display: grid; gap: 18px; margin-top: 22px; }
+  @media (min-width: 760px) { .sections { grid-template-columns: 1fr 1fr; } }
+  .sect .top-story { display: block; text-decoration: none; padding: 12px 0 10px; border-bottom: 1px solid var(--line); }
+  .sect .top-story .ttl { font-size: 18px; font-weight: 800; color: var(--indigo); line-height: 1.28; }
+  .sect .top-story:hover .ttl { color: var(--orange); }
+  .sect .top-story .when { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .sect ul { list-style: none; padding: 0; margin: 0; }
+  .sect li a { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); font-size: 14.5px; font-weight: 600; line-height: 1.35; }
+  .sect li a::before { content: "›"; color: var(--orange); font-weight: 800; }
+  .sect li a:hover { color: var(--orange); }
+  .sect li .when { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; padding-left: 8px; }
+
+  .side .card { padding: 12px; }
+  .side h2 { font-size: 15px; margin: 4px 4px 10px; text-transform: uppercase; letter-spacing: .4px; }
+  .credit { font-size: 12px; color: var(--muted); margin-top: 18px; text-align: center; }
+  .skel { background: linear-gradient(90deg, #efeef5 25%, #f7f6fb 50%, #efeef5 75%); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 8px; height: 16px; margin: 10px 0; }
+  @keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
 </head>
 <body>
 <header class="top" data-page="mercado"></header>
 
 <main>
-  <section class="hero">
+  <div class="topline">
     <h1><span class="live-dot"></span>Mercado ao vivo</h1>
-    <p>Manchetes do InfoMoney atualizadas automaticamente e cotações de índices, câmbio e commodities.</p>
-    <div class="chips">
-      <a class="chip" href="https://www.infomoney.com.br/" target="_blank" rel="noopener" style="color:#fff;text-decoration:none">Abrir o InfoMoney ↗</a>
-      <span class="chip">Ações da B3 com 15 min de atraso</span>
-    </div>
+    <div class="meta"><span id="atualizado">carregando…</span>
+      <a href="https://www.infomoney.com.br/" target="_blank" rel="noopener">Abrir o InfoMoney ↗</a></div>
+  </div>
+
+  <div class="strip" id="strip"></div>
+
+  <section class="lead-grid" id="destaques">
+    <div class="lead"><div class="skel" style="width:40%;opacity:.3"></div><div class="skel" style="height:28px;opacity:.3"></div></div>
+    <div class="subs"><div class="sub"><div class="skel"></div></div><div class="sub"><div class="skel"></div></div><div class="sub"><div class="skel"></div></div></div>
   </section>
 
-  <div class="grid news-layout">
-    <div class="card">
-      <div class="card-head">
-        <h2>Últimas do InfoMoney</h2>
-        <span class="note" id="atualizado"></span>
+  <div class="body-grid">
+    <div>
+      <div class="card">
+        <div class="sec-h"><h2>Últimas notícias</h2>
+          <div class="news-tabs" id="tabs" style="margin:0">
+            <button data-k="ultimas" class="on">Tudo</button>
+            <button data-k="mercados">Mercados</button>
+            <button data-k="economia">Economia</button>
+            <button data-k="politica">Política</button>
+            <button data-k="mundo">Mundo</button>
+          </div>
+        </div>
+        <ul class="feed" id="feed"></ul>
+        <div class="more"><button class="sm secondary" id="btnMais">Ver mais</button></div>
       </div>
-      <div class="news-tabs" id="tabs">
-        <button data-k="ultimas" class="on">Últimas</button>
-        <button data-k="mercados">Mercados</button>
-        <button data-k="economia">Economia</button>
-        <button data-k="politica">Política</button>
-        <button data-k="mundo">Mundo</button>
-      </div>
-      <ul class="news" id="lista"><li class="note" style="padding:14px 0">Carregando manchetes…</li></ul>
-      <p class="note" style="margin-top:10px">As manchetes abrem a matéria no site do InfoMoney.</p>
+
+      <div class="sections" id="sections"></div>
     </div>
 
-    <div>
-      <div class="card" style="padding:10px">
-        <h2 style="margin:6px 6px 8px">Cotações</h2>
-        <div class="tv-box" id="overview" style="height:520px"></div>
+    <aside class="side">
+      <div class="card">
+        <h2>Cotações</h2>
+        <div class="tv-box" id="overview" style="height:500px"></div>
       </div>
-      <div class="card" style="padding:10px">
-        <h2 style="margin:6px 6px 8px">Notícias em tempo real</h2>
-        <div class="tv-box" id="timeline" style="height:560px"></div>
+      <div class="card">
+        <h2>Em tempo real</h2>
+        <div class="tv-box" id="timeline" style="height:620px"></div>
       </div>
-    </div>
+    </aside>
   </div>
+
+  <p class="credit">Manchetes e matérias: InfoMoney (os links abrem no site original) · Cotações e notícias em tempo real: TradingView · Ações da B3 com 15 min de atraso</p>
 </main>
-<footer class="foot">Manchetes: InfoMoney · Cotações e notícias em tempo real: TradingView</footer>
 
 <script src="assets/common.js"></script>
 <script>
 const RSS_GERAL = 'https://www.infomoney.com.br/feed/';
 const EDS = { mercados: 'Mercados', economia: 'Economia', politica: 'Política', mundo: 'Mundo' };
-let dados = null, aba = 'ultimas', vistos = new Set(store.get('rw_news_vistos', []));
+let dados = null, aba = 'ultimas', limiteFeed = 15;
+const vistos = new Set(store.get('rw_news_vistos', []));
+const $ = id => document.getElementById(id);
 
-function tempo(iso) {
+function quando(iso) {
   if (!iso) return '';
-  const min = Math.round((Date.now() - new Date(iso)) / 60000);
+  const d = new Date(iso), min = Math.round((Date.now() - d) / 60000);
   if (min < 1) return 'agora';
   if (min < 60) return `há ${min} min`;
   const h = Math.floor(min / 60);
   if (h < 24) return `há ${h} h`;
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+function hora(iso) {
+  if (!iso) return { h: '', d: '' };
+  const d = new Date(iso), hoje = new Date();
+  const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+  const h = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === hoje.toDateString()) return { h, d: '' };
+  if (d.toDateString() === ontem.toDateString()) return { h, d: 'ontem' };
+  return { h, d: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+}
+const novo = n => !vistos.has(n.link) && n.data && (Date.now() - new Date(n.data)) < 2 * 3600e3;
+const ordenar = l => (l || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+const link = (n, cls, inner) => `<a class="${cls}" href="${esc(n.link)}" target="_blank" rel="noopener">${inner}</a>`;
+
+function renderDestaques() {
+  const f = dados.fontes;
+  // manchete principal: a mais recente de Mercados (ou de Tudo); destaques: as mais novas das outras editorias
+  const usados = new Set();
+  const pega = lista => { const n = ordenar(lista).find(x => !usados.has(x.link)); if (n) usados.add(n.link); return n; };
+  const principal = pega(f.mercados) || pega(f.ultimas);
+  const subs = [pega(f.economia), pega(f.politica), pega(f.mundo), pega(f.ultimas)].filter(Boolean).slice(0, 4);
+  if (!principal) return;
+  $('destaques').innerHTML =
+    link(principal, 'lead', `<div class="kick">${esc(principal.categoria || 'Destaque')}</div><div class="ttl">${esc(principal.titulo)}</div><div class="when">${quando(principal.data)} · InfoMoney</div>`) +
+    `<div class="subs">${subs.map(n => link(n, 'sub', `<div class="kick">${esc(n.categoria)}</div><div class="ttl">${esc(n.titulo)}</div><div class="when">${quando(n.data)}</div>`)).join('')}</div>`;
 }
 
-function render() {
-  const itens = (dados?.fontes?.[aba] || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-  if (!itens.length) {
-    document.getElementById('lista').innerHTML = `<li class="note" style="padding:14px 0">Não consegui carregar as manchetes agora. <a href="https://www.infomoney.com.br/" target="_blank" rel="noopener">Abrir o InfoMoney ↗</a></li>`;
-    return;
-  }
-  document.getElementById('lista').innerHTML = itens.map(n => {
-    const novo = !vistos.has(n.link) && n.data && (Date.now() - new Date(n.data)) < 3 * 3600e3;
-    return `<li><a href="${esc(n.link)}" target="_blank" rel="noopener">
-      <div class="tt">${esc(n.titulo)}</div>
-      <div class="mt">${novo ? '<span class="new">NOVO</span>' : ''}<span>${tempo(n.data)}</span>${n.categoria ? `<span class="pill">${esc(n.categoria)}</span>` : ''}</div>
-    </a></li>`;
+function renderFeed() {
+  const itens = ordenar(dados.fontes[aba]);
+  if (!itens.length) { $('feed').innerHTML = '<li class="note" style="display:block">Sem manchetes nesta editoria agora.</li>'; $('btnMais').hidden = true; return; }
+  $('feed').innerHTML = itens.slice(0, limiteFeed).map(n => {
+    const t = hora(n.data);
+    return `<li><div class="hr">${t.h}<small>${t.d}</small></div>
+      ${link(n, '', `<div class="cat">${esc(n.categoria)}${novo(n) ? '<span class="new">NOVO</span>' : ''}</div><div class="ttl">${esc(n.titulo)}</div>`)}</li>`;
+  }).join('');
+  $('btnMais').hidden = itens.length <= limiteFeed;
+}
+
+function renderSecoes() {
+  $('sections').innerHTML = Object.entries(EDS).map(([k, nome]) => {
+    const l = ordenar(dados.fontes[k]);
+    if (!l.length) return '';
+    const [top, ...resto] = l;
+    return `<div class="card sect">
+      <div class="sec-h"><h2>${nome}</h2><a class="note" href="https://www.infomoney.com.br/${k}/" target="_blank" rel="noopener">ver no InfoMoney ↗</a></div>
+      ${link(top, 'top-story', `<div class="ttl">${esc(top.titulo)}</div><div class="when">${quando(top.data)}</div>`)}
+      <ul>${resto.slice(0, 5).map(n => `<li>${link(n, '', `<span>${esc(n.titulo)}</span><span class="when">${hora(n.data).d || hora(n.data).h}</span>`)}</li>`).join('')}</ul>
+    </div>`;
   }).join('');
 }
 
-// 1) arquivo atualizado pelo GitHub Actions a cada 15 min; 2) se não houver, busca direto via rss2json
+function renderTudo() {
+  if (!dados) return;
+  renderDestaques(); renderFeed(); renderSecoes();
+  $('atualizado').textContent = dados.atualizado ? `Notícias atualizadas ${quando(dados.atualizado)}` : 'busca direta';
+}
+
+// 1) arquivo atualizado pelo GitHub Actions a cada ~15 min; 2) reserva: feed RSS geral via rss2json
 async function carregar() {
   try {
     const r = await fetch('data/noticias.json?t=' + Date.now(), { cache: 'no-store' });
@@ -91,44 +209,49 @@ async function carregar() {
     const d = await r.json();
     if (!Object.values(d.fontes || {}).some(x => x.length)) throw new Error('vazio');
     dados = d;
-    document.getElementById('atualizado').textContent = d.atualizado ? 'atualizado ' + tempo(d.atualizado) : '';
   } catch {
-    // reserva: feed RSS geral via rss2json, separado por editoria pelo endereço da matéria
     const fontes = { ultimas: [], mercados: [], economia: [], politica: [], mundo: [] };
     try {
       const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RSS_GERAL));
       const j = await r.json();
       (j.items || []).forEach(it => {
-        const ed = (new URL(it.link).pathname.split('/').filter(Boolean)[0]) || '';
+        const ed = new URL(it.link).pathname.split('/').filter(Boolean)[0] || '';
         const n = { titulo: it.title, link: it.link, data: it.pubDate ? new Date(it.pubDate.replace(' ', 'T') + 'Z').toISOString() : null, categoria: EDS[ed] || '' };
-        fontes.ultimas.push(n);
-        if (fontes[ed]) fontes[ed].push(n);
+        fontes.ultimas.push(n); if (fontes[ed]) fontes[ed].push(n);
       });
     } catch {}
     dados = { fontes };
-    document.getElementById('atualizado').textContent = 'busca direta';
   }
-  render();
+  renderTudo();
 }
 
-document.getElementById('tabs').onclick = e => {
+$('tabs').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
-  aba = b.dataset.k;
+  aba = b.dataset.k; limiteFeed = 15;
   document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  render();
+  renderFeed();
 };
-document.getElementById('lista').addEventListener('click', e => {
-  const a = e.target.closest('a'); if (!a) return;
-  vistos.add(a.href); store.set('rw_news_vistos', [...vistos].slice(-300));
-  setTimeout(render, 300);
+$('btnMais').onclick = () => { limiteFeed += 15; renderFeed(); };
+document.addEventListener('click', e => {
+  const a = e.target.closest('main a[href^="https://www.infomoney.com.br/"]'); if (!a) return;
+  vistos.add(a.href); store.set('rw_news_vistos', [...vistos].slice(-400));
+  setTimeout(renderFeed, 300);
 });
 
 carregar();
 setInterval(carregar, 5 * 60 * 1000);
-setInterval(() => dados && render(), 60 * 1000);
+setInterval(renderTudo, 60 * 1000);
 
-// Widgets de cotações e notícias em tempo real
-tvWidget(document.getElementById('overview'), 'market-overview', {
+// Faixa de cotações principais + painel lateral + notícias em tempo real (TradingView)
+tvWidget($('strip'), 'tickers', {
+  symbols: [
+    { proName: 'BMFBOVESPA:IBOV', title: 'Ibovespa' }, { proName: 'FX_IDC:USDBRL', title: 'Dólar' },
+    { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' }, { proName: 'TVC:UKOIL', title: 'Brent' },
+    { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
+  ],
+  isTransparent: true, showSymbolLogo: true, colorTheme: 'light', locale: 'br',
+});
+tvWidget($('overview'), 'market-overview', {
   colorTheme: 'light', dateRange: '1D', showChart: true, locale: 'br', width: '100%', height: '100%',
   isTransparent: true, showSymbolLogo: true, showFloatingTooltip: true,
   plotLineColorGrowing: 'rgba(255, 90, 0, 1)', plotLineColorFalling: 'rgba(255, 90, 0, 1)',
@@ -147,7 +270,7 @@ tvWidget(document.getElementById('overview'), 'market-overview', {
       { s: 'FOREXCOM:SPXUSD', d: 'S&P 500' }, { s: 'FOREXCOM:NSXUSD', d: 'Nasdaq 100' }, { s: 'FOREXCOM:DJI', d: 'Dow Jones' }, { s: 'TVC:US10Y', d: 'Treasury 10 anos' } ] },
   ],
 });
-tvWidget(document.getElementById('timeline'), 'timeline', {
+tvWidget($('timeline'), 'timeline', {
   feedMode: 'all_symbols', isTransparent: true, displayMode: 'regular', width: '100%', height: '100%', colorTheme: 'light', locale: 'br',
 });
 </script>
