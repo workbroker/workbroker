@@ -29,6 +29,21 @@ def limpar(txt):
 def ler_feed(xml_bytes, limite=30):
     root = ET.fromstring(xml_bytes)
     itens = []
+    # remove namespaces para aceitar RSS e Atom
+    for el in root.iter():
+        if isinstance(el.tag, str) and "}" in el.tag:
+            el.tag = el.tag.split("}", 1)[1]
+    if root.tag == "feed":  # Atom
+        for it in root.iter("entry"):
+            titulo = limpar(it.findtext("title"))
+            ln = it.find("link")
+            link = (ln.get("href") if ln is not None else "") or ""
+            data = it.findtext("published") or it.findtext("updated")
+            if titulo and link.startswith("http"):
+                itens.append({"titulo": titulo, "link": link, "data": data, "categoria": ""})
+            if len(itens) >= limite:
+                break
+        return itens
     for it in root.iter("item"):
         titulo = limpar(it.findtext("title"))
         link = (it.findtext("link") or "").strip()
@@ -54,8 +69,11 @@ def main():
     fontes, erros = {}, {}
     for chave, url in FEEDS.items():
         try:
-            fontes[chave] = ler_feed(baixar(url))
+            bruto = baixar(url)
+            fontes[chave] = ler_feed(bruto)
             print(f"{chave}: {len(fontes[chave])} itens")
+            if not fontes[chave]:
+                print("  amostra:", bruto[:400])
         except Exception as e:  # mantém o que já existia se o feed falhar
             fontes[chave] = anterior.get("fontes", {}).get(chave, [])
             erros[chave] = str(e)[:200]
