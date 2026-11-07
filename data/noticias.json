@@ -1,0 +1,959 @@
+{
+ "fonte": "InfoMoney",
+ "origem": "sitemap",
+ "atualizado": "2026-11-07T22:04:35+00:00",
+ "fontes": {
+  "ultimas": [
+   {
+    "titulo": "Relações Exteriores do Paraguai diz que país “sai fortalecido” de crise do Ueno Bank",
+    "link": "https://www.infomoney.com.br/mundo/relacoes-exteriores-do-paraguai-diz-que-pais-sai-fortalecido-de-crise-do-ueno-bank/",
+    "data": "2026-11-07T21:24:26+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Trump diz que ordenou investigação contra democratas e os acusa de extorsão",
+    "link": "https://www.infomoney.com.br/mundo/trump-diz-que-ordenou-investigacao-contra-democratas-e-os-acusa-de-extorsao/",
+    "data": "2026-11-07T20:30:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Anvisa selecionará até 8 IFAs fabricados no Brasil para certificação",
+    "link": "https://www.infomoney.com.br/brasil/anvisa-selecionara-ate-8-ifas-fabricados-no-brasil-para-certificacao/",
+    "data": "2026-11-07T20:15:00+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Lula pede ‘prontidão’ ao ‘Exército’ de Janones e confirma live na Turquia",
+    "link": "https://www.infomoney.com.br/politica/lula-exercito-janones-prontidao-live-turquia/",
+    "data": "2026-11-07T20:11:48+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Trump convida CEO do UFC para secretário de imprensa e Amanda Nunes para assistente",
+    "link": "https://www.infomoney.com.br/mundo/trump-convida-ceo-do-ufc-para-secretario-de-imprensa-e-amanda-nunes-para-assistente/",
+    "data": "2026-11-07T19:53:55+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Polônia: Sobe para 6 número de mortos em ataque a tiros na Cracóvia",
+    "link": "https://www.infomoney.com.br/mundo/polonia-sobe-para-6-numero-de-mortos-em-ataque-a-tiros-na-cracovia/",
+    "data": "2026-11-07T19:34:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ueno Bank: BC já devolveu US$ 158 milhões, mas 669 mil contas aguardam",
+    "link": "https://www.infomoney.com.br/mercados/ueno-bank-669-mil-contas-devolucao-dinheiro-paraguai/",
+    "data": "2026-11-07T19:16:09+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Investidor que ganha dinheiro é o que se adapta além da polarização, diz CEO da Arko",
+    "link": "https://www.infomoney.com.br/onde-investir/investidor-que-ganha-dinheiro-e-o-que-se-adapta-alem-da-polarizacao-diz-ceo-da-arko/",
+    "data": "2026-11-07T19:00:00+00:00",
+    "categoria": "Onde investir"
+   },
+   {
+    "titulo": "Mark Zuckerberg ultrapassa US$ 200 bi. Suas filhas não devem herdar a maior parte",
+    "link": "https://www.infomoney.com.br/business/global/mark-zuckerberg-ultrapassa-us-200-bi-suas-filhas-nao-devem-herdar-a-maior-parte/",
+    "data": "2026-11-07T18:59:28+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Binance troca CFO após hack de US$ 6,3 bi; empresa diz que saída era planejada",
+    "link": "https://www.infomoney.com.br/onde-investir/binance-troca-cfo-kaiser-ng-justin-yek-ataque-hacker/",
+    "data": "2026-11-07T18:59:20+00:00",
+    "categoria": "Onde investir"
+   },
+   {
+    "titulo": "Helicóptero cai em fazenda na região de Passos",
+    "link": "https://www.infomoney.com.br/brasil/helicoptero-cai-em-fazenda-na-regiao-de-passos/",
+    "data": "2026-11-07T18:45:58+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "A Trump, Erdogan defende solução diplomática para conflito entre EUA e Irã",
+    "link": "https://www.infomoney.com.br/mundo/a-trump-erdogan-defende-solucao-diplomatica-para-conflito-entre-eua-e-ira/",
+    "data": "2026-11-07T18:38:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Estrela morta tem dois anéis e dá pistas sobre o futuro do Sistema Solar",
+    "link": "https://www.infomoney.com.br/mundo/estrela-morta-dois-aneis-futuro-sistema-solar/",
+    "data": "2026-11-07T18:26:43+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Polônia: Atirador abre fogo em Cracóvia, mata 5 pessoas e fere ao menos 12",
+    "link": "https://www.infomoney.com.br/mundo/polonia-atirador-abre-fogo-em-cracovia-mata-5-pessoas-e-fere-ao-menos-12/",
+    "data": "2026-11-07T18:24:54+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Vance culpa guerra no Irã por derrota republicana e busca espaço para 2028",
+    "link": "https://www.infomoney.com.br/mercados/jd-vance-guerra-ira-derrota-republicana-eleicoes-2028/",
+    "data": "2026-11-07T18:07:47+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Rubio ameaça demissões e aperta controle no Departamento de Estado dos EUA",
+    "link": "https://www.infomoney.com.br/mundo/marco-rubio-demissoes-departamento-estado-trump-2028/",
+    "data": "2026-11-07T17:57:57+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Berkshire lucra 28% menos, mas recompra US$ 9,6 bi e tem US$ 377 bi em caixa",
+    "link": "https://www.infomoney.com.br/mercados/berkshire-hathaway-lucro-3t26-recompras-caixa-greg-abel/",
+    "data": "2026-11-07T17:40:30+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Forças Armadas dos EUA buscam restringir comércio terrestre iraniano",
+    "link": "https://www.infomoney.com.br/mundo/forcas-armadas-dos-eua-buscam-restringir-comercio-terrestre-iraniano/",
+    "data": "2026-11-07T17:09:26+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Papa exorta América do Sul a superar divisões na fronteira entre Uruguai e Argentina",
+    "link": "https://www.infomoney.com.br/mundo/papa-exorta-america-do-sul-a-superar-divisoes-na-fronteira-entre-uruguai-e-argentina/",
+    "data": "2026-11-07T16:39:42+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Catar diz que mantém esforços de mediação entre EUA e Irã para evitar uma escalada",
+    "link": "https://www.infomoney.com.br/mundo/catar-diz-que-mantem-esforcos-de-mediacao-entre-eua-e-ira-para-evitar-uma-escalada/",
+    "data": "2026-11-07T16:23:36+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ex-presidente do Paraguai enfrenta promotores após impeachment e prisão domiciliar",
+    "link": "https://www.infomoney.com.br/mundo/ex-presidente-do-paraguai-enfrenta-promotores-apos-impeachment-e-prisao-domiciliar/",
+    "data": "2026-11-07T16:10:15+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Dólar sobe 10% após eleição; bancos veem exagero e Congresso como contrapeso",
+    "link": "https://www.infomoney.com.br/mercados/dolar-pos-eleicao-lula-bancos-estrangeiros-projecoes/",
+    "data": "2026-11-07T16:07:39+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Gonet quer barrar ações contra fim das bets até decisão definitiva do STF",
+    "link": "https://www.infomoney.com.br/mercados/gonet-stf-suspensao-acoes-proibicao-bets/",
+    "data": "2026-11-07T15:56:27+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Enem 2026: candidatos vivem expectativa sobre o tema da redação",
+    "link": "https://www.infomoney.com.br/brasil/enem-2026-candidatos-vivem-expectativa-sobre-o-tema-da-redacao/",
+    "data": "2026-11-07T15:39:34+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Uruguai libera produtos avícolas do Brasil após 19 dias, exceto de Santa Catarina",
+    "link": "https://www.infomoney.com.br/mercados/uruguai-retoma-importacao-aves-brasil-santa-catarina/",
+    "data": "2026-11-07T15:32:44+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Fórmula 1 seguirá em Interlagos até 2035; acordo prevê novos investimentos",
+    "link": "https://www.infomoney.com.br/business/formula-1-interlagos-contrato-2035-sao-paulo/",
+    "data": "2026-11-07T15:21:20+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Meta nega viés ao TSE e detalha alcance de Lula, Flávio e Nikolas no Instagram",
+    "link": "https://www.infomoney.com.br/politica/meta-tse-instagram-vies-politico-lula-flavio-nikolas/",
+    "data": "2026-11-07T14:59:00+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula propõe encontro com Alliana em Brasília após impeachment de Peña",
+    "link": "https://www.infomoney.com.br/politica/lula-pedro-alliana-brasilia-impeachment-pena/",
+    "data": "2026-11-07T14:30:13+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Pedro Sanches critica Milei após argentino comparar socialismo ao fascismo",
+    "link": "https://www.infomoney.com.br/mundo/pedro-sanches-critica-milei-apos-argentino-comparar-socialismo-ao-fascismo/",
+    "data": "2026-11-07T14:27:05+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Nubank normaliza operações com criptomoedas após falha em fornecedor externo",
+    "link": "https://www.infomoney.com.br/onde-investir/nubank-normaliza-saques-depositos-criptomoedas/",
+    "data": "2026-11-07T14:15:24+00:00",
+    "categoria": "Onde investir"
+   },
+   {
+    "titulo": "Vitória democrata põe em xeque era de ouro das criptomoedas sob Trump",
+    "link": "https://www.infomoney.com.br/onde-investir/criptomoedas-trump-vitoria-democrata-congresso-eua/",
+    "data": "2026-11-07T13:58:24+00:00",
+    "categoria": "Onde investir"
+   },
+   {
+    "titulo": "Milhares se reúnem no Uruguai para a primeira missa do Papa Leão na América do Sul",
+    "link": "https://www.infomoney.com.br/mundo/milhares-se-reunem-no-uruguai-para-a-primeira-missa-do-papa-leao-na-america-do-sul/",
+    "data": "2026-11-07T13:52:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "EUA reconhecem Alliana após queda de Peña e reafirmam aliança com Paraguai",
+    "link": "https://www.infomoney.com.br/mundo/eua-reconhecem-alliana-presidente-paraguai-impeachment-pena/",
+    "data": "2026-11-07T13:40:24+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Lula sanciona Enamed: veja quem terá de passar na prova para exercer medicina",
+    "link": "https://www.infomoney.com.br/brasil/lula-sanciona-enamed-obrigatorio-exercer-medicina/",
+    "data": "2026-11-07T13:30:56+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Prédio desaba no Brás sem certificado dos bombeiros; excesso de peso é suspeita",
+    "link": "https://www.infomoney.com.br/brasil/predio-desabou-bras-avcb-excesso-peso/",
+    "data": "2026-11-07T13:14:44+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Diretor da PRIO critica imposto sobre petróleo, mas ainda vê oportunidades no Brasil",
+    "link": "https://www.infomoney.com.br/mercados/diretor-da-prio-critica-imposto-sobre-petroleo-mas-ainda-ve-oportunidades-no-brasil/",
+    "data": "2026-11-07T13:00:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Rússia lança 36 mísseis e 172 drones contra Ucrânia antes de negociações de paz",
+    "link": "https://www.infomoney.com.br/mundo/russia-ataques-ucrania-misseis-drones-negociacoes-paz/",
+    "data": "2026-11-07T12:51:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Paraguai troca presidente: Alliana assume e Peña é preso após crise bancária",
+    "link": "https://www.infomoney.com.br/mundo/paraguai-alliana-presidente-pena-preso-impeachment-ueno-bank/",
+    "data": "2026-11-07T12:31:39+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Brasil pode liderar mercado de IA, mas temos gap de talentos, diz CTO da Localiza",
+    "link": "https://www.infomoney.com.br/business/brasil-pode-liderar-mercado-de-ia-mas-temos-gap-de-talentos-diz-cto-da-localiza/",
+    "data": "2026-11-07T12:00:00+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Casas Bahia (BHIA3) adia balanço do 3º trimestre em quase um mês",
+    "link": "https://www.infomoney.com.br/mercados/casas-bahia-bhia3-adia-balanco-terceiro-trimestre-2026/",
+    "data": "2026-11-07T11:57:59+00:00",
+    "categoria": "Mercados"
+   }
+  ],
+  "mercados": [
+   {
+    "titulo": "Ueno Bank: BC já devolveu US$ 158 milhões, mas 669 mil contas aguardam",
+    "link": "https://www.infomoney.com.br/mercados/ueno-bank-669-mil-contas-devolucao-dinheiro-paraguai/",
+    "data": "2026-11-07T19:16:09+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Vance culpa guerra no Irã por derrota republicana e busca espaço para 2028",
+    "link": "https://www.infomoney.com.br/mercados/jd-vance-guerra-ira-derrota-republicana-eleicoes-2028/",
+    "data": "2026-11-07T18:07:47+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Berkshire lucra 28% menos, mas recompra US$ 9,6 bi e tem US$ 377 bi em caixa",
+    "link": "https://www.infomoney.com.br/mercados/berkshire-hathaway-lucro-3t26-recompras-caixa-greg-abel/",
+    "data": "2026-11-07T17:40:30+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Dólar sobe 10% após eleição; bancos veem exagero e Congresso como contrapeso",
+    "link": "https://www.infomoney.com.br/mercados/dolar-pos-eleicao-lula-bancos-estrangeiros-projecoes/",
+    "data": "2026-11-07T16:07:39+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Gonet quer barrar ações contra fim das bets até decisão definitiva do STF",
+    "link": "https://www.infomoney.com.br/mercados/gonet-stf-suspensao-acoes-proibicao-bets/",
+    "data": "2026-11-07T15:56:27+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Uruguai libera produtos avícolas do Brasil após 19 dias, exceto de Santa Catarina",
+    "link": "https://www.infomoney.com.br/mercados/uruguai-retoma-importacao-aves-brasil-santa-catarina/",
+    "data": "2026-11-07T15:32:44+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Diretor da PRIO critica imposto sobre petróleo, mas ainda vê oportunidades no Brasil",
+    "link": "https://www.infomoney.com.br/mercados/diretor-da-prio-critica-imposto-sobre-petroleo-mas-ainda-ve-oportunidades-no-brasil/",
+    "data": "2026-11-07T13:00:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Casas Bahia (BHIA3) adia balanço do 3º trimestre em quase um mês",
+    "link": "https://www.infomoney.com.br/mercados/casas-bahia-bhia3-adia-balanco-terceiro-trimestre-2026/",
+    "data": "2026-11-07T11:57:59+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Trader tenta recuperar perdas, faz 85 operações e tem prejuízo de R$ 25 mil em um dia",
+    "link": "https://www.infomoney.com.br/mercados/quando-emocao-vence-razao-trader-faz-85-operacoes-perde-r-25-mil-em-um-dia/",
+    "data": "2026-11-07T11:02:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "De R$ 5 mil negativos a R$ 12,7 mil positivos: o papel da análise macro na virada",
+    "link": "https://www.infomoney.com.br/mercados/de-r-5-mil-negativos-r-127-mil-positivos-papel-da-analise-macro-na-virada/",
+    "data": "2026-11-07T11:00:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Mineração fica livre do Imposto Seletivo em 2027, mas medida é temporária",
+    "link": "https://www.infomoney.com.br/mercados/mineracao-fica-livre-do-imposto-seletivo-em-2027-mas-medida-e-temporaria/",
+    "data": "2026-11-06T23:08:51+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Por que o Ibovespa subiu 1,39% nesta 6ª e fechou semana em alta mesmo após payroll?",
+    "link": "https://www.infomoney.com.br/mercados/por-que-o-ibovespa-sobe-mais-de-1-mesmo-com-dados-fortes-do-payroll-nos-eua/",
+    "data": "2026-11-06T21:45:32+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Petróleo fecha em alta, mas recua 13% na semana após eleição nos EUA",
+    "link": "https://www.infomoney.com.br/mercados/petroleo-fecha-em-alta-mas-recua-13-na-semana-apos-eleicao-nos-eua/",
+    "data": "2026-11-06T21:39:58+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Nasdaq sobe após setor de chips corrigir perdas, mas persiste temor de alta de juros",
+    "link": "https://www.infomoney.com.br/mercados/nasdaq-sobe-apos-setor-de-chips-reduzir-perdas-mas-persiste-temor-de-alta-de-juros/",
+    "data": "2026-11-06T21:33:15+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ações da Sabesp (SBSP3) sobem 7% após balanço: o que agradou no 3º tri?",
+    "link": "https://www.infomoney.com.br/mercados/acoes-da-sabesp-sbsp3-sobem-apos-balanco-o-que-agradou-no-3o-tri/",
+    "data": "2026-11-06T21:28:30+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Cosan (CSAN3): ação salta mais de 10% após notícia sobre venda de fatia da Compass",
+    "link": "https://www.infomoney.com.br/mercados/cosan-csan3-acao-salta-8-apos-noticia-sobre-venda-de-fatia-da-compass/",
+    "data": "2026-11-06T21:26:40+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Assaí, Renner e Grendene sobem após resultados, enquanto Vivara tem queda",
+    "link": "https://www.infomoney.com.br/mercados/assai-renner-e-grendene-sobem-apos-resultados-enquanto-vivara-tem-forte-queda/",
+    "data": "2026-11-06T21:25:52+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ibovespa fecha com ganhos e tem primeira semana positiva depois de três; dólar sobe",
+    "link": "https://www.infomoney.com.br/mercados/ibovespa-hoje-bolsa-de-valores-ao-vivo-06112026/",
+    "data": "2026-11-06T21:24:58+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ação da Vivara (VIVA3) fecha em queda após 3º trimestre, mas longe das mínimas do dia",
+    "link": "https://www.infomoney.com.br/mercados/acao-da-vivara-viva3-lidera-perdas-do-ibovespa-apos-balanco-do-3o-tri/",
+    "data": "2026-11-06T21:23:51+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ânima (ANIM3) fica longe das máximas, mas ainda fecha em alta de 1,26% após 3º tri",
+    "link": "https://www.infomoney.com.br/mercados/anima-anim3-analise-resultados-terceiro-trimestre-2026/",
+    "data": "2026-11-06T21:22:22+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Dasa (DASA3) dispara 10% após balanço com geração de caixa acima das expectativas",
+    "link": "https://www.infomoney.com.br/mercados/dasa-dasa3-dispara-20-apos-balanco-com-geracao-de-caixa-acima-das-expectativas/",
+    "data": "2026-11-06T21:20:06+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Taxas dos DIs fecham em queda com política econômica no radar",
+    "link": "https://www.infomoney.com.br/mercados/taxas-dos-dis-fecham-em-queda-com-politica-economica-no-radar/",
+    "data": "2026-11-06T21:02:50+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Dólar hoje sobe a R$ 5,51, após payroll dos EUA superar expectativas em outubro",
+    "link": "https://www.infomoney.com.br/mercados/dolar-hoje-abertura-fechamento-comercial-turismo-06112026/",
+    "data": "2026-11-06T20:23:58+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "JPMorgan tem cautela com small caps globais e vê risco ao consumo em 2027",
+    "link": "https://www.infomoney.com.br/mercados/jpmorgan-tem-cautela-com-small-caps-globais-e-ve-risco-ao-consumo-em-2027/",
+    "data": "2026-11-06T20:16:41+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ministra sinaliza regulamentação do Redata para semana de 16/11, após viagem de Lula",
+    "link": "https://www.infomoney.com.br/mercados/ministra-sinaliza-regulamentacao-do-redata-para-semana-de-16-11-apos-viagem-de-lula/",
+    "data": "2026-11-06T19:36:54+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Pedágio free flow começa a ser instalado na Castello Branco; conheça operação",
+    "link": "https://www.infomoney.com.br/mercados/pedagio-free-flow-comeca-a-ser-instalado-na-castello-branco-conheca-operacao/",
+    "data": "2026-11-06T19:30:31+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Petrobras cai mais de 20% em 2 semanas após eleições no Brasil e nos EUA: tese mudou?",
+    "link": "https://www.infomoney.com.br/mercados/petrobras-petr3-petr4-cai-mais-de-20-em-2-semanas-apos-eleicoes-no-brasil-e-nos-eua-tese-mudou/",
+    "data": "2026-11-06T18:00:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Carne, frango e açúcar mais caros? Alta do dólar pode pressionar preços dos alimentos",
+    "link": "https://www.infomoney.com.br/mercados/carne-frango-acucar-mais-caros-alta-do-dolar-pode-pressionar-precos-dos-alimentos/",
+    "data": "2026-11-06T17:57:52+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Leilão do Master: veja os objetos do banco que estão à venda até segunda-feira",
+    "link": "https://www.infomoney.com.br/mercados/leilao-do-master-veja-os-objetos-do-banco-que-estao-a-venda-ate-segunda-feira/",
+    "data": "2026-11-06T16:55:57+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Payroll: operadores aumentam apostas em alta de juros pelo Fed após dado",
+    "link": "https://www.infomoney.com.br/mercados/payroll-operadores-aumentam-apostas-em-alta-de-juros-pelo-fed-apos-dado/",
+    "data": "2026-11-06T15:28:40+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "IBGE divulga dados definitivos e confirma que PIB de 2024 cresceu 3,4%",
+    "link": "https://www.infomoney.com.br/mercados/ibge-divulga-dados-definitivos-e-confirma-que-pib-de-2024-cresceu-34/",
+    "data": "2026-11-06T15:27:33+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Payroll: EUA criam 165 mil vagas de trabalho em outubro, acima do esperado",
+    "link": "https://www.infomoney.com.br/mercados/payroll-eua-outubro-2026/",
+    "data": "2026-11-06T13:32:24+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Imposto de exportação de petróleo é prorrogado: como afeta Petrobras, Brava e PRIO?",
+    "link": "https://www.infomoney.com.br/mercados/imposto-de-exportacao-de-petroleo-e-prorrogado-como-afeta-petrobras-brava-e-prio/",
+    "data": "2026-11-06T13:23:15+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Bradesco BBI rebaixa B3 em cenário de juro alto; XP e BTG têm recomendação de compra",
+    "link": "https://www.infomoney.com.br/mercados/bradesco-bbi-rebaixa-b3-em-cenario-de-juro-alto-xp-e-btg-tem-recomendacao-de-compra/",
+    "data": "2026-11-06T12:58:51+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "JPMorgan vê lucro de emergentes resiliente e mantém Brasil entre mercados preferidos",
+    "link": "https://www.infomoney.com.br/mercados/jpmorgan-ve-lucro-de-emergentes-resiliente-e-mantem-brasil-entre-mercados-preferidos/",
+    "data": "2026-11-06T12:53:52+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Governo prorroga imposto sobre exportação de petróleo até 31 de dezembro",
+    "link": "https://www.infomoney.com.br/mercados/camex-prorroga-imposto-de-exportacao-de-petroleo-ate-31-de-dezembro/",
+    "data": "2026-11-06T12:38:15+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Axia (AXIA3) volta ao lucro, mas gráfico indica risco de mais queda",
+    "link": "https://www.infomoney.com.br/mercados/axia-axia3-volta-ao-lucro-mas-grafico-indica-risco-de-mais-queda/",
+    "data": "2026-11-06T12:13:50+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Ibovespa Futuro sobe à espera do payroll nos EUA em dia de cautela global",
+    "link": "https://www.infomoney.com.br/mercados/ibovespa-futuro-06112026-payroll-nos-eua-dia-de-cautela-global/",
+    "data": "2026-11-06T12:13:14+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Minério de ferro registra segundo ganho semanal na China",
+    "link": "https://www.infomoney.com.br/mercados/minerio-de-ferro-registra-segundo-ganho-semanal-na-china/",
+    "data": "2026-11-06T11:39:32+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "BB é desafio para Lula 4 com inadimplência no agro – BB Seguridade pode ser chave",
+    "link": "https://www.infomoney.com.br/mercados/banco-do-brasil-bbas3-e-desafio-para-lula-4-com-inadimplencia-no-agro-bb-seguridade-pode-ser-chave/",
+    "data": "2026-11-06T11:31:13+00:00",
+    "categoria": "Mercados"
+   }
+  ],
+  "economia": [
+   {
+    "titulo": "Trenó do Papai Noel vai chegar nos EUA novamente sobrecarregado por tarifas",
+    "link": "https://www.infomoney.com.br/economia/treno-do-papai-noel-vai-chegar-nos-eua-novamente-sobrecarregado-por-tarifas/",
+    "data": "2026-11-07T08:00:00+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Exportações brasileiras para os EUA crescem 87,0% em outubro ante outubro de 2025",
+    "link": "https://www.infomoney.com.br/economia/exportacoes-brasileiras-para-os-eua-crescem-870-em-outubro-ante-outubro-de-2025/",
+    "data": "2026-11-06T19:00:58+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Exportações brasileiras para a China caem 5,3% em outubro ante outubro de 2025",
+    "link": "https://www.infomoney.com.br/economia/exportacoes-brasileiras-para-a-china-caem-53-em-outubro-ante-outubro-de-2025/",
+    "data": "2026-11-06T18:56:09+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Brasil tem superávit comercial de US$ 9,3 bi em outubro com alta das exportações",
+    "link": "https://www.infomoney.com.br/economia/brasil-tem-superavit-comercial-de-us-93-bi-em-outubro-com-alta-das-exportacoes/",
+    "data": "2026-11-06T18:50:31+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Mercado revisa crescimento de 2027 para baixo, por juros altos e incertezas fiscais",
+    "link": "https://www.infomoney.com.br/economia/previsao-economia-brasil-2027-pib-selic/",
+    "data": "2026-11-06T18:15:39+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "XP reduz projeção do PIB a 0,3% em 2027; dólar vai a R$ 5,50 e Selic fica em 13,75%",
+    "link": "https://www.infomoney.com.br/economia/xp-projecao-pib-2027-selic-dolar/",
+    "data": "2026-11-06T17:00:10+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Emprego forte nos EUA deve pressionar Fed a elevar juros e ameaça cortes na Selic",
+    "link": "https://www.infomoney.com.br/economia/payroll-eua-outubro-juros-fed-selic/",
+    "data": "2026-11-06T16:06:23+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Governo define 27 minerais estratégicos que terão prioridade para exploração",
+    "link": "https://www.infomoney.com.br/economia/governo-define-27-minerais-estrategicos-que-terao-prioridade-para-exploracao/",
+    "data": "2026-11-06T13:56:17+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Inflação anual nos países da OCDE acelera a 4,5% em setembro, puxada por energia",
+    "link": "https://www.infomoney.com.br/economia/inflacao-anual-nos-paises-da-ocde-acelera-a-45-em-setembro-puxada-por-energia/",
+    "data": "2026-11-06T13:27:16+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "FAO eleva previsão de produção global de cereais para 2,999 bi de toneladas métricas",
+    "link": "https://www.infomoney.com.br/economia/fao-eleva-previsao-de-producao-global-de-cereais-para-2999-bi-de-toneladas-metricas/",
+    "data": "2026-11-06T13:17:25+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Importações de soja pela China em 2026/27 devem chegar a 110 mi t, diz adido do USDA",
+    "link": "https://www.infomoney.com.br/economia/importacoes-de-soja-pela-china-em-2026-27-devem-chegar-a-110-mi-t-diz-adido-do-usda/",
+    "data": "2026-11-06T11:37:59+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Preços mundiais dos alimentos caem em outubro, mas estão mais altos do que há um ano",
+    "link": "https://www.infomoney.com.br/economia/precos-mundiais-dos-alimentos-caem-em-outubro-mas-estao-mais-altos-do-que-ha-um-ano/",
+    "data": "2026-11-06T11:25:33+00:00",
+    "categoria": "Economia"
+   }
+  ],
+  "politica": [
+   {
+    "titulo": "Lula pede ‘prontidão’ ao ‘Exército’ de Janones e confirma live na Turquia",
+    "link": "https://www.infomoney.com.br/politica/lula-exercito-janones-prontidao-live-turquia/",
+    "data": "2026-11-07T20:11:48+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Meta nega viés ao TSE e detalha alcance de Lula, Flávio e Nikolas no Instagram",
+    "link": "https://www.infomoney.com.br/politica/meta-tse-instagram-vies-politico-lula-flavio-nikolas/",
+    "data": "2026-11-07T14:59:00+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula propõe encontro com Alliana em Brasília após impeachment de Peña",
+    "link": "https://www.infomoney.com.br/politica/lula-pedro-alliana-brasilia-impeachment-pena/",
+    "data": "2026-11-07T14:30:13+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Buscas por PEC da Segurança disparam no Google e superam interesse por midterms",
+    "link": "https://www.infomoney.com.br/politica/buscas-por-pec-da-seguranca-disparam-no-google-e-superam-interesse-por-midterms/",
+    "data": "2026-11-07T10:00:00+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Flávio admite não ter prova de fraude, mas diz que nem Lula pode se considerar eleito",
+    "link": "https://www.infomoney.com.br/politica/flavio-admite-nao-ter-prova-de-fraude-mas-diz-que-nem-lula-pode-se-considerar-eleito/",
+    "data": "2026-11-06T22:42:35+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula diz que energia elétrica ‘do povo’ não poderá ser usada para data center",
+    "link": "https://www.infomoney.com.br/politica/lula-diz-que-energia-eletrica-do-povo-nao-podera-ser-usada-para-data-center/",
+    "data": "2026-11-06T21:15:59+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Governo aprova 18 diretrizes para mapa sobre fim do uso de combustíveis fósseis",
+    "link": "https://www.infomoney.com.br/politica/governo-aprova-18-diretrizes-para-mapa-sobre-fim-do-uso-de-combustiveis-fosseis/",
+    "data": "2026-11-06T20:45:10+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula reitera compromisso com responsabilidade fiscal e minimiza dívida pública",
+    "link": "https://www.infomoney.com.br/politica/lula-reitera-compromisso-com-responsabilidade-fiscal-e-minimiza-divida-publica/",
+    "data": "2026-11-06T19:40:48+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Governo retoma avaliação ambiental de bacias e inicia estudo sobre blocos em Pelotas",
+    "link": "https://www.infomoney.com.br/politica/governo-retoma-avaliacao-ambiental-de-bacias-e-inicia-estudo-sobre-blocos-em-pelotas/",
+    "data": "2026-11-06T19:40:39+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Rogério Marinho diz que vai procurar Lula e STF se for eleito presidente do Senado",
+    "link": "https://www.infomoney.com.br/politica/rogerio-marinho-diz-que-vai-procurar-lula-e-stf-se-for-eleito-presidente-do-senado/",
+    "data": "2026-11-06T19:33:09+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "MP Eleitoral contestou 42 candidaturas por suspeita de elo com o crime organizado",
+    "link": "https://www.infomoney.com.br/politica/mp-eleitoral-contestou-42-candidaturas-por-suspeita-de-elo-com-o-crime-organizado/",
+    "data": "2026-11-06T19:05:55+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Perdão de dívidas do MEI será automático a partir de janeiro; saiba quem se beneficia",
+    "link": "https://www.infomoney.com.br/politica/perdao-de-dividas-do-mei-sera-automatico-a-partir-de-janeiro-saiba-quem-se-beneficia/",
+    "data": "2026-11-06T17:57:04+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Itália revela que Bolsonaros obtiveram cidadania em 58 dias; oposição vê privilégio",
+    "link": "https://www.infomoney.com.br/politica/italia-revela-que-bolsonaros-obtiveram-cidadania-em-58-dias-oposicao-ve-privilegio/",
+    "data": "2026-11-06T17:52:51+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula diz que Brasil tem seriedade fiscal e que pobre não vai pagar a conta do ajuste",
+    "link": "https://www.infomoney.com.br/politica/lula-diz-que-brasil-tem-seriedade-fiscal-e-que-pobre-nao-vai-pagar-a-conta-do-ajuste/",
+    "data": "2026-11-06T17:15:57+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Fachin nega revisão de prisão preventiva de Fabiano Zettel, cunhado de Vorcaro",
+    "link": "https://www.infomoney.com.br/politica/fachin-nega-revisao-de-prisao-preventiva-de-fabiano-zettel-cunhado-de-vorcaro/",
+    "data": "2026-11-06T17:13:28+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula convida Janones para viagem para COP-31 e Filipinas para fazer lives",
+    "link": "https://www.infomoney.com.br/politica/lula-convida-janones-para-viagem-para-cop-31-e-filipinas-para-fazer-lives/",
+    "data": "2026-11-06T16:25:08+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "BRB pede indenização de R$ 2,2 bilhões por fraudes do Banco Master",
+    "link": "https://www.infomoney.com.br/politica/brb-pede-indenizacao-de-r-22-bilhoes-por-fraudes-do-banco-master/",
+    "data": "2026-11-06T13:35:30+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Integrantes do PT querem que Lula reduza tempo de prisão de Bolsonaro, diz jornal",
+    "link": "https://www.infomoney.com.br/politica/integrantes-do-pt-querem-que-lula-reduza-tempo-de-prisao-de-bolsonaro-diz-jornal/",
+    "data": "2026-11-06T13:23:38+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Justiça rejeita ação contra Jair Bolsonaro no caso de Wal do Açaí",
+    "link": "https://www.infomoney.com.br/politica/justica-rejeita-acao-contra-jair-bolsonaro-no-caso-de-wal-do-acai/",
+    "data": "2026-11-06T12:02:26+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lara Resende nega reunião com Lula e diz que notícia foi plantada para gerar desgaste",
+    "link": "https://www.infomoney.com.br/politica/lara-resende-nega-reuniao-com-lula-e-diz-que-noticia-foi-plantada-para-gerar-desgaste/",
+    "data": "2026-11-06T11:46:04+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula negocia ajuste fiscal e apoio político em meio à pressão do mercado",
+    "link": "https://www.infomoney.com.br/politica/lula-negocia-ajuste-fiscal-e-apoio-politico-em-meio-a-pressao-do-mercado/",
+    "data": "2026-11-06T09:00:00+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula diz que enviará MP para criar Ministério da Segurança Pública",
+    "link": "https://www.infomoney.com.br/politica/lula-diz-que-enviara-mp-para-criar-ministerio-da-seguranca-publica/",
+    "data": "2026-11-06T00:32:58+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Ministros sinalizam que Brasil pode proibir exportação de níquel para agregar valor",
+    "link": "https://www.infomoney.com.br/politica/ministros-sinalizam-que-brasil-pode-proibir-exportacao-de-niquel-para-agregar-valor/",
+    "data": "2026-11-05T23:35:19+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Partidos que declararam apoio à reeleição de Motta representam 70% dos eleitos",
+    "link": "https://www.infomoney.com.br/politica/partidos-que-declararam-apoio-a-reeleicao-de-motta-representam-70-dos-eleitos/",
+    "data": "2026-11-05T23:27:10+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "André Mendonça extingue processo de abertura de sigilo de Lula e Flávio no TSE",
+    "link": "https://www.infomoney.com.br/politica/andre-mendonca-extingue-processo-de-abertura-de-sigilo-de-lula-e-flavio-no-tse/",
+    "data": "2026-11-05T22:34:07+00:00",
+    "categoria": "Política"
+   }
+  ],
+  "mundo": [
+   {
+    "titulo": "Relações Exteriores do Paraguai diz que país “sai fortalecido” de crise do Ueno Bank",
+    "link": "https://www.infomoney.com.br/mundo/relacoes-exteriores-do-paraguai-diz-que-pais-sai-fortalecido-de-crise-do-ueno-bank/",
+    "data": "2026-11-07T21:24:26+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Trump diz que ordenou investigação contra democratas e os acusa de extorsão",
+    "link": "https://www.infomoney.com.br/mundo/trump-diz-que-ordenou-investigacao-contra-democratas-e-os-acusa-de-extorsao/",
+    "data": "2026-11-07T20:30:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Trump convida CEO do UFC para secretário de imprensa e Amanda Nunes para assistente",
+    "link": "https://www.infomoney.com.br/mundo/trump-convida-ceo-do-ufc-para-secretario-de-imprensa-e-amanda-nunes-para-assistente/",
+    "data": "2026-11-07T19:53:55+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Polônia: Sobe para 6 número de mortos em ataque a tiros na Cracóvia",
+    "link": "https://www.infomoney.com.br/mundo/polonia-sobe-para-6-numero-de-mortos-em-ataque-a-tiros-na-cracovia/",
+    "data": "2026-11-07T19:34:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "A Trump, Erdogan defende solução diplomática para conflito entre EUA e Irã",
+    "link": "https://www.infomoney.com.br/mundo/a-trump-erdogan-defende-solucao-diplomatica-para-conflito-entre-eua-e-ira/",
+    "data": "2026-11-07T18:38:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Estrela morta tem dois anéis e dá pistas sobre o futuro do Sistema Solar",
+    "link": "https://www.infomoney.com.br/mundo/estrela-morta-dois-aneis-futuro-sistema-solar/",
+    "data": "2026-11-07T18:26:43+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Polônia: Atirador abre fogo em Cracóvia, mata 5 pessoas e fere ao menos 12",
+    "link": "https://www.infomoney.com.br/mundo/polonia-atirador-abre-fogo-em-cracovia-mata-5-pessoas-e-fere-ao-menos-12/",
+    "data": "2026-11-07T18:24:54+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Rubio ameaça demissões e aperta controle no Departamento de Estado dos EUA",
+    "link": "https://www.infomoney.com.br/mundo/marco-rubio-demissoes-departamento-estado-trump-2028/",
+    "data": "2026-11-07T17:57:57+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Forças Armadas dos EUA buscam restringir comércio terrestre iraniano",
+    "link": "https://www.infomoney.com.br/mundo/forcas-armadas-dos-eua-buscam-restringir-comercio-terrestre-iraniano/",
+    "data": "2026-11-07T17:09:26+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Papa exorta América do Sul a superar divisões na fronteira entre Uruguai e Argentina",
+    "link": "https://www.infomoney.com.br/mundo/papa-exorta-america-do-sul-a-superar-divisoes-na-fronteira-entre-uruguai-e-argentina/",
+    "data": "2026-11-07T16:39:42+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Catar diz que mantém esforços de mediação entre EUA e Irã para evitar uma escalada",
+    "link": "https://www.infomoney.com.br/mundo/catar-diz-que-mantem-esforcos-de-mediacao-entre-eua-e-ira-para-evitar-uma-escalada/",
+    "data": "2026-11-07T16:23:36+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ex-presidente do Paraguai enfrenta promotores após impeachment e prisão domiciliar",
+    "link": "https://www.infomoney.com.br/mundo/ex-presidente-do-paraguai-enfrenta-promotores-apos-impeachment-e-prisao-domiciliar/",
+    "data": "2026-11-07T16:10:15+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Pedro Sanches critica Milei após argentino comparar socialismo ao fascismo",
+    "link": "https://www.infomoney.com.br/mundo/pedro-sanches-critica-milei-apos-argentino-comparar-socialismo-ao-fascismo/",
+    "data": "2026-11-07T14:27:05+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Milhares se reúnem no Uruguai para a primeira missa do Papa Leão na América do Sul",
+    "link": "https://www.infomoney.com.br/mundo/milhares-se-reunem-no-uruguai-para-a-primeira-missa-do-papa-leao-na-america-do-sul/",
+    "data": "2026-11-07T13:52:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "EUA reconhecem Alliana após queda de Peña e reafirmam aliança com Paraguai",
+    "link": "https://www.infomoney.com.br/mundo/eua-reconhecem-alliana-presidente-paraguai-impeachment-pena/",
+    "data": "2026-11-07T13:40:24+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Rússia lança 36 mísseis e 172 drones contra Ucrânia antes de negociações de paz",
+    "link": "https://www.infomoney.com.br/mundo/russia-ataques-ucrania-misseis-drones-negociacoes-paz/",
+    "data": "2026-11-07T12:51:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Paraguai troca presidente: Alliana assume e Peña é preso após crise bancária",
+    "link": "https://www.infomoney.com.br/mundo/paraguai-alliana-presidente-pena-preso-impeachment-ueno-bank/",
+    "data": "2026-11-07T12:31:39+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "CEO da Arko: “Onda azul” facilitará que demandas do Brasil cheguem à Casa Branca",
+    "link": "https://www.infomoney.com.br/mundo/ceo-da-arko-onda-azul-facilitara-que-demandas-do-brasil-cheguem-a-casa-branca/",
+    "data": "2026-11-07T09:00:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Peña é preso em sua casa após impeachment no Paraguai",
+    "link": "https://www.infomoney.com.br/mundo/pena-e-preso-em-sua-casa-apos-impeachment-no-paraguai/",
+    "data": "2026-11-07T00:01:32+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Alliana, do Paraguai, toma posse como presidente após impeachment de Peña",
+    "link": "https://www.infomoney.com.br/mundo/alliana-do-paraguai-toma-posse-como-presidente-apos-impeachment-de-pena/",
+    "data": "2026-11-06T23:45:59+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Senado do Paraguai aprova impeachment do presidente Peña",
+    "link": "https://www.infomoney.com.br/mundo/senado-do-paraguai-aprova-impeachment-do-presidente-pena/",
+    "data": "2026-11-06T22:49:40+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Tempestade geomagnética atinge a Terra neste fim de semana",
+    "link": "https://www.infomoney.com.br/mundo/tempestade-geomagnetica-atinge-a-terra-neste-fim-de-semana/",
+    "data": "2026-11-06T21:51:44+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Pai de Meghan Markle é preso pelo FBI sob acusação de pornografia infantil",
+    "link": "https://www.infomoney.com.br/mundo/pai-de-meghan-markle-e-preso-pelo-fbi-sob-acusacao-de-pornografia-infantil/",
+    "data": "2026-11-06T18:06:35+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Líder de seita no Quênia é condenado a 200 anos de prisão por mortes de crianças",
+    "link": "https://www.infomoney.com.br/mundo/lider-de-seita-no-quenia-e-condenado-a-200-anos-de-prisao-por-mortes-de-criancas/",
+    "data": "2026-11-06T16:50:26+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ameaças de bomba com aviso de ‘tempo se esgotando’ interrompem TVs na Europa",
+    "link": "https://www.infomoney.com.br/mundo/ameacas-de-bomba-com-aviso-de-tempo-se-esgotando-interrompem-tvs-na-europa/",
+    "data": "2026-11-06T16:49:19+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Vitória democrata nos EUA pressiona secretário de Defesa, Pete Hegseth; entenda",
+    "link": "https://www.infomoney.com.br/mundo/vitoria-democrata-nos-eua-pressiona-secretario-de-defesa-pete-hegseth-entenda/",
+    "data": "2026-11-06T16:23:02+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Após greve geral, protestos continuam na França e incêndio atinge escola histórica",
+    "link": "https://www.infomoney.com.br/mundo/apos-greve-geral-protestos-continuam-na-franca-e-incendio-atinge-escola-historica/",
+    "data": "2026-11-06T16:22:55+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Trump diz que ajudará estados a “ficarem ricos” com IA após vitória democrata",
+    "link": "https://www.infomoney.com.br/mundo/trump-diz-que-ajudara-estados-a-ficarem-ricos-com-ia-apos-vitoria-democrata/",
+    "data": "2026-11-06T15:29:18+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Vencedor do Prêmio Goncourt 2026, Philippe Jaenada admite uso de IA em romance",
+    "link": "https://www.infomoney.com.br/mundo/vencedor-do-premio-goncourt-2026-philippe-jaenada-admite-uso-de-ia-em-romance/",
+    "data": "2026-11-06T15:29:13+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Peña pede prazo de 72 horas para preparar defesa contra impeachment no Paraguai",
+    "link": "https://www.infomoney.com.br/mundo/pena-pede-prazo-de-72-horas-para-preparar-defesa-contra-impeachment-no-paraguai/",
+    "data": "2026-11-06T14:57:52+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ueno Bank: quem é Miguel Vázquez, fundador do banco que levou à crise no Paraguai",
+    "link": "https://www.infomoney.com.br/mundo/ueno-bank-quem-e-miguel-vazquez-fundador-do-banco-que-levou-a-crise-no-paraguai/",
+    "data": "2026-11-06T14:40:35+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Na Turquia, ex-ministra é presa em meio à escândalo sobre fundos de investimento",
+    "link": "https://www.infomoney.com.br/mundo/na-turquia-ex-ministra-e-presa-em-meio-a-escandalo-sobre-fundos-de-investimento/",
+    "data": "2026-11-06T14:12:14+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Novo partido de extrema direita na Itália perde terreno com queda em apoio",
+    "link": "https://www.infomoney.com.br/mundo/novo-partido-de-extrema-direita-na-italia-perde-terreno-com-queda-em-apoio/",
+    "data": "2026-11-06T14:02:19+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ansiedade dos eleitores americanos com o avanço da IA foi exposta nas “midterms”",
+    "link": "https://www.infomoney.com.br/mundo/ansiedade-dos-eleitores-americanos-com-o-avanco-da-ia-foi-exposta-nas-midterms/",
+    "data": "2026-11-06T14:00:00+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Conmebol perde R$ 76 mi com a crise do Ueno Bank, que abala futebol paraguaio",
+    "link": "https://www.infomoney.com.br/mundo/conmebol-perde-r-76-mi-com-a-crise-do-ueno-bank-que-abala-futebol-paraguaio/",
+    "data": "2026-11-06T13:33:17+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Presidente da Suprema Corte da Bolívia deixa o país após ordem de prisão",
+    "link": "https://www.infomoney.com.br/mundo/presidente-da-suprema-corte-da-bolivia-deixa-o-pais-apos-ordem-de-prisao/",
+    "data": "2026-11-06T13:07:29+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Ameaças de bomba em aviões na Europa: o que se sabe e quem pode estar por trás?",
+    "link": "https://www.infomoney.com.br/mundo/ameacas-de-bomba-em-avioes-na-europa-o-que-se-sabe-e-quem-pode-estar-por-tras/",
+    "data": "2026-11-06T13:01:12+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Nos EUA, juíza federal suspende por 14 dias início de obras de arco memorial de Trump",
+    "link": "https://www.infomoney.com.br/mundo/nos-eua-juiza-federal-suspende-por-14-dias-inicio-de-obras-de-arco-memorial-de-trump/",
+    "data": "2026-11-06T12:45:23+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Papa Leão XIV inicia giro pela América Latina após cirurgia; Uruguai é 1ª parada",
+    "link": "https://www.infomoney.com.br/mundo/papa-leao-xiv-inicia-giro-pela-america-latina-apos-cirurgia-uruguai-e-1a-parada/",
+    "data": "2026-11-06T12:42:45+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Quatro novas ameaças de bomba são feitas contra aviões que sobrevoavam França",
+    "link": "https://www.infomoney.com.br/mundo/quatro-novas-ameacas-de-bomba-sao-feitas-contra-avioes-que-sobrevoavam-franca/",
+    "data": "2026-11-06T12:39:55+00:00",
+    "categoria": "Mundo"
+   }
+  ]
+ }
+}
