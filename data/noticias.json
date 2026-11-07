@@ -1,9 +1,15 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-07T22:04:35+00:00",
+ "atualizado": "2026-11-07T23:05:47+00:00",
  "fontes": {
   "ultimas": [
+   {
+    "titulo": "Reação contra a IA se espalha pela Europa com protestos contra data centers",
+    "link": "https://www.infomoney.com.br/mercados/reacao-contra-a-ia-se-espalha-pela-europa-com-protestos-contra-data-centers/",
+    "data": "2026-11-07T22:23:05+00:00",
+    "categoria": "Mercados"
+   },
    {
     "titulo": "Relações Exteriores do Paraguai diz que país “sai fortalecido” de crise do Ueno Bank",
     "link": "https://www.infomoney.com.br/mundo/relacoes-exteriores-do-paraguai-diz-que-pais-sai-fortalecido-de-crise-do-ueno-bank/",
@@ -237,15 +243,15 @@
     "link": "https://www.infomoney.com.br/business/brasil-pode-liderar-mercado-de-ia-mas-temos-gap-de-talentos-diz-cto-da-localiza/",
     "data": "2026-11-07T12:00:00+00:00",
     "categoria": "Business"
-   },
-   {
-    "titulo": "Casas Bahia (BHIA3) adia balanço do 3º trimestre em quase um mês",
-    "link": "https://www.infomoney.com.br/mercados/casas-bahia-bhia3-adia-balanco-terceiro-trimestre-2026/",
-    "data": "2026-11-07T11:57:59+00:00",
-    "categoria": "Mercados"
    }
   ],
   "mercados": [
+   {
+    "titulo": "Reação contra a IA se espalha pela Europa com protestos contra data centers",
+    "link": "https://www.infomoney.com.br/mercados/reacao-contra-a-ia-se-espalha-pela-europa-com-protestos-contra-data-centers/",
+    "data": "2026-11-07T22:23:05+00:00",
+    "categoria": "Mercados"
+   },
    {
     "titulo": "Ueno Bank: BC já devolveu US$ 158 milhões, mas 669 mil contas aguardam",
     "link": "https://www.infomoney.com.br/mercados/ueno-bank-669-mil-contas-devolucao-dinheiro-paraguai/",
@@ -478,12 +484,6 @@
     "titulo": "Minério de ferro registra segundo ganho semanal na China",
     "link": "https://www.infomoney.com.br/mercados/minerio-de-ferro-registra-segundo-ganho-semanal-na-china/",
     "data": "2026-11-06T11:39:32+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "BB é desafio para Lula 4 com inadimplência no agro – BB Seguridade pode ser chave",
-    "link": "https://www.infomoney.com.br/mercados/banco-do-brasil-bbas3-e-desafio-para-lula-4-com-inadimplencia-no-agro-bb-seguridade-pode-ser-chave/",
-    "data": "2026-11-06T11:31:13+00:00",
     "categoria": "Mercados"
    }
   ],
