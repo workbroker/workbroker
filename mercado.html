@@ -32,6 +32,7 @@
         <button data-k="mercados">Mercados</button>
         <button data-k="economia">Economia</button>
         <button data-k="politica">Política</button>
+        <button data-k="mundo">Mundo</button>
       </div>
       <ul class="news" id="lista"><li class="note" style="padding:14px 0">Carregando manchetes…</li></ul>
       <p class="note" style="margin-top:10px">As manchetes abrem a matéria no site do InfoMoney.</p>
@@ -53,12 +54,8 @@
 
 <script src="assets/common.js"></script>
 <script>
-const FEEDS = {
-  ultimas: 'https://www.infomoney.com.br/ultimas-noticias/feed/',
-  mercados: 'https://www.infomoney.com.br/mercados/feed/',
-  economia: 'https://www.infomoney.com.br/economia/feed/',
-  politica: 'https://www.infomoney.com.br/politica/feed/',
-};
+const RSS_GERAL = 'https://www.infomoney.com.br/feed/';
+const EDS = { mercados: 'Mercados', economia: 'Economia', politica: 'Política', mundo: 'Mundo' };
 let dados = null, aba = 'ultimas', vistos = new Set(store.get('rw_news_vistos', []));
 
 function tempo(iso) {
@@ -96,14 +93,18 @@ async function carregar() {
     dados = d;
     document.getElementById('atualizado').textContent = d.atualizado ? 'atualizado ' + tempo(d.atualizado) : '';
   } catch {
-    const fontes = {};
-    await Promise.all(Object.entries(FEEDS).map(async ([k, url]) => {
-      try {
-        const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url));
-        const j = await r.json();
-        fontes[k] = (j.items || []).map(it => ({ titulo: it.title, link: it.link, data: it.pubDate ? new Date(it.pubDate.replace(' ', 'T') + 'Z').toISOString() : null, categoria: (it.categories || [])[0] || '' }));
-      } catch { fontes[k] = []; }
-    }));
+    // reserva: feed RSS geral via rss2json, separado por editoria pelo endereço da matéria
+    const fontes = { ultimas: [], mercados: [], economia: [], politica: [], mundo: [] };
+    try {
+      const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RSS_GERAL));
+      const j = await r.json();
+      (j.items || []).forEach(it => {
+        const ed = (new URL(it.link).pathname.split('/').filter(Boolean)[0]) || '';
+        const n = { titulo: it.title, link: it.link, data: it.pubDate ? new Date(it.pubDate.replace(' ', 'T') + 'Z').toISOString() : null, categoria: EDS[ed] || '' };
+        fontes.ultimas.push(n);
+        if (fontes[ed]) fontes[ed].push(n);
+      });
+    } catch {}
     dados = { fontes };
     document.getElementById('atualizado').textContent = 'busca direta';
   }

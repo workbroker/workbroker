@@ -1,24 +1,26 @@
-"""Busca as manchetes dos feeds RSS do InfoMoney e grava data/noticias.json.
-Roda no GitHub Actions a cada 15 minutos (veja .github/workflows/noticias.yml)."""
+"""Busca as manchetes recentes do InfoMoney e grava data/noticias.json.
+Fonte principal: o sitemap de notícias do site (traz título, data e editoria pelo endereço).
+Reserva: o feed RSS geral. Roda no GitHub Actions a cada 15 minutos."""
 import json, os, re, sys, html
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from urllib.parse import urlparse
 
-FEEDS = {
-    "ultimas": "https://www.infomoney.com.br/ultimas-noticias/feed/",
-    "mercados": "https://www.infomoney.com.br/mercados/feed/",
-    "economia": "https://www.infomoney.com.br/economia/feed/",
-    "politica": "https://www.infomoney.com.br/politica/feed/",
-}
+SITEMAP = "https://www.infomoney.com.br/news-sitemap.xml"
+RSS = "https://www.infomoney.com.br/feed/"
 SAIDA = os.path.join(os.path.dirname(__file__), "..", "data", "noticias.json")
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 RicoWork-RSS"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+EDITORIAS = {"mercados": "Mercados", "economia": "Economia", "politica": "Política", "mundo": "Mundo",
+             "onde-investir": "Onde investir", "business": "Business", "advisor": "Advisor", "brasil": "Brasil"}
+IGNORAR = {"esportes", "consumo", "carreira", "minhas-financas", "patrocinados", "saude", "colunistas"}
+LIMITE = 40
 
 
 def baixar(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=40) as r:
         return r.read()
 
 
@@ -26,37 +28,53 @@ def limpar(txt):
     return html.unescape(re.sub(r"\s+", " ", txt or "")).strip()
 
 
-def ler_feed(xml_bytes, limite=30):
-    root = ET.fromstring(xml_bytes)
-    itens = []
-    # remove namespaces para aceitar RSS e Atom
+def sem_ns(root):
     for el in root.iter():
         if isinstance(el.tag, str) and "}" in el.tag:
             el.tag = el.tag.split("}", 1)[1]
-    if root.tag == "feed":  # Atom
-        for it in root.iter("entry"):
-            titulo = limpar(it.findtext("title"))
-            ln = it.find("link")
-            link = (ln.get("href") if ln is not None else "") or ""
-            data = it.findtext("published") or it.findtext("updated")
-            if titulo and link.startswith("http"):
-                itens.append({"titulo": titulo, "link": link, "data": data, "categoria": ""})
-            if len(itens) >= limite:
-                break
-        return itens
-    for it in root.iter("item"):
-        titulo = limpar(it.findtext("title"))
-        link = (it.findtext("link") or "").strip()
-        data = it.findtext("pubDate")
+    return root
+
+
+def iso(txt):
+    if not txt:
+        return None
+    try:
+        return datetime.fromisoformat(txt.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+    except Exception:
         try:
-            iso = parsedate_to_datetime(data).astimezone(timezone.utc).isoformat() if data else None
+            return parsedate_to_datetime(txt).astimezone(timezone.utc).isoformat()
         except Exception:
-            iso = None
-        cats = [limpar(c.text) for c in it.findall("category") if c.text]
+            return None
+
+
+def editoria(link):
+    partes = [p for p in urlparse(link).path.split("/") if p]
+    return partes[0] if partes else ""
+
+
+def do_sitemap():
+    root = sem_ns(ET.fromstring(baixar(SITEMAP)))
+    itens = []
+    for u in root.iter("url"):
+        link = (u.findtext("loc") or "").strip()
+        n = u.find("news")
+        if n is None or not link.startswith("http"):
+            continue
+        titulo = limpar(n.findtext("title"))
+        data = iso(n.findtext("publication_date"))
+        if titulo:
+            itens.append({"titulo": titulo, "link": link, "data": data, "ed": editoria(link)})
+    return itens
+
+
+def do_rss():
+    root = sem_ns(ET.fromstring(baixar(RSS)))
+    itens = []
+    for it in root.iter("item"):
+        link = (it.findtext("link") or "").strip()
+        titulo = limpar(it.findtext("title"))
         if titulo and link.startswith("http"):
-            itens.append({"titulo": titulo, "link": link, "data": iso, "categoria": cats[0] if cats else ""})
-        if len(itens) >= limite:
-            break
+            itens.append({"titulo": titulo, "link": link, "data": iso(it.findtext("pubDate")), "ed": editoria(link)})
     return itens
 
 
@@ -66,30 +84,42 @@ def main():
             anterior = json.load(f)
     except Exception:
         anterior = {"fontes": {}}
-    fontes, erros = {}, {}
-    for chave, url in FEEDS.items():
+    itens, origem = [], ""
+    for nome, fn in (("sitemap", do_sitemap), ("rss", do_rss)):
         try:
-            bruto = baixar(url)
-            fontes[chave] = ler_feed(bruto)
-            print(f"{chave}: {len(fontes[chave])} itens")
-            if not fontes[chave]:
-                i = bruto.find(b"<item")
-                print("  tamanho:", len(bruto), "itens brutos:", bruto.count(b"<item"), "trecho:", bruto[i:i+700] if i >= 0 else bruto[-400:])
-        except Exception as e:  # mantém o que já existia se o feed falhar
-            fontes[chave] = anterior.get("fontes", {}).get(chave, [])
-            erros[chave] = str(e)[:200]
-            print(f"{chave}: ERRO {e}", file=sys.stderr)
-    if not any(fontes.values()):
-        print("Nenhum feed respondeu; nada a gravar.", file=sys.stderr)
-        sys.exit(0)
-    novo = {"fonte": "InfoMoney", "fontes": fontes, "erros": erros}
-    if novo["fontes"] == anterior.get("fontes") and not erros:
+            itens = fn()
+            origem = nome
+            print(f"{nome}: {len(itens)} itens")
+            if itens:
+                break
+        except Exception as e:
+            print(f"{nome}: ERRO {e}", file=sys.stderr)
+    if not itens:
+        print("Nenhuma fonte respondeu; mantendo o arquivo anterior.", file=sys.stderr)
+        return
+    # remove duplicados e ordena do mais novo para o mais antigo
+    vistos, unicos = set(), []
+    for it in sorted(itens, key=lambda x: x["data"] or "", reverse=True):
+        if it["link"] in vistos:
+            continue
+        vistos.add(it["link"])
+        it["categoria"] = EDITORIAS.get(it["ed"], it["ed"].replace("-", " ").capitalize())
+        unicos.append(it)
+    relevantes = [i for i in unicos if i["ed"] not in IGNORAR]
+    fontes = {"ultimas": relevantes[:LIMITE]}
+    for chave in ("mercados", "economia", "politica", "mundo"):
+        fontes[chave] = [i for i in unicos if i["ed"] == chave][:LIMITE]
+    for lista in fontes.values():
+        for i in lista:
+            i.pop("ed", None)
+    if fontes == anterior.get("fontes"):
         print("Sem novidades.")
         return
-    novo["atualizado"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    novo = {"fonte": "InfoMoney", "origem": origem, "atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "fontes": fontes}
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as f:
         json.dump(novo, f, ensure_ascii=False, indent=1)
+    print({k: len(v) for k, v in fontes.items()})
 
 
 if __name__ == "__main__":
