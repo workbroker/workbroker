@@ -69,3 +69,25 @@ async function copyText(text) {
 }
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
+
+function fmtDate(iso) { return iso ? iso.split('-').reverse().join('/') : '—'; }
+function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+
+// Cabeçalho comum a todas as páginas: <header class="top" data-page="..."></header>
+const NAV = [
+  { id: 'inicio', href: 'index.html', label: 'Início' },
+  { id: 'troca', href: 'rolagem.html', label: 'Troca de ativos' },
+  { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },
+  { id: 'relatorio', href: '#', label: 'Relatório mensal', soon: true },
+  { id: 'mercado', href: '#', label: 'Mercado ao vivo', soon: true },
+];
+(function renderHeader() {
+  const h = document.querySelector('header.top');
+  if (!h) return;
+  const page = h.dataset.page;
+  h.innerHTML = `
+    <div class="bar">
+      <a class="brand" href="index.html"><span class="mark">RW</span><span class="name">Rico<b>.</b>Work</span></a>
+    </div>
+    <nav>${NAV.map(n => `<a href="${n.href}" class="${n.id === page ? 'active' : ''}">${n.label}${n.soon ? '<span class="soon">em breve</span>' : ''}</a>`).join('')}</nav>`;
+})();

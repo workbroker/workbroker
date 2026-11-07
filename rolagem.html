@@ -3,329 +3,102 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculadora de rolagem · Rico Work</title>
+<meta name="theme-color" content="#22105a">
+<title>Troca de ativos · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  .sec-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .sec-title h2 { margin: 0; }
+  .tax-pill { margin-top: 2px; }
+  .hint { font-size: 12.5px; color: var(--muted); background: #f8f7fb; border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .hint b { color: var(--indigo); }
+  .linkbtn { background: none; color: var(--orange); padding: 0; font-size: 12.5px; font-weight: 700; border-radius: 0; }
+  #chartBox { position: relative; }
+  .chart-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  #reinvCard[hidden] { display: none; }
+</style>
 </head>
 <body>
-<header class="top">
-  <a class="logo" href="index.html">Rico<span>.</span>Work</a>
-  <nav>
-    <a href="index.html">Início</a>
-    <a href="rolagem.html" class="active">Rolagem</a>
-    <a href="rebalanceador.html">Rebalanceador</a>
-  </nav>
-</header>
+<header class="top" data-page="troca"></header>
 
 <main>
-  <h1>Calculadora de rolagem</h1>
-  <p class="lead">Compara <b>manter o título até o vencimento</b> com <b>vender hoje (com deságio) e reinvestir</b> em outro ativo, no mesmo prazo, já descontando o IR.</p>
+  <div class="sec-title" style="margin-bottom:4px"><h1>Troca de ativos</h1>
+    <button class="sm ghost no-print" id="btnExemplo">Ver exemplo</button></div>
+  <p class="lead">Vale a pena vender o título hoje (com deságio) e migrar para outro com taxa maior? A comparação vai até o vencimento mais longo, já descontando o IR.</p>
 
   <div class="grid cols-2">
     <div class="card">
-      <h2>1. Ativo atual</h2>
+      <div class="sec-title"><h2><span class="step">1</span>Ativo atual</h2><span class="pill" id="a_trib"></span></div>
       <div class="fields">
-        <label class="f full">Nome (opcional)
-          <input id="a_nome" placeholder="Ex.: CDB Banco X 2028">
+        <label class="f">Tipo <select id="a_tipo"></select></label>
+        <label class="f">Taxa contratada
+          <div class="combo"><select id="a_idx"></select><input id="a_taxa" inputmode="decimal" placeholder="13,6"></div></label>
+        <label class="f">Data da aplicação <input id="a_dtapl" type="date"></label>
+        <label class="f">Valor aplicado (R$) <input id="a_aplicado" inputmode="decimal" placeholder="24.000"></label>
+        <label class="f">Vencimento <input id="a_venc" type="date"></label>
+        <label class="f"><span>Venda antecipada hoje
+          <span class="seg" id="segVenda" style="margin-left:4px;vertical-align:middle"><button data-v="valor" class="on" type="button">R$</button><button data-v="taxa" type="button">Taxa</button></span></span>
+          <input id="a_venda" inputmode="decimal" placeholder="Valor bruto de venda">
+          <div class="combo" id="a_mtm_box" hidden><select id="a_mtm_idx" disabled></select><input id="a_mtm" inputmode="decimal" placeholder="Taxa de venda"></div>
         </label>
-        <label class="f">Indexador
-          <select id="a_idx">
-            <option value="pre">Pré-fixado</option>
-            <option value="pctcdi">% do CDI</option>
-            <option value="cdimais">CDI + taxa</option>
-            <option value="ipcamais">IPCA + taxa</option>
-          </select>
-        </label>
-        <label class="f">Taxa <small id="a_taxa_hint">% a.a.</small>
-          <input id="a_taxa" inputmode="decimal" placeholder="12,5">
-        </label>
-        <label class="f">Valor aplicado (R$)
-          <input id="a_aplicado" inputmode="decimal" placeholder="100.000">
-        </label>
-        <label class="f">Data da aplicação
-          <input id="a_dtapl" type="date">
-        </label>
-        <label class="f">Posição bruta hoje, na curva (R$)
-          <input id="a_curva" inputmode="decimal" placeholder="112.000">
-        </label>
-        <label class="f">Valor de venda antecipada (R$) <small>bruto, cotado hoje</small>
-          <input id="a_venda" inputmode="decimal" placeholder="108.500">
-        </label>
-        <label class="f">Vencimento
-          <input id="a_venc" type="date">
-        </label>
-        <label class="check" style="align-self:end;padding-bottom:8px">
-          <input id="a_isento" type="checkbox"> Isento de IR (LCI, LCA, CRI, CRA, debênture incentivada)
-        </label>
+        <div class="full hint" id="curvaHint"></div>
+        <label class="f full" id="curvaBox" hidden>Posição bruta na curva hoje (R$) <small>deixe vazio para estimar pela taxa</small>
+          <input id="a_curva" inputmode="decimal" placeholder="estimada automaticamente"></label>
       </div>
     </div>
 
-    <div class="card">
-      <h2>2. Novo ativo</h2>
-      <div class="fields">
-        <label class="f full">Nome (opcional)
-          <input id="b_nome" placeholder="Ex.: LCA Banco Y 2028">
-        </label>
-        <label class="f">Indexador
-          <select id="b_idx">
-            <option value="pre">Pré-fixado</option>
-            <option value="pctcdi">% do CDI</option>
-            <option value="cdimais">CDI + taxa</option>
-            <option value="ipcamais">IPCA + taxa</option>
-          </select>
-        </label>
-        <label class="f">Taxa <small id="b_taxa_hint">% a.a.</small>
-          <input id="b_taxa" inputmode="decimal" placeholder="13,8">
-        </label>
-        <label class="check full">
-          <input id="b_isento" type="checkbox"> Isento de IR
-        </label>
+    <div>
+      <div class="card">
+        <div class="sec-title"><h2><span class="step">2</span>Sugestão de troca</h2><span class="pill" id="b_trib"></span></div>
+        <div class="fields">
+          <label class="f">Tipo <select id="b_tipo"></select></label>
+          <label class="f">Taxa
+            <div class="combo"><select id="b_idx"></select><input id="b_taxa" inputmode="decimal" placeholder="16"></div></label>
+          <label class="f full">Vencimento <input id="b_venc" type="date"></label>
+        </div>
       </div>
 
-      <h2 style="margin-top:18px">3. Premissas</h2>
-      <div class="fields">
-        <label class="f">CDI médio projetado <small>% a.a. no período</small>
-          <input id="p_cdi" inputmode="decimal" value="13,40">
-        </label>
-        <label class="f">IPCA médio projetado <small>% a.a. no período</small>
-          <input id="p_ipca" inputmode="decimal" value="4,50">
-        </label>
-        <label class="f">Data da simulação
-          <input id="p_hoje" type="date">
-        </label>
-        <label class="f">Comparar até <small>padrão: vencimento do atual</small>
-          <input id="p_horiz" type="date">
-        </label>
+      <div class="card" id="reinvCard" hidden>
+        <div class="sec-title"><h2><span class="step">3</span>Reinvestimento</h2><span class="pill orange" id="r_quem"></span></div>
+        <div class="fields">
+          <label class="f">Taxa para reinvestir <small id="r_hint"></small>
+            <div class="combo"><select id="r_idx"></select><input id="r_taxa" inputmode="decimal" placeholder=""></div></label>
+          <label class="check" style="align-self:end;padding-bottom:10px"><input id="r_isento" type="checkbox"> Isento de IR</label>
+        </div>
       </div>
-      <p class="note">Ajuste CDI e IPCA conforme a projeção da casa. Para prazos diferentes, a comparação é feita na data "Comparar até", considerando o novo ativo na curva.</p>
+
+      <details class="card">
+        <summary style="font-size:14px">Premissas: CDI <span id="sumCdi"></span> · IPCA <span id="sumIpca"></span> · simulação em <span id="sumHoje"></span></summary>
+        <div class="fields three">
+          <label class="f">CDI médio <small>% a.a.</small><input id="p_cdi" inputmode="decimal" value="13,40"></label>
+          <label class="f">IPCA médio <small>% a.a.</small><input id="p_ipca" inputmode="decimal" value="4,50"></label>
+          <label class="f">Data da simulação <input id="p_hoje" type="date"></label>
+        </div>
+        <p class="note">Usados para projetar ativos pós-fixados e de inflação. Ajuste conforme a projeção da casa.</p>
+      </details>
     </div>
   </div>
 
   <div class="card" id="resultado">
     <h2>Resultado</h2>
-    <div id="out"><p class="note">Preencha os campos acima para ver a comparação.</p></div>
+    <div id="out"><p class="note">Preencha o ativo atual e a sugestão de troca para ver a comparação.</p></div>
   </div>
 
-  <div class="card no-print">
-    <h2>Como o cálculo funciona</h2>
+  <details class="card no-print">
+    <summary style="font-size:15px">Como o cálculo funciona</summary>
     <p class="note">
-      <b>Manter:</b> a posição bruta na curva rende a taxa do título até a data final; o IR incide sobre todo o ganho desde a aplicação, com a alíquota pelo prazo total.<br>
-      <b>Trocar:</b> vende pelo valor de venda antecipada, paga o IR sobre o ganho (se houver) com a alíquota pelo prazo já decorrido, e reinveste o líquido no novo ativo. Esse novo investimento começa a tabela regressiva do zero (22,5% até 180 dias, 20% até 360, 17,5% até 720, 15% acima).<br>
-      <b>Taxa mínima:</b> é a taxa que o novo ativo precisa pagar para empatar com manter o atual.<br>
-      Simplificações: dias úteis estimados a partir de dias corridos, IOF desconsiderado (só se aplica abaixo de 30 dias), custos de corretagem não incluídos. Use como apoio à decisão, não como cotação.
+      <b>Manter:</b> o título segue na curva até o vencimento; paga IR sobre todo o ganho desde a aplicação. Se o novo ativo vence depois, o valor líquido é reinvestido na taxa de reinvestimento até a mesma data.<br>
+      <b>Trocar:</b> vende hoje pelo valor de venda antecipada, paga IR sobre o ganho (se houver) e aplica o líquido no novo ativo, que começa a tabela regressiva do zero (22,5% até 180 dias, 20% até 360, 17,5% até 720, 15% acima).<br>
+      <b>Venda por taxa:</b> o valor de venda é estimado trazendo a curva do título para a taxa de mercado informada.<br>
+      <b>Taxa mínima:</b> taxa que o novo ativo precisa pagar para empatar com manter.<br>
+      Simplificações: dias úteis estimados por dias corridos, IOF e custos desconsiderados, posição na curva de pós-fixados estimada pelo CDI/IPCA projetado (informe o valor real para mais precisão).
     </p>
-  </div>
+  </details>
 </main>
+<footer class="foot">Rico.Work · simulação, não é garantia de rentabilidade</footer>
 
 <script src="assets/common.js"></script>
-<script>
-const $ = id => document.getElementById(id);
-const FIELDS = ['a_nome','a_idx','a_taxa','a_aplicado','a_dtapl','a_curva','a_venda','a_venc','a_isento','b_nome','b_idx','b_taxa','b_isento','p_cdi','p_ipca','p_hoje','p_horiz'];
-const IDX_LABEL = { pre: 'Pré', pctcdi: '% CDI', cdimais: 'CDI +', ipcamais: 'IPCA +' };
-
-function hint(idx) { return idx === 'pctcdi' ? '% do CDI' : '% a.a.'; }
-
-// Taxa efetiva anual a partir do indexador
-function taxaAnual(idx, taxa, cdi, ipca) {
-  taxa /= 100; cdi /= 100; ipca /= 100;
-  switch (idx) {
-    case 'pre': return taxa;
-    case 'pctcdi': return Math.pow(1 + (Math.pow(1 + cdi, 1/252) - 1) * taxa, 252) - 1;
-    case 'cdimais': return (1 + cdi) * (1 + taxa) - 1;
-    case 'ipcamais': return (1 + ipca) * (1 + taxa) - 1;
-  }
-}
-
-// Converte taxa efetiva anual de volta para o formato do indexador
-function taxaNoIndexador(idx, anual, cdi, ipca) {
-  cdi /= 100; ipca /= 100;
-  switch (idx) {
-    case 'pre': return anual * 100;
-    case 'pctcdi': return (Math.pow(1 + anual, 1/252) - 1) / (Math.pow(1 + cdi, 1/252) - 1) * 100;
-    case 'cdimais': return ((1 + anual) / (1 + cdi) - 1) * 100;
-    case 'ipcamais': return ((1 + anual) / (1 + ipca) - 1) * 100;
-  }
-}
-
-function fmtTaxa(idx, v) {
-  if (!Number.isFinite(v)) return '—';
-  if (idx === 'pctcdi') return pct(v) + ' do CDI';
-  if (idx === 'pre') return pct(v) + ' a.a.';
-  return IDX_LABEL[idx] + ' ' + pct(v);
-}
-
-function read() {
-  const v = {};
-  FIELDS.forEach(f => { const el = $(f); v[f] = el.type === 'checkbox' ? el.checked : el.value; });
-  return v;
-}
-
-function calc(v) {
-  const n = {
-    aTaxa: parseNum(v.a_taxa), bTaxa: parseNum(v.b_taxa),
-    aplicado: parseNum(v.a_aplicado), curva: parseNum(v.a_curva), venda: parseNum(v.a_venda),
-    cdi: parseNum(v.p_cdi), ipca: parseNum(v.p_ipca),
-  };
-  const faltando = [];
-  if (!Number.isFinite(n.aTaxa)) faltando.push('taxa do ativo atual');
-  if (!Number.isFinite(n.aplicado)) faltando.push('valor aplicado');
-  if (!v.a_dtapl) faltando.push('data da aplicação');
-  if (!Number.isFinite(n.curva)) faltando.push('posição na curva');
-  if (!Number.isFinite(n.venda)) faltando.push('valor de venda');
-  if (!v.p_horiz && !v.a_venc) faltando.push('vencimento');
-  if (!Number.isFinite(n.bTaxa)) faltando.push('taxa do novo ativo');
-  if (faltando.length) return { erro: 'Falta preencher: ' + faltando.join(', ') + '.' };
-
-  const hoje = v.p_hoje || todayISO();
-  const fim = v.p_horiz || v.a_venc;
-  const dias = daysBetween(hoje, fim);
-  if (!(dias > 0)) return { erro: 'A data final precisa ser depois da data da simulação.' };
-  const t = dias / 365;
-  const diasDecorridos = daysBetween(v.a_dtapl, hoje);
-  if (!(diasDecorridos >= 0)) return { erro: 'A data da aplicação precisa ser anterior à data da simulação.' };
-
-  const rA = taxaAnual(v.a_idx, n.aTaxa, n.cdi, n.ipca);
-  const rB = taxaAnual(v.b_idx, n.bTaxa, n.cdi, n.ipca);
-
-  // Cenário A: manter
-  const brutoA = n.curva * Math.pow(1 + rA, t);
-  const aliqA = v.a_isento ? 0 : aliquotaIR(diasDecorridos + dias);
-  const irA = aliqA * Math.max(brutoA - n.aplicado, 0);
-  const liqA = brutoA - irA;
-
-  // Cenário B: vender e reinvestir
-  const aliqVenda = v.a_isento ? 0 : aliquotaIR(diasDecorridos);
-  const irVenda = aliqVenda * Math.max(n.venda - n.aplicado, 0);
-  const liqVenda = n.venda - irVenda;
-  const brutoB = liqVenda * Math.pow(1 + rB, t);
-  const aliqB = v.b_isento ? 0 : aliquotaIR(dias);
-  const irB = aliqB * Math.max(brutoB - liqVenda, 0);
-  const liqB = brutoB - irB;
-
-  // Taxa mínima de empate no novo ativo
-  const brutoEmpate = (liqA - aliqB * liqVenda) / (1 - aliqB);
-  const rEmpate = Math.pow(brutoEmpate / liqVenda, 1 / t) - 1;
-  const taxaEmpate = taxaNoIndexador(v.b_idx, rEmpate, n.cdi, n.ipca);
-
-  // Rentabilidade líquida anual a partir do valor que o cliente tem hoje (líquido de venda)
-  const anualLiqA = Math.pow(liqA / liqVenda, 1 / t) - 1;
-  const anualLiqB = Math.pow(liqB / liqVenda, 1 / t) - 1;
-
-  // Tempo para recuperar o deságio (meses), comparando a trajetória líquida
-  let mesesRecupera = null;
-  for (let m = 1; m <= Math.ceil(dias / 30.4); m++) {
-    const d = Math.min(Math.round(m * 30.4), dias), tt = d / 365;
-    const bA = n.curva * Math.pow(1 + rA, tt);
-    const lA = bA - (v.a_isento ? 0 : aliquotaIR(diasDecorridos + d)) * Math.max(bA - n.aplicado, 0);
-    const bB = liqVenda * Math.pow(1 + rB, tt);
-    const lB = bB - (v.b_isento ? 0 : aliquotaIR(d)) * Math.max(bB - liqVenda, 0);
-    if (lB >= lA) { mesesRecupera = m; break; }
-  }
-
-  return {
-    hoje, fim, dias, diasDecorridos, rA, rB, brutoA, aliqA, irA, liqA,
-    aliqVenda, irVenda, liqVenda, brutoB, aliqB, irB, liqB,
-    desagio: n.curva - n.venda, desagioPct: (n.curva - n.venda) / n.curva * 100,
-    dif: liqB - liqA, difPct: (liqB / liqA - 1) * 100,
-    taxaEmpate, anualLiqA, anualLiqB, mesesRecupera, n,
-  };
-}
-
-function render() {
-  const v = read();
-  $('a_taxa_hint').textContent = hint(v.a_idx);
-  $('b_taxa_hint').textContent = hint(v.b_idx);
-  store.set('rolagem', v);
-
-  const r = calc(v);
-  if (r.erro) { $('out').innerHTML = `<p class="note">${esc(r.erro)}</p>`; return; }
-
-  const nomeA = v.a_nome || 'ativo atual', nomeB = v.b_nome || 'novo ativo';
-  const anos = (r.dias / 365).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-  let cls, titulo, sub;
-  if (r.dif > 0.005 * r.liqA) {
-    cls = 'good'; titulo = `Vale a pena trocar: +${brl(r.dif)} líquido (${pct(r.difPct)})`;
-    sub = r.mesesRecupera ? `O deságio é recuperado em cerca de ${r.mesesRecupera} ${r.mesesRecupera === 1 ? 'mês' : 'meses'}.` : '';
-  } else if (r.dif < -0.005 * r.liqA) {
-    cls = 'bad'; titulo = `Não compensa trocar: ${brl(r.dif)} líquido (${pct(r.difPct)})`;
-    sub = `O novo ativo precisaria pagar pelo menos ${fmtTaxa(v.b_idx, r.taxaEmpate)} para empatar.`;
-  } else {
-    cls = 'neutral'; titulo = `Praticamente empate: ${brl(r.dif)} (${pct(r.difPct)})`;
-    sub = 'A diferença é pequena; pesam outros fatores como liquidez, risco do emissor e FGC.';
-  }
-
-  $('out').innerHTML = `
-    <div class="verdict ${cls}">${esc(titulo)}<small>${esc(sub)}</small></div>
-    <div class="kpis">
-      <div class="kpi"><div class="l">Manter até ${fmtDate(r.fim)}</div><div class="v">${brl(r.liqA)}</div><div class="s">líquido · ${pct(r.anualLiqA * 100)} a.a.</div></div>
-      <div class="kpi"><div class="l">Trocar e manter até ${fmtDate(r.fim)}</div><div class="v ${r.dif >= 0 ? 'good' : 'bad'}">${brl(r.liqB)}</div><div class="s">líquido · ${pct(r.anualLiqB * 100)} a.a.</div></div>
-      <div class="kpi"><div class="l">Deságio na venda</div><div class="v">${brl(r.desagio)}</div><div class="s">${pct(r.desagioPct)} da posição na curva</div></div>
-      <div class="kpi"><div class="l">Taxa mínima p/ empatar</div><div class="v" style="font-size:17px">${fmtTaxa(v.b_idx, r.taxaEmpate)}</div><div class="s">oferecido: ${fmtTaxa(v.b_idx, r.n.bTaxa)}</div></div>
-    </div>
-
-    <div class="table-wrap" style="margin-top:14px">
-      <table>
-        <thead><tr><th></th><th class="n">Manter</th><th class="n">Trocar</th></tr></thead>
-        <tbody>
-          <tr><td>Valor de partida</td><td class="n">${brl(r.n.curva)} <span class="note">(curva)</span></td><td class="n">${brl(r.n.venda)} <span class="note">(venda)</span></td></tr>
-          <tr><td>IR na venda hoje</td><td class="n">—</td><td class="n">${brl(-r.irVenda)} <span class="note">(${pct(r.aliqVenda*100,1)})</span></td></tr>
-          <tr><td>Valor reinvestido</td><td class="n">—</td><td class="n">${brl(r.liqVenda)}</td></tr>
-          <tr><td>Taxa efetiva anual</td><td class="n">${pct(r.rA*100)}</td><td class="n">${pct(r.rB*100)}</td></tr>
-          <tr><td>Bruto no fim (${anos} anos)</td><td class="n">${brl(r.brutoA)}</td><td class="n">${brl(r.brutoB)}</td></tr>
-          <tr><td>IR no fim</td><td class="n">${brl(-r.irA)} <span class="note">(${pct(r.aliqA*100,1)})</span></td><td class="n">${brl(-r.irB)} <span class="note">(${pct(r.aliqB*100,1)})</span></td></tr>
-          <tr><td><b>Líquido no fim</b></td><td class="n"><b>${brl(r.liqA)}</b></td><td class="n"><b>${brl(r.liqB)}</b></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="row no-print" style="margin-top:14px">
-      <button id="btnCopiar">Copiar resumo para o cliente</button>
-      <button class="secondary" onclick="window.print()">Imprimir / PDF</button>
-      <button class="ghost" id="btnLimpar">Limpar campos</button>
-    </div>`;
-
-  $('btnCopiar').onclick = () => copyText(resumo(v, r, nomeA, nomeB));
-  $('btnLimpar').onclick = limpar;
-}
-
-function fmtDate(iso) { return iso ? iso.split('-').reverse().join('/') : '—'; }
-
-function resumo(v, r, nomeA, nomeB) {
-  const linhas = [
-    `*Simulação de troca de ativo*`,
-    `Hoje: ${nomeA} (${fmtTaxa(v.a_idx, r.n.aTaxa)}${v.a_isento ? ', isento' : ''})`,
-    `Proposta: ${nomeB} (${fmtTaxa(v.b_idx, r.n.bTaxa)}${v.b_isento ? ', isento' : ''})`,
-    ``,
-    `Comparação até ${fmtDate(r.fim)}, já descontando IR:`,
-    `• Manter: ${brl(r.liqA)}`,
-    `• Trocar: ${brl(r.liqB)}`,
-    `• Diferença: ${r.dif >= 0 ? '+' : ''}${brl(r.dif)} (${pct(r.difPct)})`,
-  ];
-  if (r.desagio > 0) linhas.push(``, `A venda antecipada tem deságio de ${brl(r.desagio)}${r.dif > 0 && r.mesesRecupera ? `, recuperado em cerca de ${r.mesesRecupera} meses` : ''}.`);
-  linhas.push(``, `_Premissas: CDI ${pct(r.n.cdi)} a.a., IPCA ${pct(r.n.ipca)} a.a. Simulação, não é garantia de rentabilidade._`);
-  return linhas.join('\n');
-}
-
-function limpar() {
-  FIELDS.forEach(f => {
-    const el = $(f);
-    if (['p_cdi','p_ipca','a_idx','b_idx'].includes(f)) return;
-    if (el.type === 'checkbox') el.checked = false; else el.value = '';
-  });
-  $('p_hoje').value = todayISO();
-  render();
-}
-
-// Inicialização
-(function init() {
-  const saved = store.get('rolagem', null);
-  if (saved) FIELDS.forEach(f => { const el = $(f); if (saved[f] === undefined) return; if (el.type === 'checkbox') el.checked = saved[f]; else el.value = saved[f]; });
-  if (!$('p_hoje').value) $('p_hoje').value = todayISO();
-  // "Comparar até" acompanha o vencimento enquanto o usuário não mudar manualmente
-  $('a_venc').addEventListener('change', () => { if (!$('p_horiz').dataset.manual) { $('p_horiz').value = $('a_venc').value; render(); } });
-  $('p_horiz').addEventListener('change', () => { $('p_horiz').dataset.manual = $('p_horiz').value && $('p_horiz').value !== $('a_venc').value ? '1' : ''; });
-  FIELDS.forEach(f => { $(f).addEventListener('input', render); $(f).addEventListener('change', render); });
-  render();
-})();
-</script>
+<script src="assets/rolagem.js"></script>
 </body>
 </html>
