@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Mercado ao vivo · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top" data-page="mercado"></header>
+
+<main>
+  <section class="hero">
+    <h1><span class="live-dot"></span>Mercado ao vivo</h1>
+    <p>Manchetes do InfoMoney atualizadas automaticamente e cotações de índices, câmbio e commodities.</p>
+    <div class="chips">
+      <a class="chip" href="https://www.infomoney.com.br/" target="_blank" rel="noopener" style="color:#fff;text-decoration:none">Abrir o InfoMoney ↗</a>
+      <span class="chip">Ações da B3 com 15 min de atraso</span>
+    </div>
+  </section>
+
+  <div class="grid news-layout">
+    <div class="card">
+      <div class="card-head">
+        <h2>Últimas do InfoMoney</h2>
+        <span class="note" id="atualizado"></span>
+      </div>
+      <div class="news-tabs" id="tabs">
+        <button data-k="ultimas" class="on">Últimas</button>
+        <button data-k="mercados">Mercados</button>
+        <button data-k="economia">Economia</button>
+        <button data-k="politica">Política</button>
+      </div>
+      <ul class="news" id="lista"><li class="note" style="padding:14px 0">Carregando manchetes…</li></ul>
+      <p class="note" style="margin-top:10px">As manchetes abrem a matéria no site do InfoMoney.</p>
+    </div>
+
+    <div>
+      <div class="card" style="padding:10px">
+        <h2 style="margin:6px 6px 8px">Cotações</h2>
+        <div class="tv-box" id="overview" style="height:520px"></div>
+      </div>
+      <div class="card" style="padding:10px">
+        <h2 style="margin:6px 6px 8px">Notícias em tempo real</h2>
+        <div class="tv-box" id="timeline" style="height:560px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="foot">Manchetes: InfoMoney · Cotações e notícias em tempo real: TradingView</footer>
+
+<script src="assets/common.js"></script>
+<script>
+const FEEDS = {
+  ultimas: 'https://www.infomoney.com.br/ultimas-noticias/feed/',
+  mercados: 'https://www.infomoney.com.br/mercados/feed/',
+  economia: 'https://www.infomoney.com.br/economia/feed/',
+  politica: 'https://www.infomoney.com.br/politica/feed/',
+};
+let dados = null, aba = 'ultimas', vistos = new Set(store.get('rw_news_vistos', []));
+
+function tempo(iso) {
+  if (!iso) return '';
+  const min = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function render() {
+  const itens = (dados?.fontes?.[aba] || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  if (!itens.length) {
+    document.getElementById('lista').innerHTML = `<li class="note" style="padding:14px 0">Não consegui carregar as manchetes agora. <a href="https://www.infomoney.com.br/" target="_blank" rel="noopener">Abrir o InfoMoney ↗</a></li>`;
+    return;
+  }
+  document.getElementById('lista').innerHTML = itens.map(n => {
+    const novo = !vistos.has(n.link) && n.data && (Date.now() - new Date(n.data)) < 3 * 3600e3;
+    return `<li><a href="${esc(n.link)}" target="_blank" rel="noopener">
+      <div class="tt">${esc(n.titulo)}</div>
+      <div class="mt">${novo ? '<span class="new">NOVO</span>' : ''}<span>${tempo(n.data)}</span>${n.categoria ? `<span class="pill">${esc(n.categoria)}</span>` : ''}</div>
+    </a></li>`;
+  }).join('');
+}
+
+// 1) arquivo atualizado pelo GitHub Actions a cada 15 min; 2) se não houver, busca direto via rss2json
+async function carregar() {
+  try {
+    const r = await fetch('data/noticias.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (!Object.values(d.fontes || {}).some(x => x.length)) throw new Error('vazio');
+    dados = d;
+    document.getElementById('atualizado').textContent = d.atualizado ? 'atualizado ' + tempo(d.atualizado) : '';
+  } catch {
+    const fontes = {};
+    await Promise.all(Object.entries(FEEDS).map(async ([k, url]) => {
+      try {
+        const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url));
+        const j = await r.json();
+        fontes[k] = (j.items || []).map(it => ({ titulo: it.title, link: it.link, data: it.pubDate ? new Date(it.pubDate.replace(' ', 'T') + 'Z').toISOString() : null, categoria: (it.categories || [])[0] || '' }));
+      } catch { fontes[k] = []; }
+    }));
+    dados = { fontes };
+    document.getElementById('atualizado').textContent = 'busca direta';
+  }
+  render();
+}
+
+document.getElementById('tabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  aba = b.dataset.k;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+};
+document.getElementById('lista').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a) return;
+  vistos.add(a.href); store.set('rw_news_vistos', [...vistos].slice(-300));
+  setTimeout(render, 300);
+});
+
+carregar();
+setInterval(carregar, 5 * 60 * 1000);
+setInterval(() => dados && render(), 60 * 1000);
+
+// Widgets de cotações e notícias em tempo real
+tvWidget(document.getElementById('overview'), 'market-overview', {
+  colorTheme: 'light', dateRange: '1D', showChart: true, locale: 'br', width: '100%', height: '100%',
+  isTransparent: true, showSymbolLogo: true, showFloatingTooltip: true,
+  plotLineColorGrowing: 'rgba(255, 90, 0, 1)', plotLineColorFalling: 'rgba(255, 90, 0, 1)',
+  belowLineFillColorGrowing: 'rgba(255, 90, 0, 0.12)', belowLineFillColorFalling: 'rgba(255, 90, 0, 0.12)',
+  belowLineFillColorGrowingBottom: 'rgba(255, 90, 0, 0)', belowLineFillColorFallingBottom: 'rgba(255, 90, 0, 0)',
+  gridLineColor: 'rgba(240, 243, 250, 0)', scaleFontColor: 'rgba(109, 106, 128, 1)', symbolActiveColor: 'rgba(255, 90, 0, 0.10)',
+  tabs: [
+    { title: 'Brasil', symbols: [
+      { s: 'BMFBOVESPA:IBOV', d: 'Ibovespa' }, { s: 'BMFBOVESPA:IFIX', d: 'IFIX' }, { s: 'BMFBOVESPA:PETR4', d: 'Petrobras PN' },
+      { s: 'BMFBOVESPA:VALE3', d: 'Vale ON' }, { s: 'BMFBOVESPA:ITUB4', d: 'Itaú PN' }, { s: 'BMFBOVESPA:BBAS3', d: 'Banco do Brasil ON' } ] },
+    { title: 'Câmbio', symbols: [
+      { s: 'FX_IDC:USDBRL', d: 'Dólar' }, { s: 'FX_IDC:EURBRL', d: 'Euro' }, { s: 'TVC:DXY', d: 'Índice DXY' }, { s: 'BITSTAMP:BTCUSD', d: 'Bitcoin (US$)' } ] },
+    { title: 'Commodities', symbols: [
+      { s: 'TVC:UKOIL', d: 'Petróleo Brent' }, { s: 'TVC:GOLD', d: 'Ouro' }, { s: 'TVC:SILVER', d: 'Prata' }, { s: 'COMEX:HG1!', d: 'Cobre' } ] },
+    { title: 'Global', symbols: [
+      { s: 'FOREXCOM:SPXUSD', d: 'S&P 500' }, { s: 'FOREXCOM:NSXUSD', d: 'Nasdaq 100' }, { s: 'FOREXCOM:DJI', d: 'Dow Jones' }, { s: 'TVC:US10Y', d: 'Treasury 10 anos' } ] },
+  ],
+});
+tvWidget(document.getElementById('timeline'), 'timeline', {
+  feedMode: 'all_symbols', isTransparent: true, displayMode: 'regular', width: '100%', height: '100%', colorTheme: 'light', locale: 'br',
+});
+</script>
+</body>
+</html>

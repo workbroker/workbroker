@@ -79,7 +79,7 @@ const NAV = [
   { id: 'troca', href: 'rolagem.html', label: 'Troca de ativos' },
   { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },
   { id: 'relatorio', href: '#', label: 'Relatório mensal', soon: true },
-  { id: 'mercado', href: '#', label: 'Mercado ao vivo', soon: true },
+  { id: 'mercado', href: 'mercado.html', label: 'Mercado ao vivo' },
 ];
 (function renderHeader() {
   const h = document.querySelector('header.top');
@@ -90,4 +90,38 @@ const NAV = [
       <a class="brand" href="index.html"><span class="mark">RW</span><span class="name">Rico<b>.</b>Work</span></a>
     </div>
     <nav>${NAV.map(n => `<a href="${n.href}" class="${n.id === page ? 'active' : ''}">${n.label}${n.soon ? '<span class="soon">em breve</span>' : ''}</a>`).join('')}</nav>`;
+})();
+
+
+// ---------- Widgets do TradingView (cotações) ----------
+function tvWidget(container, nome, config) {
+  if (!container) return;
+  container.innerHTML = '<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div></div>';
+  const s = document.createElement('script');
+  s.src = `https://s3.tradingview.com/external-embedding/embed-widget-${nome}.js`;
+  s.async = true;
+  s.text = JSON.stringify(config);
+  container.firstChild.appendChild(s);
+}
+
+// Ativos da faixa de cotações do rodapé (edite aqui para trocar a lista)
+const TICKERS = [
+  ['BMFBOVESPA:IBOV', 'Ibovespa'], ['FX_IDC:USDBRL', 'Dólar'], ['BMFBOVESPA:IFIX', 'IFIX'],
+  ['BMFBOVESPA:PETR4', 'PETR4'], ['BMFBOVESPA:VALE3', 'VALE3'], ['BMFBOVESPA:ITUB4', 'ITUB4'],
+  ['BMFBOVESPA:BBAS3', 'BBAS3'], ['BMFBOVESPA:BBDC4', 'BBDC4'], ['BMFBOVESPA:B3SA3', 'B3SA3'],
+  ['BMFBOVESPA:WEGE3', 'WEGE3'], ['BMFBOVESPA:ABEV3', 'ABEV3'], ['FX_IDC:EURBRL', 'Euro'],
+  ['TVC:UKOIL', 'Petróleo Brent'], ['TVC:GOLD', 'Ouro'], ['FOREXCOM:SPXUSD', 'S&P 500'],
+  ['FOREXCOM:NSXUSD', 'Nasdaq 100'], ['BITSTAMP:BTCUSD', 'Bitcoin'],
+];
+(function rodapeCotacoes() {
+  if (document.body.dataset.ticker === 'off') return;
+  const bar = document.createElement('div');
+  bar.className = 'ticker-bar no-print';
+  bar.innerHTML = '<div class="ticker-ph">Carregando cotações…</div>';
+  document.body.appendChild(bar);
+  document.body.classList.add('has-ticker');
+  setTimeout(() => tvWidget(bar, 'ticker-tape', {
+    symbols: TICKERS.map(([proName, title]) => ({ proName, title })),
+    showSymbolLogo: true, isTransparent: true, displayMode: 'adaptive', colorTheme: 'dark', locale: 'br',
+  }), 50);
 })();
