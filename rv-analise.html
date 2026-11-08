@@ -8,9 +8,13 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .tk { font-weight: 800; color: var(--indigo); font-size: 15px; }
+  .tkr { font-weight: 800; color: var(--indigo); font-size: 15px; }
   .sub { font-size: 11.5px; color: var(--muted); max-width: 230px; white-space: normal; line-height: 1.3; }
-  .pm { width: 92px; text-align: right; }
+  .acts { display: flex; gap: 4px; justify-content: flex-end; }
+  .acts button { padding: 5px 10px; font-size: 12px; }
+  .b-c { background: var(--good-soft); color: var(--good); }
+  .b-v { background: var(--bad-soft); color: var(--bad); }
+  .emp { font-size: 12.5px; color: var(--ink); font-weight: 600; max-width: 230px; white-space: normal; line-height: 1.25; }
   td .v-up { color: var(--good); font-size: 12px; font-weight: 700; }
   td .v-down { color: var(--bad); font-size: 12px; font-weight: 700; }
   .alerts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
@@ -31,7 +35,7 @@
 
 <main>
   <h1>Análise de ações e FIIs</h1>
-  <p class="lead">Importe o XPerformance (ou lance os ativos) e veja indicadores, resultado de cada posição, pontos de atenção e notícias. Depois, envie o relatório ao cliente.</p>
+  <p class="lead">Importe o XPerformance (ou lance os ativos) e veja indicadores, rentabilidade de cada posição contra o CDI, pontos de atenção e notícias. Monte compras e vendas e envie o e-mail de de acordo ao cliente.</p>
 
   <div class="card">
     <div class="card-head"><h2><span class="step">1</span>Cliente e carteira</h2>
@@ -48,10 +52,9 @@
     </div>
     <div id="info" style="margin-top:10px"></div>
     <details style="margin-top:12px" class="no-print"><summary class="note" style="cursor:pointer;font-weight:700">+ Adicionar ativo manualmente</summary>
-      <div class="addrow" style="margin-top:10px">
+      <div class="addrow" style="margin-top:10px;grid-template-columns:1fr 1fr auto">
         <label class="f">Ticker <input id="addTk" placeholder="ITUB4" autocapitalize="characters"></label>
         <label class="f">Quantidade <input id="addQt" inputmode="numeric" placeholder="100"></label>
-        <label class="f">Preço médio (R$) <input id="addPm" inputmode="decimal" placeholder="opcional"></label>
         <button id="btnAdd">Adicionar</button>
       </div>
     </details>
@@ -63,17 +66,22 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2>Ações e ETFs</h2><span class="note">Informe o preço médio para ver lucro/prejuízo</span></div>
-    <div class="table-wrap"><table id="tAcoes"></table></div>
+    <div class="card-head"><h2>Ações e ETFs</h2><span class="note">Rentabilidade e % do CDI conforme o XPerformance</span></div>
+    <div class="table-wrap fixo"><table id="tAcoes"></table></div>
   </div>
 
   <div class="card">
     <div class="card-head"><h2>Fundos imobiliários</h2></div>
-    <div class="table-wrap"><table id="tFiis"></table></div>
+    <div class="table-wrap fixo"><table id="tFiis"></table></div>
+  </div>
+
+  <div class="card" id="cardEst" hidden>
+    <div class="card-head"><h2>Operações estruturadas</h2><a class="note" href="https://conteudos.xpi.com.br/produtos-estruturados/" target="_blank" rel="noopener">Como funciona cada estrutura ↗</a></div>
+    <div class="table-wrap"><table id="tEst"></table></div>
   </div>
 
   <div class="card" id="cardNL" hidden>
-    <div class="card-head"><h2>Sem cotação em bolsa</h2><span class="note">fundos não listados, estruturadas e carteiras administradas</span></div>
+    <div class="card-head"><h2>Fundos não listados e carteiras administradas</h2></div>
     <div class="table-wrap"><table id="tNL"></table></div>
   </div>
 
@@ -82,14 +90,26 @@
     <div class="card"><h2>📰 Notícias relacionadas</h2><div class="rel" id="noticias"></div></div>
   </div>
 
+  <div class="card" id="cardOrdens">
+    <div class="card-head"><h2><span class="step">3</span>Comprar e vender</h2>
+      <div class="row no-print"><button class="sm ghost" id="btnLimparOrd">Limpar ordens</button></div></div>
+    <p class="note" style="margin-top:0">Use os botões <b>Comprar</b> e <b>Vender</b> nas tabelas, ou adicione outro ativo. Depois envie o e-mail pedindo o de acordo do cliente.</p>
+    <div id="ordens"></div>
+    <div class="row no-print" style="margin-top:12px">
+      <button class="sm secondary" id="btnOutro">+ Comprar outro ativo</button>
+    </div>
+    <div class="row no-print" style="margin-top:14px">
+      <button id="btnEmailOrd">✉️ E-mail pedindo de acordo</button>
+    </div>
+  </div>
+
   <div class="card">
-    <h2><span class="step">3</span>Relatório para o cliente</h2>
+    <h2><span class="step">4</span>Relatório de análise para o cliente</h2>
     <label class="f">Comentários do assessor <small>entram no e-mail</small>
       <textarea id="coment" rows="4" placeholder="Ex.: Sugiro reduzir a posição em ... e reforçar ..."></textarea></label>
     <div class="row no-print" style="margin-top:12px">
       <button id="btnEmail">✉️ Enviar análise por e-mail</button>
       <button class="secondary" onclick="window.print()">Imprimir / PDF</button>
-      <a class="btn secondary" href="rv-boleta.html">🧾 Abrir boleta</a>
     </div>
   </div>
 
@@ -99,6 +119,7 @@
 <script src="assets/common.js"></script>
 <script src="assets/xp-parser.js"></script>
 <script src="assets/email.js"></script>
+<script src="assets/ordens.js"></script>
 <script src="assets/rv-analise.js"></script>
 </body>
 </html>

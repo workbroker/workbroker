@@ -139,10 +139,10 @@ const XPParser = (() => {
         if (/XPerformance|Legenda|Os dados dos ativos/i.test(l.text)) break;
         const nome = joinItems(l.items.filter(it => it.x < corte));
         const resto = joinItems(l.items.filter(it => it.x >= corte));
-        const m = resto.match(/^R\$\s*(-?[\d.]+,\d{2})\s+(\S+)\s+(-?[\d.,]+%)\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-)/);
+        const m = resto.match(/^R\$\s*(-?[\d.]+,\d{2})\s+(\S+)\s+(-?[\d.,]+%)\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-)(?:\s+(-?[\d.,]+%|-))?/);
         if (m) {
           const ehEstrategia = m[2] === '-' && nomesEstr.has(norm(nome));
-          rows.push({ y: l.y, nome, estrategia: ehEstrategia, saldo: num(m[1]), qtd: m[2], pct: num(m[3]), rentMes: num(m[4]), rentAno: num(m[6]) });
+          rows.push({ y: l.y, nome, estrategia: ehEstrategia, saldo: num(m[1]), qtd: m[2], pct: num(m[3]), rentMes: num(m[4]), cdiMes: num(m[5]), rentAno: num(m[6]), cdiAno: num(m[7]) });
         } else if (nome && !resto && !ROTULOS.test(norm(nome))) {
           frags.push({ y: l.y, text: nome });
         }
@@ -159,7 +159,7 @@ const XPParser = (() => {
         if (r.estrategia) { estrAtual = r.nome; continue; }
         const partes = [...r.antes.sort((a, b) => b.y - a.y).map(f => f.text), r.nome, ...r.depois.sort((a, b) => b.y - a.y).map(f => f.text)];
         const nome = partes.filter(Boolean).join(' ').replace(/\s+-\s*$/, '').replace(/\s+/g, ' ').trim();
-        out.ativos.push({ nome, estrategia: estrAtual, saldo: r.saldo, qtd: /^[\d.]+$/.test(r.qtd) ? parseInt(r.qtd.replace(/\./g, ''), 10) : null, pct: r.pct, rentMes: r.rentMes, rentAno: r.rentAno });
+        out.ativos.push({ nome, estrategia: estrAtual, saldo: r.saldo, qtd: /^[\d.]+$/.test(r.qtd) ? parseInt(r.qtd.replace(/\./g, ''), 10) : null, pct: r.pct, rentMes: r.rentMes, cdiMes: r.cdiMes, rentAno: r.rentAno, cdiAno: r.cdiAno });
       }
     }
 

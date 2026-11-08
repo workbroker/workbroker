@@ -289,6 +289,27 @@ body.has-ticker .toast { bottom: 64px; }
 .tv-box { border-radius: 14px; overflow: hidden; background: #fff; }
 @media (min-width: 980px) { .grid.news-layout { grid-template-columns: 1.35fr 1fr; align-items: start; } }
 
+/* ---------- Linhas de ordens (boleta) ---------- */
+.ord { display: grid; grid-template-columns: 1.3fr 1fr .9fr 1.5fr 36px; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ord-head { font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; padding-bottom: 6px; align-items: center; }
+.ord .otk input { text-transform: uppercase; font-weight: 800; }
+.opsel.C { color: var(--good); background: var(--good-soft); border-color: transparent; font-weight: 800; }
+.opsel.V { color: var(--bad); background: var(--bad-soft); border-color: transparent; font-weight: 800; }
+.ord .preco { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ord label.f span.lbl { display: none; }
+@media (max-width: 700px) {
+  .ord { grid-template-columns: 1fr 1fr 40px; grid-template-areas: "tk op del" "qt pr pr"; }
+  .ord .otk { grid-area: tk; } .ord .op { grid-area: op; } .ord .qt { grid-area: qt; } .ord .pr { grid-area: pr; } .ord .dl { grid-area: del; align-self: center; }
+  .ord label.f span.lbl { display: inline; }
+}
+
+/* Tabela com cabeçalho fixo ao rolar */
+.table-wrap.fixo { max-height: calc(100vh - 230px); overflow: auto; border-radius: 10px; }
+.table-wrap.fixo thead th { position: sticky; top: 0; background: #fff; z-index: 2; box-shadow: 0 1px 0 var(--line); }
+body.has-ticker .table-wrap.fixo { max-height: calc(100vh - 276px); }
+.table-wrap.fixo tbody td:first-child { position: sticky; left: 0; background: #fff; z-index: 1; }
+.table-wrap.fixo thead th:first-child { left: 0; z-index: 3; }
+
 /* ---------- Janela de e-mail ---------- */
 .modal-bg { position: fixed; inset: 0; background: rgba(20,10,50,.45); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal { background: #fff; border-radius: 20px; padding: 18px; width: min(680px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; box-shadow: 0 20px 60px rgba(20,10,50,.3); }

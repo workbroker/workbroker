@@ -7,32 +7,13 @@
 <title>Boleta de ações · Rico.Work</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
-<style>
-  .ord { display: grid; grid-template-columns: 1.3fr 1fr .9fr 1.5fr 36px; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .ord-head { font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
-  .ord .tk input { text-transform: uppercase; font-weight: 800; }
-  .opsel.C { color: var(--good); background: var(--good-soft); border-color: transparent; font-weight: 800; }
-  .opsel.V { color: var(--bad); background: var(--bad-soft); border-color: transparent; font-weight: 800; }
-  .preco { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .ord label.f span.lbl { display: none; }
-  @media (max-width: 700px) {
-    .ord { grid-template-columns: 1fr 1fr 40px; grid-template-areas: "tk op del" "qt pr pr"; }
-    .ord .tk { grid-area: tk; } .ord .op { grid-area: op; } .ord .qt { grid-area: qt; } .ord .pr { grid-area: pr; } .ord .dl { grid-area: del; align-self: center; }
-    .ord-head { display: none; }
-    .ord label.f span.lbl { display: inline; }
-  }
-  #tLote td, #tLote th { padding: 8px 6px; }
-  .st.Aguardando { color: var(--warn); background: var(--warn-soft); border-color: transparent; font-weight: 700; }
-  .st.De { color: var(--good); background: var(--good-soft); border-color: transparent; font-weight: 700; }
-  .st.Enviada { color: var(--indigo-2); background: var(--indigo-soft); border-color: transparent; font-weight: 700; }
-</style>
 </head>
 <body>
 <header class="top" data-page="rv"></header>
 
 <main>
   <h1>Boleta de ações</h1>
-  <p class="lead">Monte as ordens do cliente, envie o e-mail pedindo o de acordo e, quando ele responder, mande o lote para o broker.</p>
+  <p class="lead">Monte as ordens do cliente e envie o e-mail pedindo o de acordo. Para montar a partir da carteira do cliente, use a <a href="rv-analise.html">análise de ações e FIIs</a>.</p>
 
   <div class="card">
     <div class="card-head"><h2><span class="step">1</span>Cliente</h2></div>
@@ -46,41 +27,37 @@
   <div class="card">
     <div class="card-head"><h2><span class="step">2</span>Ordens</h2>
       <div class="row no-print"><button class="sm ghost" id="btnLimpar">Limpar</button></div></div>
-    <div class="ord ord-head hide-sm"><div>Ativo / ticker</div><div>Operação</div><div>Quantidade</div><div>Preço</div><div></div></div>
     <div id="ordens"></div>
     <div class="row no-print" style="margin-top:12px">
-      <button class="sm secondary" id="btnAdd">+ Ordem</button>
+      <button class="sm secondary" id="btnAddC">+ Compra</button>
+      <button class="sm secondary" id="btnAddV">+ Venda</button>
     </div>
-    <div class="kpis" id="resumo" style="margin-top:14px"></div>
-    <p class="note">O valor estimado só aparece para ordens com preço limitado.</p>
-
-    <div class="row no-print" style="margin-top:14px">
+    <div class="row no-print" style="margin-top:16px">
       <button id="btnEmail">✉️ E-mail pedindo de acordo</button>
-      <button class="secondary" id="btnLote">➕ Mandar para o lote do broker</button>
       <button class="secondary" id="btnCopiar">Copiar tabela</button>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h2><span class="step">3</span>Lote para o broker</h2>
-      <div class="row no-print"><button class="sm ghost" id="btnLimparLote">Limpar enviadas</button></div></div>
-    <div class="table-wrap">
-      <table id="tLote">
-        <thead><tr><th>Ativo_Ticker</th><th>Operação</th><th class="n">Quantidade</th><th>Código_Cliente</th><th>Preço</th><th>Cliente</th><th>Status</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="row no-print" style="margin-top:14px">
-      <button id="btnBroker">✉️ E-mail para o broker</button>
-      <button class="secondary" id="btnCopiarLote">Copiar ordens com de acordo</button>
-      <button class="ghost" id="btnMarcar">Marcar como enviadas</button>
-    </div>
-    <p class="note">"Copiar" gera as colunas Ativo_Ticker, Operação, Quantidade, Código_Cliente e Preço, prontas para colar na planilha do broker. Só entram as ordens com status "De acordo".</p>
+    <p class="note">O e-mail traz as colunas Ativo_Ticker, Operação, Quantidade, Código_Cliente e Preço. Quando o cliente responder com o de acordo, é só encaminhar ao broker.</p>
   </div>
 </main>
 
 <script src="assets/common.js"></script>
 <script src="assets/email.js"></script>
-<script src="assets/boleta.js"></script>
+<script src="assets/ordens.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const B = Object.assign({ nome: '', codigo: '', email: '' }, store.get('rw_boleta_cliente', {}));
+['nome', 'codigo', 'email'].forEach(k => { $(k).value = B[k] || ''; $(k).addEventListener('input', e => { B[k] = e.target.value.trim(); store.set('rw_boleta_cliente', B); }); });
+const ordens = Ordens.criar({
+  el: $('ordens'), chave: 'rw_boleta_ordens',
+  cliente: () => B,
+  salvarCliente: (nome, para) => { B.nome = nome || B.nome; B.email = para; $('nome').value = B.nome; $('email').value = B.email; store.set('rw_boleta_cliente', B); },
+});
+if (!ordens.lista().length) ordens.adicionar({ op: 'C' });
+$('btnAddC').onclick = () => ordens.adicionar({ op: 'C' });
+$('btnAddV').onclick = () => ordens.adicionar({ op: 'V' });
+$('btnLimpar').onclick = () => { ordens.limpar(); ordens.adicionar({ op: 'C' }); };
+$('btnEmail').onclick = () => ordens.email();
+$('btnCopiar').onclick = () => { if (!ordens.validas().length) { toast('Preencha ao menos uma ordem'); return; } copyText(ordens.tsv()); };
+</script>
 </body>
 </html>
