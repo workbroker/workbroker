@@ -1,9 +1,33 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-08T14:22:31+00:00",
+ "atualizado": "2026-11-08T15:01:52+00:00",
  "fontes": {
   "ultimas": [
+   {
+    "titulo": "Enem 2026: candidatos precisam chegar antes das 13h ao local da prova",
+    "link": "https://www.infomoney.com.br/brasil/enem-2026-candidatos-precisam-chegar-antes-das-13h-ao-local-da-prova/",
+    "data": "2026-11-08T14:11:42+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Dana White vai se reunir com Trump após convite para ser porta-voz da Casa Branca",
+    "link": "https://www.infomoney.com.br/mundo/dana-white-vai-se-reunir-com-trump-apos-convite-para-ser-porta-voz-da-casa-branca/",
+    "data": "2026-11-08T13:58:54+00:00",
+    "categoria": "Mundo"
+   },
+   {
+    "titulo": "Após eleição, 48% aprovam e 44% desaprovam governo Lula; economia é maior preocupação",
+    "link": "https://www.infomoney.com.br/politica/apos-eleicao-48-aprovam-e-44-desaprovam-governo-lula-economia-e-maior-preocupacao/",
+    "data": "2026-11-08T13:55:25+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Quaest: primeira pesquisa após as eleições mostra uma divisão na direita; entenda",
+    "link": "https://www.infomoney.com.br/politica/quaest-primeira-pesquisa-apos-as-eleicoes-mostra-uma-divisao-na-direita-entenda/",
+    "data": "2026-11-08T13:25:38+00:00",
+    "categoria": "Política"
+   },
    {
     "titulo": "Lula precisa de alguém alinhado com o mercado para a Fazenda, diz CEO da BR Partners",
     "link": "https://www.infomoney.com.br/economia/lula-precisa-de-alguem-alinhado-com-o-mercado-para-a-fazenda-diz-ceo-da-br-partners/",
@@ -219,30 +243,6 @@
     "link": "https://www.infomoney.com.br/brasil/enem-2026-candidatos-vivem-expectativa-sobre-o-tema-da-redacao/",
     "data": "2026-11-07T15:39:34+00:00",
     "categoria": "Brasil"
-   },
-   {
-    "titulo": "Uruguai libera produtos avícolas do Brasil após 19 dias, exceto de Santa Catarina",
-    "link": "https://www.infomoney.com.br/mercados/uruguai-retoma-importacao-aves-brasil-santa-catarina/",
-    "data": "2026-11-07T15:32:44+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Fórmula 1 seguirá em Interlagos até 2035; acordo prevê novos investimentos",
-    "link": "https://www.infomoney.com.br/business/formula-1-interlagos-contrato-2035-sao-paulo/",
-    "data": "2026-11-07T15:21:20+00:00",
-    "categoria": "Business"
-   },
-   {
-    "titulo": "Meta nega viés ao TSE e detalha alcance de Lula, Flávio e Nikolas no Instagram",
-    "link": "https://www.infomoney.com.br/politica/meta-tse-instagram-vies-politico-lula-flavio-nikolas/",
-    "data": "2026-11-07T14:59:00+00:00",
-    "categoria": "Política"
-   },
-   {
-    "titulo": "Lula propõe encontro com Alliana em Brasília após impeachment de Peña",
-    "link": "https://www.infomoney.com.br/politica/lula-pedro-alliana-brasilia-impeachment-pena/",
-    "data": "2026-11-07T14:30:13+00:00",
-    "categoria": "Política"
    }
   ],
   "mercados": [
@@ -443,24 +443,6 @@
     "link": "https://www.infomoney.com.br/mercados/ibge-divulga-dados-definitivos-e-confirma-que-pib-de-2024-cresceu-34/",
     "data": "2026-11-06T15:27:33+00:00",
     "categoria": "Mercados"
-   },
-   {
-    "titulo": "Payroll: EUA criam 165 mil vagas de trabalho em outubro, acima do esperado",
-    "link": "https://www.infomoney.com.br/mercados/payroll-eua-outubro-2026/",
-    "data": "2026-11-06T13:32:24+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Imposto de exportação de petróleo é prorrogado: como afeta Petrobras, Brava e PRIO?",
-    "link": "https://www.infomoney.com.br/mercados/imposto-de-exportacao-de-petroleo-e-prorrogado-como-afeta-petrobras-brava-e-prio/",
-    "data": "2026-11-06T13:23:15+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Bradesco BBI rebaixa B3 em cenário de juro alto; XP e BTG têm recomendação de compra",
-    "link": "https://www.infomoney.com.br/mercados/bradesco-bbi-rebaixa-b3-em-cenario-de-juro-alto-xp-e-btg-tem-recomendacao-de-compra/",
-    "data": "2026-11-06T12:58:51+00:00",
-    "categoria": "Mercados"
    }
   ],
   "economia": [
@@ -517,27 +499,21 @@
     "link": "https://www.infomoney.com.br/economia/payroll-eua-outubro-juros-fed-selic/",
     "data": "2026-11-06T16:06:23+00:00",
     "categoria": "Economia"
-   },
-   {
-    "titulo": "Governo define 27 minerais estratégicos que terão prioridade para exploração",
-    "link": "https://www.infomoney.com.br/economia/governo-define-27-minerais-estrategicos-que-terao-prioridade-para-exploracao/",
-    "data": "2026-11-06T13:56:17+00:00",
-    "categoria": "Economia"
-   },
-   {
-    "titulo": "Inflação anual nos países da OCDE acelera a 4,5% em setembro, puxada por energia",
-    "link": "https://www.infomoney.com.br/economia/inflacao-anual-nos-paises-da-ocde-acelera-a-45-em-setembro-puxada-por-energia/",
-    "data": "2026-11-06T13:27:16+00:00",
-    "categoria": "Economia"
-   },
-   {
-    "titulo": "FAO eleva previsão de produção global de cereais para 2,999 bi de toneladas métricas",
-    "link": "https://www.infomoney.com.br/economia/fao-eleva-previsao-de-producao-global-de-cereais-para-2999-bi-de-toneladas-metricas/",
-    "data": "2026-11-06T13:17:25+00:00",
-    "categoria": "Economia"
    }
   ],
   "politica": [
+   {
+    "titulo": "Após eleição, 48% aprovam e 44% desaprovam governo Lula; economia é maior preocupação",
+    "link": "https://www.infomoney.com.br/politica/apos-eleicao-48-aprovam-e-44-desaprovam-governo-lula-economia-e-maior-preocupacao/",
+    "data": "2026-11-08T13:55:25+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Quaest: primeira pesquisa após as eleições mostra uma divisão na direita; entenda",
+    "link": "https://www.infomoney.com.br/politica/quaest-primeira-pesquisa-apos-as-eleicoes-mostra-uma-divisao-na-direita-entenda/",
+    "data": "2026-11-08T13:25:38+00:00",
+    "categoria": "Política"
+   },
    {
     "titulo": "Modelo de política econômica do PT é muito desequilibrado, avalia Azevedo, da Ibiuna",
     "link": "https://www.infomoney.com.br/politica/modelo-de-politica-economica-do-pt-e-muito-desequilibrado-avalia-azevedo-da-ibiuna/",
@@ -639,21 +615,15 @@
     "link": "https://www.infomoney.com.br/politica/lula-convida-janones-para-viagem-para-cop-31-e-filipinas-para-fazer-lives/",
     "data": "2026-11-06T16:25:08+00:00",
     "categoria": "Política"
-   },
-   {
-    "titulo": "BRB pede indenização de R$ 2,2 bilhões por fraudes do Banco Master",
-    "link": "https://www.infomoney.com.br/politica/brb-pede-indenizacao-de-r-22-bilhoes-por-fraudes-do-banco-master/",
-    "data": "2026-11-06T13:35:30+00:00",
-    "categoria": "Política"
-   },
-   {
-    "titulo": "Integrantes do PT querem que Lula reduza tempo de prisão de Bolsonaro, diz jornal",
-    "link": "https://www.infomoney.com.br/politica/integrantes-do-pt-querem-que-lula-reduza-tempo-de-prisao-de-bolsonaro-diz-jornal/",
-    "data": "2026-11-06T13:23:38+00:00",
-    "categoria": "Política"
    }
   ],
   "mundo": [
+   {
+    "titulo": "Dana White vai se reunir com Trump após convite para ser porta-voz da Casa Branca",
+    "link": "https://www.infomoney.com.br/mundo/dana-white-vai-se-reunir-com-trump-apos-convite-para-ser-porta-voz-da-casa-branca/",
+    "data": "2026-11-08T13:58:54+00:00",
+    "categoria": "Mundo"
+   },
    {
     "titulo": "Relações Exteriores do Paraguai diz que país “sai fortalecido” de crise do Ueno Bank",
     "link": "https://www.infomoney.com.br/mundo/relacoes-exteriores-do-paraguai-diz-que-pais-sai-fortalecido-de-crise-do-ueno-bank/",
@@ -838,42 +808,6 @@
     "titulo": "Ueno Bank: quem é Miguel Vázquez, fundador do banco que levou à crise no Paraguai",
     "link": "https://www.infomoney.com.br/mundo/ueno-bank-quem-e-miguel-vazquez-fundador-do-banco-que-levou-a-crise-no-paraguai/",
     "data": "2026-11-06T14:40:35+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Na Turquia, ex-ministra é presa em meio à escândalo sobre fundos de investimento",
-    "link": "https://www.infomoney.com.br/mundo/na-turquia-ex-ministra-e-presa-em-meio-a-escandalo-sobre-fundos-de-investimento/",
-    "data": "2026-11-06T14:12:14+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Novo partido de extrema direita na Itália perde terreno com queda em apoio",
-    "link": "https://www.infomoney.com.br/mundo/novo-partido-de-extrema-direita-na-italia-perde-terreno-com-queda-em-apoio/",
-    "data": "2026-11-06T14:02:19+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Ansiedade dos eleitores americanos com o avanço da IA foi exposta nas “midterms”",
-    "link": "https://www.infomoney.com.br/mundo/ansiedade-dos-eleitores-americanos-com-o-avanco-da-ia-foi-exposta-nas-midterms/",
-    "data": "2026-11-06T14:00:00+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Conmebol perde R$ 76 mi com a crise do Ueno Bank, que abala futebol paraguaio",
-    "link": "https://www.infomoney.com.br/mundo/conmebol-perde-r-76-mi-com-a-crise-do-ueno-bank-que-abala-futebol-paraguaio/",
-    "data": "2026-11-06T13:33:17+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Presidente da Suprema Corte da Bolívia deixa o país após ordem de prisão",
-    "link": "https://www.infomoney.com.br/mundo/presidente-da-suprema-corte-da-bolivia-deixa-o-pais-apos-ordem-de-prisao/",
-    "data": "2026-11-06T13:07:29+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Ameaças de bomba em aviões na Europa: o que se sabe e quem pode estar por trás?",
-    "link": "https://www.infomoney.com.br/mundo/ameacas-de-bomba-em-avioes-na-europa-o-que-se-sabe-e-quem-pode-estar-por-tras/",
-    "data": "2026-11-06T13:01:12+00:00",
     "categoria": "Mundo"
    }
   ]
