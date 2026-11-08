@@ -3,7 +3,7 @@ Fontes: Banco Central (SGS, dados oficiais) e Yahoo Finance (cotações de merca
 import json, os, sys, urllib.request, urllib.parse
 from datetime import datetime, timezone
 
-SAIDA = os.path.join(os.path.dirname(__file__), "..", "data", "macro.json")
+SAIDA = os.path.join(os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data")), "macro.json")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36", "Accept": "application/json"}
 
 

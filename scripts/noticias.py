@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 SITEMAP = "https://www.infomoney.com.br/news-sitemap.xml"
 RSS = "https://www.infomoney.com.br/feed/"
-SAIDA = os.path.join(os.path.dirname(__file__), "..", "data", "noticias.json")
+SAIDA = os.path.join(os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data")), "noticias.json")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 EDITORIAS = {"mercados": "Mercados", "economia": "Economia", "politica": "Política", "mundo": "Mundo",
              "onde-investir": "Onde investir", "business": "Business", "advisor": "Advisor", "brasil": "Brasil"}

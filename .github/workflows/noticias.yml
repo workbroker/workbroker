@@ -1,4 +1,4 @@
-name: Atualizar notícias e indicadores
+name: Atualizar dados do site
 
 on:
   schedule:
@@ -7,38 +7,48 @@ on:
   push:
     branches: [main]
     paths:
-      - scripts/noticias.py
-      - scripts/macro.py
+      - scripts/**
       - .github/workflows/noticias.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: noticias
+  group: dados
   cancel-in-progress: false
 
 jobs:
   atualizar:
     runs-on: ubuntu-latest
+    env:
+      DATA_DIR: ${{ github.workspace }}/out
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Buscar manchetes do InfoMoney
-        run: python scripts/noticias.py
-      - name: Buscar indicadores macro
-        run: python scripts/macro.py
-      - name: Salvar se mudou
+      - name: Recuperar dados atuais (ramo dados)
         run: |
-          if [ -n "$(git status --porcelain data/)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/
-            git commit -m "Atualiza notícias e indicadores"
-            git pull --rebase origin main
-            git push
+          mkdir -p out
+          if git fetch --depth 1 origin dados 2>/dev/null; then
+            git --work-tree=out checkout FETCH_HEAD -- . && git reset -q
           else
-            echo "Sem mudanças"
+            cp -r data/. out/ 2>/dev/null || true
           fi
+          ls -la out
+      - name: Manchetes do InfoMoney
+        run: python scripts/noticias.py || true
+      - name: Indicadores macro
+        run: python scripts/macro.py || true
+      - name: Ações, ETFs e FIIs
+        run: python scripts/rv.py || true
+      - name: Publicar no ramo dados (sem histórico)
+        run: |
+          cd out
+          rm -rf .git
+          git init -q -b dados
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Dados atualizados em $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" dados
