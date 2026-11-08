@@ -85,6 +85,44 @@ const XPParser = (() => {
     return 'pos';
   }
 
+  function resumoDe(pages) {
+    const P = '(-?[\\d.,]+%|-)', V = '(-?R\\$\\s*-?[\\d.,]+|-)';
+    const res = { refs: {}, periodos: {}, historico: [] };
+    const linhasTxt = pages.map(p => p.map(l => l.text));
+    const todas = linhasTxt.flat();
+    // Valores do topo: patrimônio, rentabilidade do mês, ganho do mês, rent. e ganho 24M
+    const iTopo = todas.findIndex(t => /PATRIM[ÔO]NIO TOTAL BRUTO/i.test(t) && /GANHO/i.test(t));
+    if (iTopo >= 0) {
+      for (let k = iTopo + 1; k < Math.min(iTopo + 4, todas.length); k++) {
+        const m = todas[k].match(/R\$\s*([\d.,]+)\s+(-?[\d.,]+%)\s+(-?R\$\s*[\d.,]+)(?:\s+(-?[\d.,]+%|-))?(?:\s+(-?R\$\s*[\d.,]+|-))?/);
+        if (m) { Object.assign(res, { patrimonio: num(m[1]), rentMes: num(m[2]), ganhoMes: num(m[3]), rent24: num(m[4]), ganho24: num(m[5]) }); break; }
+      }
+    }
+    const reRef = new RegExp(`(Portf[óo]lio|CDI|Ibovespa|IPCA|D[óo]lar)\\s+${P}\\s+${P}\\s+${P}\\s+${P}(?:\\s|$)`);
+    const rePer = new RegExp(`\\b(MÊS|MES|ANO|12M|24M)\\s+${V}\\s+${P}\\s+${P}\\s+${V}`);
+    const reHist = new RegExp(`^([a-zç]{3}\\.?\\/\\d{2})\\s+${V}\\s+${V}\\s+${V}\\s+${V}\\s+${V}\\s+${V}\\s+${P}\\s+${P}`, 'i');
+    for (const t of todas) {
+      let m;
+      if ((m = t.match(reRef))) {
+        const k = m[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const vals = [m[2], m[3], m[4], m[5]].map(num);
+        // a tabela de referências tem 4 colunas; a tabela mensal (14 colunas) é ignorada
+        if (!res.refs[k] && (t.match(/%/g) || []).length <= 5) res.refs[k] = { mes: vals[0], ano: vals[1], m12: vals[2], m24: vals[3] };
+      }
+      if ((m = t.match(rePer))) {
+        const k = m[1] === 'MES' ? 'MÊS' : m[1];
+        if (!res.periodos[k]) res.periodos[k] = { ganho: num(m[2]), rent: num(m[3]), cdi: num(m[4]), mov: num(m[5]) };
+      }
+      if ((m = t.match(reHist))) {
+        res.historico.push({ mes: m[1], inicial: num(m[2]), mov: num(m[3]), ir: num(m[4]), iof: num(m[5]), final: num(m[6]), ganho: num(m[7]), rent: num(m[8]), cdi: num(m[9]) });
+      }
+    }
+    const est = todas.join('\n');
+    const g = (re) => { const m = est.match(re); return m ? m[1] : null; };
+    res.mesesPositivos = parseInt(g(/Meses Positivos[\s\S]{0,80}?\n\s*(\d+)/i), 10) || null;
+    return res;
+  }
+
   async function parse(arrayBuffer, fileName = '') {
     const pdfjsLib = await loadPdfJs();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -110,8 +148,11 @@ const XPParser = (() => {
     const pt = allText.match(/PATRIM[OÔ]NIO TOTAL BRUTO:?[\s\S]{0,200}?R\$\s*(-?[\d.]+,\d{2})/i);
     if (pt) out.patrimonio = num(pt[1]);
 
+    // Resumo da carteira (página de evolução patrimonial)
+    out.resumo = resumoDe(pages);
+
     // Composição por estratégia: "Pós Fixado (20,22%) R$ 87.079,07"
-    const reComp = /([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .\-]*?)\s*\((\d{1,3},\d{2})%\)\s*R\$\s*(-?[\d.]+,\d{2})/g;
+    const reComp = /([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .\-]*?)\s*\((\d{1,3},\d{2})%\)\s*R\$\s*(-?[\d.]+,\d{2})(?:\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-)\s+(-?[\d.,]+%|-))?/g;
     const vistos = new Set();
     for (const p of pages) for (const l of p) {
       let m; reComp.lastIndex = 0;
@@ -119,7 +160,7 @@ const XPParser = (() => {
         const nome = m[1].replace(/^\d[\d,%\s]*/, '').trim();
         if (vistos.has(norm(nome))) continue;
         vistos.add(norm(nome));
-        out.estrategias.push({ nome, pct: num(m[2]), saldo: num(m[3]) });
+        out.estrategias.push({ nome, pct: num(m[2]), saldo: num(m[3]), rentMes: num(m[4]), rentAno: num(m[5]), rent12m: num(m[6]) });
       }
     }
     const nomesEstr = new Set(out.estrategias.map(e => norm(e.nome)));

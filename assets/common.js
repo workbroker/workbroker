@@ -123,7 +123,7 @@ const NAV = [
   { id: 'rf', href: 'rf.html', label: 'Renda fixa' },
   { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },
   { id: 'mercado', href: 'mercado.html', label: 'Mercado ao vivo' },
-  { id: 'relatorio', href: '#', label: 'Relatório mensal', soon: true },
+  { id: 'relatorio', href: 'relatorio.html', label: 'Relatório mensal' },
 ];
 (function renderHeader() {
   const h = document.querySelector('header.top');
