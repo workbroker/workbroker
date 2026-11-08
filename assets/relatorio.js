@@ -38,7 +38,20 @@ function calc() {
     melhores: porRent.slice(0, 5), piores: porRent.length > 5 ? porRent.slice(-3).reverse() : [],
     nacional, usd, cot, internacional: usd * cot, total: nacional + usd * cot,
     hist: (r.historico || []).slice().reverse(),
+    liq: liquidos(r, D.dataRef),
   };
+}
+
+// Ganho financeiro líquido = ganho bruto − IR − IOF pagos (histórico mensal do relatório)
+function liquidos(r, dataRef) {
+  const H = r.historico || [];
+  const soma = lista => {
+    if (!lista.length) return null;
+    const ganho = lista.reduce((s, h) => s + (h.ganho || 0), 0), ir = lista.reduce((s, h) => s + Math.abs(h.ir || 0) + Math.abs(h.iof || 0), 0);
+    return { ganho, impostos: ir, liquido: ganho - ir };
+  };
+  const ano = (dataRef || '').slice(-2);
+  return { mes: soma(H.slice(0, 1)), ano: soma(H.filter(h => h.mes.endsWith('/' + ano))), m12: soma(H.slice(0, 12)) };
 }
 
 // ---------- Slides ----------
@@ -84,12 +97,13 @@ function sRentab(C) {
   const cdiM = Number.isFinite(m.cdi) ? m.cdi : (C.cdiMes ? r.rentMes / C.cdiMes * 100 : NaN);
   return `<div class="st">Rentabilidade da carteira</div><div class="ss">${esc(mesRef(C.D.dataRef))}</div>
     <div class="two" style="grid-template-columns:1fr 1.15fr">
-      <div><div class="lbl">Resumo</div><div class="box" style="height:452px;display:flex;flex-direction:column;justify-content:space-between">
+      <div><div class="lbl">Resumo</div><div class="box" style="height:452px;display:flex;flex-direction:column;justify-content:space-between;padding:14px 26px">
         <div class="row-l"><span>Patrimônio nacional</span><b class="or">${brl(C.nacional)}</b></div>
         <div class="row-l"><span>Rentabilidade no mês</span><b class="${cls(r.rentMes)}">${ps(r.rentMes)} <span style="font-size:16px;font-weight:700">(${p2(cdiM)} do CDI)</span></b></div>
-        <div class="row-l"><span>Resultado financeiro</span><b class="${cls(r.ganhoMes)}">${brl(r.ganhoMes)}</b></div>
+        <div class="row-l"><span>Resultado financeiro <span style="font-size:15px;color:rgba(255,255,255,.55)">bruto</span></span><b class="${cls(r.ganhoMes)}">${brl(r.ganhoMes)}</b></div>
+        ${C.liq.mes ? `<div class="row-l"><span>Ganho financeiro líquido</span><b class="${cls(C.liq.mes.liquido)}">${brl(C.liq.mes.liquido)}<div style="font-size:14px;color:rgba(255,255,255,.55);text-align:right;font-weight:600">${C.liq.mes.impostos ? `após ${brl(C.liq.mes.impostos)} de IR/IOF` : 'sem IR/IOF no mês'}</div></b></div>` : ''}
         <div class="row-l"><span>Patrimônio internacional</span><b class="or">${C.usd ? 'US$ ' + n2(C.usd) : 'US$ —'}${C.usd ? `<div style="font-size:14px;color:rgba(255,255,255,.55);text-align:right">${brl(C.internacional)} · câmbio ${n2(C.cot, 3)}</div>` : ''}</b></div>
-        <div style="padding-top:14px"><div style="font-size:19px;color:rgba(255,255,255,.75)">Patrimônio total</div><div class="big or">${brl(C.total)}</div></div>
+        <div style="padding-top:6px"><div style="font-size:18px;color:rgba(255,255,255,.75)">Patrimônio total</div><div class="big or" style="font-size:54px">${brl(C.total)}</div></div>
       </div></div>
       <div><div class="lbl">Rentabilidade por estratégia</div><div class="box" style="height:452px;display:flex;flex-direction:column;justify-content:space-around">
         ${C.est.map(e => `<div class="row-l" style="font-size:20px;padding:6px 0"><span><span style="color:rgba(255,255,255,.6);display:inline-block;width:82px">${p2(e.pct)}</span>${esc(e.curto)}</span><b class="${cls(e.rentMes)}">${ps(e.rentMes)} <span style="font-size:15px;font-weight:700;opacity:.85">(${p2(e.cdi, 0)} CDI)</span></b></div>`).join('')}
@@ -99,11 +113,14 @@ function sRentab(C) {
 
 function sDesempenho(C) {
   const P = C.r.periodos || {}, R = C.r.refs || {};
-  const card = (k, nome) => { const x = P[k]; if (!x || !Number.isFinite(x.rent)) return ''; return `<div class="tile" style="text-align:center"><div class="n">${nome}</div><div class="v ${cls(x.rent)}" style="font-size:44px">${ps(x.rent)}</div><div class="s" style="font-size:16px">${p2(x.cdi)} do CDI · ${brl0(x.ganho)}</div></div>`; };
+  const LQ = { 'MÊS': C.liq.mes, 'ANO': C.liq.ano, '12M': C.liq.m12 };
+  const card = (k, nome) => { const x = P[k]; if (!x || !Number.isFinite(x.rent)) return ''; const l = LQ[k];
+    return `<div class="tile" style="text-align:center"><div class="n">${nome}</div><div class="v ${cls(x.rent)}" style="font-size:44px">${ps(x.rent)}</div><div class="s" style="font-size:16px">${p2(x.cdi)} do CDI</div>
+      <div style="font-size:16px;margin-top:8px">Ganho bruto <b>${brl0(x.ganho)}</b></div>${l ? `<div style="font-size:16px">Ganho líquido <b class="or">${brl0(l.liquido)}</b></div>` : ''}</div>`; };
   const linha = (k, nome, hl) => R[k] ? `<tr class="${hl ? 'hl' : ''}"><td>${nome}</td><td class="${cls(R[k].mes)}">${ps(R[k].mes)}</td><td class="${cls(R[k].ano)}">${ps(R[k].ano)}</td><td class="${cls(R[k].m12)}">${ps(R[k].m12)}</td></tr>` : '';
-  return `<div class="st">Carteira × referências</div><div class="ss">Rentabilidade e resultado financeiro por período</div>
-    <div class="tiles" style="margin-bottom:26px">${card('MÊS', 'No mês')}${card('ANO', 'No ano')}${card('12M', 'Em 12 meses')}</div>
-    <div class="box" style="padding:12px 22px"><table><tr><th></th><th>Mês</th><th>Ano</th><th>12 meses</th></tr>
+  return `<div class="st">Carteira × referências</div><div class="ss">Rentabilidade e resultado financeiro por período · ganho líquido = ganho bruto menos IR e IOF pagos</div>
+    <div class="tiles" style="margin-bottom:18px">${card('MÊS', 'No mês')}${card('ANO', 'No ano')}${card('12M', 'Em 12 meses')}</div>
+    <div class="box" style="padding:6px 22px"><table style="font-size:17px" class="compacta"><tr><th></th><th>Mês</th><th>Ano</th><th>12 meses</th></tr>
       ${linha('Portfolio', 'Sua carteira', true)}${linha('CDI', 'CDI')}${linha('Ibovespa', 'Ibovespa')}${linha('IPCA', 'IPCA (inflação)')}${linha('Dolar', 'Dólar')}</table></div>${foot(C)}`;
 }
 
@@ -300,7 +317,7 @@ $('btnEmail').onclick = () => {
       `Segue o resumo da sua carteira em ${mes.toLowerCase()}. A apresentação completa vai em anexo.`, '',
       `• Patrimônio total: ${brl(C.total)}${C.usd ? ` (inclui US$ ${n2(C.usd)} no exterior)` : ''}`,
       `• Rentabilidade no mês: ${ps(C.r.rentMes)}${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`,
-      `• Resultado financeiro no mês: ${brl(C.r.ganhoMes)}`,
+      `• Resultado financeiro no mês: ${brl(C.r.ganhoMes)}${C.liq.mes ? ` (líquido de IR/IOF: ${brl(C.liq.mes.liquido)})` : ''}`,
       ...(Number.isFinite(a.rent) ? [`• No ano: ${ps(a.rent)} (${p2(a.cdi)} do CDI)`] : []), '',
       ...(C.melhoresCat.length ? [`Destaques do mês: ${C.melhoresCat.map(e => `${e.curto} (${ps(e.rentMes)})`).join(', ')}.`, ''] : []),
       ...(REL.coment ? [REL.coment, ''] : []),
@@ -311,7 +328,8 @@ $('btnEmail').onclick = () => {
       h.tabela(['', 'Valor'], [
         ['Patrimônio total', `<b>${brl(C.total)}</b>`],
         ['Rentabilidade no mês', `<b style="color:${C.r.rentMes >= 0 ? h.cor.bom : h.cor.ruim}">${ps(C.r.rentMes)}</b>${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`],
-        ['Resultado financeiro no mês', brl(C.r.ganhoMes)],
+        ['Resultado financeiro no mês (bruto)', brl(C.r.ganhoMes)],
+        ...(C.liq.mes ? [['Ganho financeiro líquido no mês', `<b>${brl(C.liq.mes.liquido)}</b>`]] : []),
         ...(Number.isFinite(a.rent) ? [['Rentabilidade no ano', `${ps(a.rent)} (${p2(a.cdi)} do CDI)`]] : []),
       ], ['left', 'right']) +
       (C.melhoresCat.length ? h.p(`<b>Destaques do mês:</b> ${C.melhoresCat.map(e => `${esc(e.curto)} (${ps(e.rentMes)})`).join(', ')}.`) : '') +
