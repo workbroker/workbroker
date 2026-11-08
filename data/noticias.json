@@ -1,9 +1,21 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-08T15:01:52+00:00",
+ "atualizado": "2026-11-08T15:42:31+00:00",
  "fontes": {
   "ultimas": [
+   {
+    "titulo": "Integração entre Pix e sistema europeu de pagamentos avança para nova etapa",
+    "link": "https://www.infomoney.com.br/economia/integracao-entre-pix-e-sistema-europeu-de-pagamentos-avanca-para-nova-etapa/",
+    "data": "2026-11-08T14:38:12+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Brasileiros nos EUA rechaçam Trump e votam nos democratas, aponta AtlasIntel",
+    "link": "https://www.infomoney.com.br/mundo/brasileiros-nos-eua-rechacam-trump-e-votam-nos-democratas-aponta-atlasintel/",
+    "data": "2026-11-08T14:24:36+00:00",
+    "categoria": "Mundo"
+   },
    {
     "titulo": "Enem 2026: candidatos precisam chegar antes das 13h ao local da prova",
     "link": "https://www.infomoney.com.br/brasil/enem-2026-candidatos-precisam-chegar-antes-das-13h-ao-local-da-prova/",
@@ -231,18 +243,6 @@
     "link": "https://www.infomoney.com.br/mercados/dolar-pos-eleicao-lula-bancos-estrangeiros-projecoes/",
     "data": "2026-11-07T16:07:39+00:00",
     "categoria": "Mercados"
-   },
-   {
-    "titulo": "Gonet quer barrar ações contra fim das bets até decisão definitiva do STF",
-    "link": "https://www.infomoney.com.br/mercados/gonet-stf-suspensao-acoes-proibicao-bets/",
-    "data": "2026-11-07T15:56:27+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Enem 2026: candidatos vivem expectativa sobre o tema da redação",
-    "link": "https://www.infomoney.com.br/brasil/enem-2026-candidatos-vivem-expectativa-sobre-o-tema-da-redacao/",
-    "data": "2026-11-07T15:39:34+00:00",
-    "categoria": "Brasil"
    }
   ],
   "mercados": [
@@ -447,6 +447,12 @@
   ],
   "economia": [
    {
+    "titulo": "Integração entre Pix e sistema europeu de pagamentos avança para nova etapa",
+    "link": "https://www.infomoney.com.br/economia/integracao-entre-pix-e-sistema-europeu-de-pagamentos-avanca-para-nova-etapa/",
+    "data": "2026-11-08T14:38:12+00:00",
+    "categoria": "Economia"
+   },
+   {
     "titulo": "Lula precisa de alguém alinhado com o mercado para a Fazenda, diz CEO da BR Partners",
     "link": "https://www.infomoney.com.br/economia/lula-precisa-de-alguem-alinhado-com-o-mercado-para-a-fazenda-diz-ceo-da-br-partners/",
     "data": "2026-11-08T12:30:00+00:00",
@@ -618,6 +624,12 @@
    }
   ],
   "mundo": [
+   {
+    "titulo": "Brasileiros nos EUA rechaçam Trump e votam nos democratas, aponta AtlasIntel",
+    "link": "https://www.infomoney.com.br/mundo/brasileiros-nos-eua-rechacam-trump-e-votam-nos-democratas-aponta-atlasintel/",
+    "data": "2026-11-08T14:24:36+00:00",
+    "categoria": "Mundo"
+   },
    {
     "titulo": "Dana White vai se reunir com Trump após convite para ser porta-voz da Casa Branca",
     "link": "https://www.infomoney.com.br/mundo/dana-white-vai-se-reunir-com-trump-apos-convite-para-ser-porta-voz-da-casa-branca/",
@@ -796,18 +808,6 @@
     "titulo": "Vencedor do Prêmio Goncourt 2026, Philippe Jaenada admite uso de IA em romance",
     "link": "https://www.infomoney.com.br/mundo/vencedor-do-premio-goncourt-2026-philippe-jaenada-admite-uso-de-ia-em-romance/",
     "data": "2026-11-06T15:29:13+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Peña pede prazo de 72 horas para preparar defesa contra impeachment no Paraguai",
-    "link": "https://www.infomoney.com.br/mundo/pena-pede-prazo-de-72-horas-para-preparar-defesa-contra-impeachment-no-paraguai/",
-    "data": "2026-11-06T14:57:52+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Ueno Bank: quem é Miguel Vázquez, fundador do banco que levou à crise no Paraguai",
-    "link": "https://www.infomoney.com.br/mundo/ueno-bank-quem-e-miguel-vazquez-fundador-do-banco-que-levou-a-crise-no-paraguai/",
-    "data": "2026-11-06T14:40:35+00:00",
     "categoria": "Mundo"
    }
   ]
