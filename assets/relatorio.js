@@ -365,15 +365,89 @@ $('btnPdf').onclick = () => {
   toast('Na janela de impressão, escolha "Salvar como PDF"');
   setTimeout(() => window.print(), 400);
 };
-$('btnEmail').onclick = () => {
+// ---------- E-mail com gráficos (imagens PNG) e tabelas ----------
+function svgPng(svg, w, h) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const k = 2, c = document.createElement('canvas'); c.width = w * k; c.height = h * k;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.scale(k, k); ctx.drawImage(img, 0, 0, w, h);
+      try { res(c.toDataURL('image/png')); } catch { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+const SVGA = (w, h, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="Arial, Helvetica, sans-serif">${body}</svg>`;
+function gEvolucao(C) {
+  const H = C.hist; if (!H.length) return null;
+  const W = 620, Hh = 250, pad = { l: 44, r: 10, t: 22, b: 34 };
+  const cdiM = H.map(h => Number.isFinite(h.cdi) && h.cdi !== 0 ? h.rent / (h.cdi / 100) : NaN);
+  const vals = [...H.map(h => h.rent), ...cdiM.filter(Number.isFinite)], max = Math.max(...vals, 0.5), min = Math.min(...vals, 0);
+  const bw = (W - pad.l - pad.r) / H.length, Y = v => pad.t + (1 - (v - min) / (max - min)) * (Hh - pad.t - pad.b);
+  let b = '';
+  [0, max / 2, max].forEach(v => { b += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? '#bbb' : '#eee'}"/><text x="${pad.l - 6}" y="${Y(v) + 4}" font-size="11" fill="#888" text-anchor="end">${n2(v, 1)}%</text>`; });
+  H.forEach((h, i) => {
+    const x = pad.l + i * bw, y0 = Y(0), y = Y(h.rent);
+    b += `<rect x="${x + bw * .18}" y="${Math.min(y, y0)}" width="${bw * .64}" height="${Math.max(Math.abs(y0 - y), 1)}" rx="3" fill="${h.rent >= 0 ? '#ff5a00' : '#e2403a'}"/>`;
+    b += `<text x="${x + bw / 2}" y="${h.rent >= 0 ? y - 5 : y + 13}" font-size="10.5" font-weight="bold" fill="#26233a" text-anchor="middle">${n2(h.rent)}%</text>`;
+    b += `<text x="${x + bw / 2}" y="${Hh - 12}" font-size="11" fill="#6d6a80" text-anchor="middle">${esc(h.mes.replace('.', ''))}</text>`;
+  });
+  const pts = cdiM.map((c, i) => Number.isFinite(c) ? `${pad.l + i * bw + bw / 2},${Y(c)}` : null).filter(Boolean).join(' ');
+  b += `<polyline points="${pts}" fill="none" stroke="#22105a" stroke-width="2" stroke-dasharray="5 4"/>`;
+  cdiM.forEach((c, i) => { if (Number.isFinite(c)) b += `<circle cx="${pad.l + i * bw + bw / 2}" cy="${Y(c)}" r="3" fill="#22105a"/>`; });
+  b += `<rect x="${pad.l}" y="4" width="10" height="10" fill="#ff5a00"/><text x="${pad.l + 15}" y="13" font-size="11" fill="#26233a">Sua carteira</text><line x1="${pad.l + 100}" x2="${pad.l + 122}" y1="9" y2="9" stroke="#22105a" stroke-width="2" stroke-dasharray="5 4"/><text x="${pad.l + 127}" y="13" font-size="11" fill="#26233a">CDI</text>`;
+  return { svg: SVGA(W, Hh, b), w: W, h: Hh };
+}
+function gFluxo(C) {
+  const H = C.hist; if (!H.length || !H.some(h => h.mov)) return null;
+  const W = 620, Hh = 200, pad = { l: 10, r: 10, t: 22, b: 30 };
+  const mx = Math.max(...H.map(h => Math.abs(h.mov || 0)), 1), bw = (W - pad.l - pad.r) / H.length;
+  const zero = pad.t + (Hh - pad.t - pad.b) / 2, k = (Hh - pad.t - pad.b) / 2 / mx;
+  let b = `<line x1="${pad.l}" x2="${W - pad.r}" y1="${zero}" y2="${zero}" stroke="#bbb"/>`;
+  H.forEach((h, i) => {
+    const v = h.mov || 0, x = pad.l + i * bw, hg = Math.abs(v) * k;
+    if (v) {
+      b += `<rect x="${x + bw * .2}" y="${v > 0 ? zero - hg : zero}" width="${bw * .6}" height="${Math.max(hg, 1)}" rx="3" fill="${v > 0 ? '#129b5a' : '#e2403a'}"/>`;
+      b += `<text x="${x + bw / 2}" y="${v > 0 ? zero - hg - 4 : zero + hg + 12}" font-size="10" font-weight="bold" fill="#26233a" text-anchor="middle">${(v > 0 ? '+' : '−') + (Math.abs(v) >= 1000 ? n2(Math.abs(v) / 1000, 1) + 'k' : n2(Math.abs(v), 0))}</text>`;
+    }
+    b += `<text x="${x + bw / 2}" y="${Hh - 10}" font-size="11" fill="#6d6a80" text-anchor="middle">${esc(h.mes.replace('.', ''))}</text>`;
+  });
+  b += `<text x="${pad.l}" y="13" font-size="11" fill="#26233a">Aportes (+) e resgates (−) por mês</text>`;
+  return { svg: SVGA(W, Hh, b), w: W, h: Hh };
+}
+function gAlocacao(C) {
+  const E = (C.D.estrategias || []).filter(e => e.saldo > 0).sort((a, b) => b.saldo - a.saldo), tot = E.reduce((s, e) => s + e.saldo, 0);
+  if (!tot) return null;
+  const W = 620, Hh = Math.max(220, 26 * E.length + 30), cx = 110, cy = Hh / 2, R = 95, r0 = 58;
+  const cores = ['#ff5a00', '#6c4bd8', '#129b5a', '#f2b632', '#1f9bd1', '#d6337c', '#9a96ab', '#ff9f68', '#38b6c9', '#9b5de5'];
+  let ang = -Math.PI / 2, b = '';
+  E.forEach((e, i) => {
+    const a = e.saldo / tot * Math.PI * 2, a2 = ang + a, lg = a > Math.PI ? 1 : 0, P = (rr, t) => `${cx + rr * Math.cos(t)},${cy + rr * Math.sin(t)}`;
+    b += `<path d="M${P(R, ang)} A${R},${R} 0 ${lg} 1 ${P(R, a2 - 0.0001)} L${P(r0, a2 - 0.0001)} A${r0},${r0} 0 ${lg} 0 ${P(r0, ang)} Z" fill="${cores[i % cores.length]}"/>`;
+    const y = 24 + i * 26;
+    b += `<rect x="250" y="${y - 10}" width="12" height="12" rx="2" fill="${cores[i % cores.length]}"/><text x="270" y="${y}" font-size="13" fill="#26233a">${esc(curto(e.nome))}</text><text x="${W - 10}" y="${y}" font-size="13" font-weight="bold" fill="#26233a" text-anchor="end">${p2(e.saldo / tot * 100, 1)}  ·  ${brl0(e.saldo)}</text>`;
+    ang = a2;
+  });
+  return { svg: SVGA(W, Hh, b), w: W, h: Hh };
+}
+
+$('btnEmail').onclick = async () => {
   const C = calc(); if (!C) { toast('Importe o XPerformance primeiro'); return; }
-  const m = C.r.periodos?.['MÊS'] || {}, a = C.r.periodos?.ANO || {}, h = Email.h, mes = mesRef(C.D.dataRef);
+  toast('Preparando gráficos…');
+  const img = async g => g ? { src: await svgPng(g.svg, g.w, g.h), w: g.w, h: g.h } : null;
+  const [iEvo, iFlu, iAlo] = await Promise.all([img(gEvolucao(C)), img(gFluxo(C)), img(gAlocacao(C))]);
+  const imgTag = (i, alt) => i && i.src ? `<img src="${i.src}" width="${i.w}" alt="${alt}" style="width:100%;max-width:${i.w}px;height:auto;display:block;margin:0 0 14px;border:0">` : '';
+  const m = C.r.periodos?.['MÊS'] || {}, a = C.r.periodos?.ANO || {}, h = Email.h, mes = mesRef(C.D.dataRef), R = C.r.refs || {}, P = C.r.periodos || {};
+  const cor = v => `color:${v > 0 ? h.cor.bom : v < 0 ? h.cor.ruim : '#26233a'}`;
+  const pc = v => `<span style="${cor(v)}">${ps(v)}</span>`;
+  const LQ = { 'MÊS': C.liq.mes, 'ANO': C.liq.ano, '12M': C.liq.m12 };
   Email.abrir({
     assunto: `Relatório de investimentos · ${mes}`,
-    nome: REL.cliente, para: REL.email,
+    nome: REL.cliente, para: REL.email, preferirCopiar: true,
     texto: (nome, ass) => [
       Email.saudacaoTexto(nome), '',
-      `Segue o resumo da sua carteira em ${mes.toLowerCase()}. A apresentação completa vai em anexo.`, '',
+      `Segue o resumo da sua carteira em ${mes.toLowerCase()}.`, '',
       `• Patrimônio total: ${brl(C.total)}${C.usd ? ` (inclui US$ ${n2(C.usd)} no exterior)` : ''}`,
       `• Rentabilidade no mês: ${ps(C.r.rentMes)}${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`,
       `• Resultado financeiro no mês: ${brl(C.r.ganhoMes)}${C.liq.mes ? ` (líquido de IR/IOF: ${brl(C.liq.mes.liquido)})` : ''}`,
@@ -384,19 +458,35 @@ $('btnEmail').onclick = () => {
       'Fico à disposição para conversarmos.', '', 'Abraço,', ass,
     ].join('\n'),
     html: (nome, ass) => h.wrap(
-      h.p(h.saudacao(nome)) + h.p(`Segue o resumo da sua carteira em ${esc(mes.toLowerCase())}. A apresentação completa vai em anexo.`) +
-      h.tabela(['', 'Valor'], [
-        ['Patrimônio total', `<b>${brl(C.total)}</b>`],
-        ['Rentabilidade no mês', `<b style="color:${C.r.rentMes >= 0 ? h.cor.bom : h.cor.ruim}">${ps(C.r.rentMes)}</b>${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`],
-        ['Resultado financeiro no mês (bruto)', brl(C.r.ganhoMes)],
-        ...(C.liq.mes ? [['Ganho financeiro líquido no mês', `<b>${brl(C.liq.mes.liquido)}</b>`]] : []),
-        ...(Number.isFinite(a.rent) ? [['Rentabilidade no ano', `${ps(a.rent)} (${p2(a.cdi)} do CDI)`]] : []),
-        ['Aportes no mês', brl(C.fluxo.aportes)], ['Resgates no mês', brl(Math.abs(C.fluxo.resgates))], ['Proventos recebidos no mês', brl(C.fluxo.proventos)],
+      h.p(h.saudacao(nome)) + h.p(`Segue o resumo da sua carteira em <b>${esc(mes.toLowerCase())}</b>.`) +
+      h.titulo('Resumo do mês') +
+      h.tabela(['', ''], [
+        ['Patrimônio nacional', brl(C.nacional)],
+        ...(C.usd ? [['Patrimônio internacional', `US$ ${n2(C.usd)} <span style="color:#6d6a80">(${brl(C.internacional)} · câmbio ${n2(C.cot, 3)})</span>`]] : []),
+        ['<b>Patrimônio total</b>', `<b style="color:${h.cor.ora};font-size:16px">${brl(C.total)}</b>`],
+        ['Rentabilidade no mês', `<b>${pc(C.r.rentMes)}</b>${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`],
+        ['Resultado financeiro (bruto)', brl(C.r.ganhoMes)],
+        ...(C.liq.mes ? [['Ganho financeiro líquido', `<b>${brl(C.liq.mes.liquido)}</b>${C.liq.mes.impostos ? ` <span style="color:#6d6a80">(após ${brl(C.liq.mes.impostos)} de IR/IOF)</span>` : ''}`]] : []),
       ], ['left', 'right']) +
-      (C.melhoresCat.length ? h.p(`<b>Destaques do mês:</b> ${C.melhoresCat.map(e => `${esc(e.curto)} (${ps(e.rentMes)})`).join(', ')}.`) : '') +
-      (REL.coment ? h.p(esc(REL.coment).replace(/\n/g, '<br>')) : '') +
+      h.titulo('Rentabilidade por estratégia') +
+      h.tabela(['Estratégia', '% da carteira', 'No mês', '% do CDI'], C.est.map(e => [esc(e.curto), p2(e.pct), pc(e.rentMes), p2(e.cdi, 0)]), ['left', 'right', 'right', 'right']) +
+      h.titulo('Carteira × referências') +
+      h.tabela(['', 'Mês', 'Ano', '12 meses'], [['Portfolio', '<b>Sua carteira</b>'], ['CDI', 'CDI'], ['Ibovespa', 'Ibovespa'], ['IPCA', 'IPCA'], ['Dolar', 'Dólar']].filter(([k]) => R[k]).map(([k, n]) => [n, pc(R[k].mes), pc(R[k].ano), pc(R[k].m12)]), ['left', 'right', 'right', 'right']) +
+      h.tabela(['', 'Mês', 'Ano', '12 meses'], [
+        ['Ganho bruto', ...['MÊS', 'ANO', '12M'].map(k => P[k] && Number.isFinite(P[k].ganho) ? brl(P[k].ganho) : '—')],
+        ['Ganho líquido (após IR/IOF)', ...['MÊS', 'ANO', '12M'].map(k => LQ[k] ? `<b>${brl(LQ[k].liquido)}</b>` : '—')],
+      ], ['left', 'right', 'right', 'right']) +
+      (iEvo ? h.titulo('Últimos 12 meses') + imgTag(iEvo, 'Rentabilidade mensal da carteira e do CDI nos últimos 12 meses') : '') +
+      h.titulo('Destaques do mês') +
+      h.tabela(['Melhores estratégias', 'No mês'], C.melhoresCat.map(e => [esc(e.curto), pc(e.rentMes)]), ['left', 'right']) +
+      h.tabela(['Melhores ativos', 'No mês'], C.melhores.map(x => [esc(x.nome), pc(x.rentMes)]), ['left', 'right']) +
+      h.titulo('Fluxo de caixa do mês') +
+      h.tabela(['', ''], [['Aportes (entradas)', `<span style="color:${h.cor.bom}">${brl(C.fluxo.aportes)}</span>`], ['Resgates (saídas)', `<span style="color:${h.cor.ruim}">${brl(Math.abs(C.fluxo.resgates))}</span>`], ['Proventos recebidos', `<b>${brl(C.fluxo.proventos)}</b>`], ['Custos e taxas', brl(Math.abs(C.fluxo.custos))]], ['left', 'right']) +
+      imgTag(iFlu, 'Aportes e resgates nos últimos 12 meses') +
+      (iAlo ? h.titulo('Alocação da carteira') + imgTag(iAlo, 'Alocação por estratégia') : '') +
+      (REL.coment ? h.titulo('Recado') + h.p(esc(REL.coment).replace(/\n/g, '<br>')) : '') +
       h.p('Fico à disposição para conversarmos.') + h.p('Abraço,') + h.assinatura(ass) +
-      h.rodape('Rentabilidade passada não é garantia de rentabilidade futura. Dados do relatório XPerformance.')),
+      h.rodape('Rentabilidade passada não é garantia de rentabilidade futura. Dados do relatório XPerformance; ganho líquido = ganho bruto menos IR e IOF pagos no período.')),
     aoSalvarCliente: (nome, para) => { REL.cliente = nome || REL.cliente; REL.email = para; preencher(); salvar(); },
   });
 };

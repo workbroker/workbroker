@@ -24,6 +24,7 @@ const Email = (() => {
         </div>
         <details style="margin-top:8px"><summary class="note" style="cursor:pointer">Minha assinatura</summary>
           <textarea id="emAss" rows="3" style="margin-top:6px"></textarea></details>
+        <p id="emDica" hidden style="margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--orange-soft);color:#9a3a00;font-size:13.5px"></p>
         <div class="em-actions">
           <button id="emApp">Abrir no app de e-mail</button>
           <button class="secondary" id="emGmail">Gmail</button>
@@ -138,6 +139,12 @@ const Email = (() => {
     delete $('emTexto').dataset.editado;
     $('emTexto').value = opts.texto(nome(), assinatura());
     $('emGrafico').hidden = !opts.grafico;
+    // Quando o e-mail tem gráficos e tabelas, o caminho principal é copiar a versão formatada
+    $('emCopiar').className = opts.preferirCopiar ? '' : 'outline';
+    $('emApp').className = opts.preferirCopiar ? 'secondary' : '';
+    $('emCopiar').textContent = opts.preferirCopiar ? '📋 Copiar e-mail com gráficos e tabelas' : 'Copiar e-mail formatado';
+    $('emDica').hidden = !opts.preferirCopiar;
+    $('emDica').innerHTML = opts.preferirCopiar ? '<b>Para enviar com gráficos e tabelas:</b> toque em "Copiar e-mail com gráficos e tabelas", abra o Gmail ou o Outlook, preencha o destinatário e o assunto e cole no corpo da mensagem (Ctrl+V). Os botões de abrir o e-mail levam só o texto.' : '';
     $('emailModal').hidden = false;
     document.body.style.overflow = 'hidden';
     setTimeout(() => ($('emPara').value ? $('emAssunto') : $('emPara')).focus(), 50);
@@ -152,7 +159,7 @@ const Email = (() => {
     titulo: t => `<h3 style="margin:18px 0 8px;font-size:15px;color:${cor.ind};border-bottom:2px solid ${cor.ora};padding-bottom:4px">${t}</h3>`,
     destaque: (t, tipo) => `<div style="background:${tipo === 'bom' ? '#e5f6ee' : tipo === 'ruim' ? '#fdeceb' : '#fff4dc'};color:${tipo === 'bom' ? '#0b6e3f' : tipo === 'ruim' ? '#a52521' : '#8a5400'};padding:12px 14px;border-radius:8px;font-weight:bold;margin:0 0 12px">${t}</div>`,
     tabela: (cab, linhas, alinhar = []) => `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;margin:0 0 12px">
-      <tr>${cab.map((c, i) => `<th style="text-align:${alinhar[i] || 'left'};padding:7px 8px;background:${cor.ind};color:#fff;font-weight:bold">${c}</th>`).join('')}</tr>
+      ${cab.some(c => c) ? `<tr>${cab.map((c, i) => `<th style="text-align:${alinhar[i] || 'left'};padding:7px 8px;background:${cor.ind};color:#fff;font-weight:bold">${c}</th>`).join('')}</tr>` : ''}
       ${linhas.map((l, k) => `<tr>${l.map((c, i) => `<td style="text-align:${alinhar[i] || 'left'};padding:7px 8px;border-bottom:1px solid ${cor.lin};${k % 2 ? 'background:#faf9fd;' : ''}">${c}</td>`).join('')}</tr>`).join('')}
     </table>`,
     rodape: t => `<p style="margin:16px 0 0;font-size:11.5px;color:${cor.mut}">${t}</p>`,
