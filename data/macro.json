@@ -1,0 +1,77 @@
+{
+ "atualizado": "2026-11-08T15:49:48+00:00",
+ "itens": [
+  {
+   "id": "selic",
+   "nome": "Selic",
+   "valor": 13.75,
+   "fmt": "pct",
+   "sub": "meta a.a."
+  },
+  {
+   "id": "cdi",
+   "nome": "CDI",
+   "valor": 13.65,
+   "fmt": "pct",
+   "sub": "a.a."
+  },
+  {
+   "id": "ipca_mes",
+   "nome": "IPCA mês",
+   "valor": 0.82,
+   "fmt": "pct",
+   "sub": "set/26"
+  },
+  {
+   "id": "ipca_ano",
+   "nome": "IPCA no ano",
+   "valor": 3.9513166123103405,
+   "fmt": "pct",
+   "sub": "até set/26"
+  },
+  {
+   "id": "ipca_12m",
+   "nome": "IPCA 12 meses",
+   "valor": 4.58,
+   "fmt": "pct",
+   "sub": "set/26"
+  },
+  {
+   "id": "incc",
+   "nome": "INCC-M mês",
+   "valor": 0.35,
+   "fmt": "pct",
+   "sub": "out/26 · 12m 6,75%"
+  },
+  {
+   "id": "dolar",
+   "nome": "Dólar",
+   "valor": 5.505,
+   "fmt": "brl",
+   "var": 1.2860848926422586
+  },
+  {
+   "id": "ibov",
+   "nome": "Ibovespa",
+   "valor": 168498.45,
+   "fmt": "pts",
+   "var": -0.40638705330227065
+  },
+  {
+   "id": "brent",
+   "nome": "Petróleo Brent",
+   "valor": 98.32,
+   "fmt": "usd",
+   "var": -5.096525096525095,
+   "sub": "barril"
+  },
+  {
+   "id": "ouro",
+   "nome": "Ouro",
+   "valor": 4074.9,
+   "fmt": "usd",
+   "var": 3.413359049842657,
+   "sub": "onça"
+  }
+ ]
+}
