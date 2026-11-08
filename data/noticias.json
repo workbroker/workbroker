@@ -1,9 +1,33 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-08T10:11:33+00:00",
+ "atualizado": "2026-11-08T11:25:01+00:00",
  "fontes": {
   "ultimas": [
+   {
+    "titulo": "Do 9/9 ao 11/11: datas duplas viram novo motor do e-commerce e desafiam Black Friday",
+    "link": "https://www.infomoney.com.br/business/do-9-9-ao-11-11-datas-duplas-viram-novo-motor-do-e-commerce-e-desafiam-black-friday/",
+    "data": "2026-11-08T10:00:00+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "O que um Congresso democrata poderia significar para a ciência nos EUA?",
+    "link": "https://www.infomoney.com.br/business/global/o-que-um-congresso-democrata-poderia-significar-para-a-ciencia-nos-eua/",
+    "data": "2026-11-08T08:00:00+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Uma cúpula Trump-Putin-Xi? Isso pode ser constrangedor para um deles",
+    "link": "https://www.infomoney.com.br/business/global/uma-cupula-trump-putin-xi-isso-pode-ser-constrangedor-para-um-deles/",
+    "data": "2026-11-08T08:00:00+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Por que até seus melhores funcionários contornam sistemas de IA que funcionam?",
+    "link": "https://www.infomoney.com.br/business/global/por-que-ate-seus-melhores-funcionarios-contornam-sistemas-de-ia-que-funcionam/",
+    "data": "2026-11-08T08:00:00+00:00",
+    "categoria": "Business"
+   },
    {
     "titulo": "Itaipu aciona MP do Paraguai para recuperar US$ 182 milhões depositados no Ueno",
     "link": "https://www.infomoney.com.br/brasil/itaipu-aciona-mp-do-paraguai-para-recuperar-us-182-milhoes-depositados-no-ueno/",
@@ -219,30 +243,6 @@
     "link": "https://www.infomoney.com.br/brasil/lula-sanciona-enamed-obrigatorio-exercer-medicina/",
     "data": "2026-11-07T13:30:56+00:00",
     "categoria": "Brasil"
-   },
-   {
-    "titulo": "Prédio desaba no Brás sem certificado dos bombeiros; excesso de peso é suspeita",
-    "link": "https://www.infomoney.com.br/brasil/predio-desabou-bras-avcb-excesso-peso/",
-    "data": "2026-11-07T13:14:44+00:00",
-    "categoria": "Brasil"
-   },
-   {
-    "titulo": "Diretor da PRIO critica imposto sobre petróleo, mas ainda vê oportunidades no Brasil",
-    "link": "https://www.infomoney.com.br/mercados/diretor-da-prio-critica-imposto-sobre-petroleo-mas-ainda-ve-oportunidades-no-brasil/",
-    "data": "2026-11-07T13:00:00+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Rússia lança 36 mísseis e 172 drones contra Ucrânia antes de negociações de paz",
-    "link": "https://www.infomoney.com.br/mundo/russia-ataques-ucrania-misseis-drones-negociacoes-paz/",
-    "data": "2026-11-07T12:51:00+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Paraguai troca presidente: Alliana assume e Peña é preso após crise bancária",
-    "link": "https://www.infomoney.com.br/mundo/paraguai-alliana-presidente-pena-preso-impeachment-ueno-bank/",
-    "data": "2026-11-07T12:31:39+00:00",
-    "categoria": "Mundo"
    }
   ],
   "mercados": [
@@ -680,12 +680,6 @@
     "titulo": "Lara Resende nega reunião com Lula e diz que notícia foi plantada para gerar desgaste",
     "link": "https://www.infomoney.com.br/politica/lara-resende-nega-reuniao-com-lula-e-diz-que-noticia-foi-plantada-para-gerar-desgaste/",
     "data": "2026-11-06T11:46:04+00:00",
-    "categoria": "Política"
-   },
-   {
-    "titulo": "Lula negocia ajuste fiscal e apoio político em meio à pressão do mercado",
-    "link": "https://www.infomoney.com.br/politica/lula-negocia-ajuste-fiscal-e-apoio-politico-em-meio-a-pressao-do-mercado/",
-    "data": "2026-11-06T09:00:00+00:00",
     "categoria": "Política"
    }
   ],
