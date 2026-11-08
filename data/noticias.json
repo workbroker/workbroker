@@ -1,15 +1,9 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-08T11:25:01+00:00",
+ "atualizado": "2026-11-08T12:02:32+00:00",
  "fontes": {
   "ultimas": [
-   {
-    "titulo": "Do 9/9 ao 11/11: datas duplas viram novo motor do e-commerce e desafiam Black Friday",
-    "link": "https://www.infomoney.com.br/business/do-9-9-ao-11-11-datas-duplas-viram-novo-motor-do-e-commerce-e-desafiam-black-friday/",
-    "data": "2026-11-08T10:00:00+00:00",
-    "categoria": "Business"
-   },
    {
     "titulo": "O que um Congresso democrata poderia significar para a ciência nos EUA?",
     "link": "https://www.infomoney.com.br/business/global/o-que-um-congresso-democrata-poderia-significar-para-a-ciencia-nos-eua/",
@@ -242,6 +236,12 @@
     "titulo": "Lula sanciona Enamed: veja quem terá de passar na prova para exercer medicina",
     "link": "https://www.infomoney.com.br/brasil/lula-sanciona-enamed-obrigatorio-exercer-medicina/",
     "data": "2026-11-07T13:30:56+00:00",
+    "categoria": "Brasil"
+   },
+   {
+    "titulo": "Prédio desaba no Brás sem certificado dos bombeiros; excesso de peso é suspeita",
+    "link": "https://www.infomoney.com.br/brasil/predio-desabou-bras-avcb-excesso-peso/",
+    "data": "2026-11-07T13:14:44+00:00",
     "categoria": "Brasil"
    }
   ],
@@ -680,6 +680,12 @@
     "titulo": "Lara Resende nega reunião com Lula e diz que notícia foi plantada para gerar desgaste",
     "link": "https://www.infomoney.com.br/politica/lara-resende-nega-reuniao-com-lula-e-diz-que-noticia-foi-plantada-para-gerar-desgaste/",
     "data": "2026-11-06T11:46:04+00:00",
+    "categoria": "Política"
+   },
+   {
+    "titulo": "Lula negocia ajuste fiscal e apoio político em meio à pressão do mercado",
+    "link": "https://www.infomoney.com.br/politica/lula-negocia-ajuste-fiscal-e-apoio-politico-em-meio-a-pressao-do-mercado/",
+    "data": "2026-11-06T09:00:00+00:00",
     "categoria": "Política"
    }
   ],
