@@ -202,6 +202,8 @@ def main():
             continue
         tipo = "fii" if t in fiis else "etf" if t in ETFS else "acao"
         a = {"t": tipo, **q}
+        if not a.get("dy"):
+            a.pop("dy", None)
         if tipo == "acao" and t in fund:
             a.update({k: v for k, v in fund[t].items() if k != "em"})
         if tipo == "fii":
@@ -209,6 +211,10 @@ def main():
             a.update({k: fi[k] for k in ("seg", "mandato", "gestao", "adm", "vac", "vpc", "dyMes")})
             if fi.get("vpc") and q.get("p"):
                 a["pvp"] = q["p"] / fi["vpc"]
+                # dividend yield estimado pelo último rendimento informado à CVM, se o Yahoo não trouxer
+                if not a.get("dy") and fi.get("dyMes"):
+                    a["dy"] = fi["dyMes"] * fi["vpc"] * 12 / q["p"] * 100
+                    a["dyEst"] = True
             a["n"] = fi.get("nome") or a["n"]
         ativos[t] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in a.items() if v is not None}
     if not ativos:

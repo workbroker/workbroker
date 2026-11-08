@@ -204,9 +204,7 @@ function renderTudo() {
 // 1) arquivo atualizado pelo GitHub Actions a cada ~15 min; 2) reserva: feed RSS geral via rss2json
 async function carregar() {
   try {
-    const r = await fetch('data/noticias.json?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
+    const d = await carregarDados('noticias.json');
     if (!Object.values(d.fontes || {}).some(x => x.length)) throw new Error('vazio');
     dados = d;
   } catch {

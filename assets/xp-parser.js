@@ -159,7 +159,7 @@ const XPParser = (() => {
         if (r.estrategia) { estrAtual = r.nome; continue; }
         const partes = [...r.antes.sort((a, b) => b.y - a.y).map(f => f.text), r.nome, ...r.depois.sort((a, b) => b.y - a.y).map(f => f.text)];
         const nome = partes.filter(Boolean).join(' ').replace(/\s+-\s*$/, '').replace(/\s+/g, ' ').trim();
-        out.ativos.push({ nome, estrategia: estrAtual, saldo: r.saldo, pct: r.pct, rentMes: r.rentMes, rentAno: r.rentAno });
+        out.ativos.push({ nome, estrategia: estrAtual, saldo: r.saldo, qtd: /^[\d.]+$/.test(r.qtd) ? parseInt(r.qtd.replace(/\./g, ''), 10) : null, pct: r.pct, rentMes: r.rentMes, rentAno: r.rentAno });
       }
     }
 

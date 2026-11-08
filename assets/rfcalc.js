@@ -205,7 +205,7 @@ function calcular() {
   // premissas: usa CDI e IPCA 12m do Banco Central se o usuário não definiu
   if (!$('p_cdi').value || !$('p_ipca').value) {
     try {
-      const d = await (await fetch('data/macro.json', { cache: 'no-store' })).json();
+      const d = await carregarDados('macro.json');
       const get = id => d.itens.find(i => i.id === id)?.valor;
       if (!$('p_cdi').value && get('cdi')) $('p_cdi').value = NUM2.format(get('cdi'));
       if (!$('p_ipca').value && get('ipca_12m')) $('p_ipca').value = NUM2.format(get('ipca_12m'));

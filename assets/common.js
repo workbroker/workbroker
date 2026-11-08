@@ -74,6 +74,19 @@ function fmtIdx(idx, x) {
   return ({ cdimais: 'CDI + ', ipcamais: 'IPCA + ' })[idx] + pct(x);
 }
 
+// Dados atualizados pelo GitHub Actions ficam no ramo "dados"; se falhar, usa a cópia local em data/
+const DADOS_URL = 'https://raw.githubusercontent.com/workrico/rico.work/dados/';
+async function carregarDados(nome) {
+  const t = Math.floor(Date.now() / 120000);
+  for (const base of [DADOS_URL, 'data/']) {
+    try {
+      const r = await fetch(base + nome + '?t=' + t, { cache: 'no-store' });
+      if (r.ok) return await r.json();
+    } catch {}
+  }
+  throw new Error('Dados indisponíveis: ' + nome);
+}
+
 // Armazenamento local seguro (pode falhar em navegação privada)
 const store = {
   get(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
@@ -158,9 +171,7 @@ function fmtMacro(i) {
   document.body.classList.add('has-ticker');
   async function carregar() {
     try {
-      const r = await fetch('data/macro.json?t=' + Math.floor(Date.now() / 300000), { cache: 'no-store' });
-      if (!r.ok) throw 0;
-      const d = await r.json();
+      const d = await carregarDados('macro.json');
       const itens = d.itens.map(i => {
         const v = i.var != null ? `<span class="tk-var ${i.var >= 0 ? 'up' : 'down'}">${i.var >= 0 ? '▲' : '▼'} ${Math.abs(i.var).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>` : '';
         return `<span class="tk"><span class="tk-n">${esc(i.nome)}</span><b>${fmtMacro(i)}</b>${v}${i.sub ? `<span class="tk-s">${esc(i.sub)}</span>` : ''}</span>`;

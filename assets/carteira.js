@@ -296,7 +296,7 @@ async function importarPDF(file) {
     S.dataRef = r.dataRef || '';
     S.patrimonioRelatorio = r.patrimonio;
     S.avisos = r.avisos;
-    S.ativos = r.ativos.map(a => ({ id: uid(), nome: a.nome, estrategia: a.estrategia, classe: a.classe, saldo: a.saldo, revisar: a.revisar, rentMes: a.rentMes, rentAno: a.rentAno }));
+    S.ativos = r.ativos.map(a => ({ id: uid(), nome: a.nome, estrategia: a.estrategia, classe: a.classe, saldo: a.saldo, qtd: a.qtd, revisar: a.revisar, rentMes: a.rentMes, rentAno: a.rentAno }));
     renderTudo();
     $('cardAtivos').open = false;
     toast(`${S.ativos.length} ativos importados`);
