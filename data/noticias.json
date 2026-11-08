@@ -1,9 +1,39 @@
 {
  "fonte": "InfoMoney",
  "origem": "sitemap",
- "atualizado": "2026-11-08T13:40:37+00:00",
+ "atualizado": "2026-11-08T14:22:31+00:00",
  "fontes": {
   "ultimas": [
+   {
+    "titulo": "Lula precisa de alguém alinhado com o mercado para a Fazenda, diz CEO da BR Partners",
+    "link": "https://www.infomoney.com.br/economia/lula-precisa-de-alguem-alinhado-com-o-mercado-para-a-fazenda-diz-ceo-da-br-partners/",
+    "data": "2026-11-08T12:30:00+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "“Potencial do Brasil é na aplicação da IA no mundo físico”, diz diretor do Google",
+    "link": "https://www.infomoney.com.br/business/potencial-do-brasil-e-na-aplicacao-da-ia-no-mundo-fisico-diz-diretor-do-google/",
+    "data": "2026-11-08T12:00:00+00:00",
+    "categoria": "Business"
+   },
+   {
+    "titulo": "Houve aparelhamento das agências reguladoras sob governo Lula, diz Azevedo, da Ibiuna",
+    "link": "https://www.infomoney.com.br/economia/houve-aparelhamento-nas-agencias-reguladoras-sob-governo-lula-diz-azevedo-da-ibiuna/",
+    "data": "2026-11-08T11:30:00+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "O que o gráfico não mostra? Perretti e Molini unem macro e fluxo no day trade",
+    "link": "https://www.infomoney.com.br/mercados/que-grafico-nao-mostra-perretti-molini-levam-analise-macroeconomica-ao-trade/",
+    "data": "2026-11-08T11:15:00+00:00",
+    "categoria": "Mercados"
+   },
+   {
+    "titulo": "Modelo de política econômica do PT é muito desequilibrado, avalia Azevedo, da Ibiuna",
+    "link": "https://www.infomoney.com.br/politica/modelo-de-politica-economica-do-pt-e-muito-desequilibrado-avalia-azevedo-da-ibiuna/",
+    "data": "2026-11-08T11:00:00+00:00",
+    "categoria": "Política"
+   },
    {
     "titulo": "A receita da AZ Quest para o País reduzir até R$ 350 bi em gasto com juros todo ano",
     "link": "https://www.infomoney.com.br/onde-investir/a-receita-da-az-quest-para-o-pais-reduzir-ate-r-350-bi-em-gasto-com-juros-todo-ano/",
@@ -213,39 +243,15 @@
     "link": "https://www.infomoney.com.br/politica/lula-pedro-alliana-brasilia-impeachment-pena/",
     "data": "2026-11-07T14:30:13+00:00",
     "categoria": "Política"
-   },
-   {
-    "titulo": "Pedro Sanches critica Milei após argentino comparar socialismo ao fascismo",
-    "link": "https://www.infomoney.com.br/mundo/pedro-sanches-critica-milei-apos-argentino-comparar-socialismo-ao-fascismo/",
-    "data": "2026-11-07T14:27:05+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Nubank normaliza operações com criptomoedas após falha em fornecedor externo",
-    "link": "https://www.infomoney.com.br/onde-investir/nubank-normaliza-saques-depositos-criptomoedas/",
-    "data": "2026-11-07T14:15:24+00:00",
-    "categoria": "Onde investir"
-   },
-   {
-    "titulo": "Vitória democrata põe em xeque era de ouro das criptomoedas sob Trump",
-    "link": "https://www.infomoney.com.br/onde-investir/criptomoedas-trump-vitoria-democrata-congresso-eua/",
-    "data": "2026-11-07T13:58:24+00:00",
-    "categoria": "Onde investir"
-   },
-   {
-    "titulo": "Milhares se reúnem no Uruguai para a primeira missa do Papa Leão na América do Sul",
-    "link": "https://www.infomoney.com.br/mundo/milhares-se-reunem-no-uruguai-para-a-primeira-missa-do-papa-leao-na-america-do-sul/",
-    "data": "2026-11-07T13:52:00+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "EUA reconhecem Alliana após queda de Peña e reafirmam aliança com Paraguai",
-    "link": "https://www.infomoney.com.br/mundo/eua-reconhecem-alliana-presidente-paraguai-impeachment-pena/",
-    "data": "2026-11-07T13:40:24+00:00",
-    "categoria": "Mundo"
    }
   ],
   "mercados": [
+   {
+    "titulo": "O que o gráfico não mostra? Perretti e Molini unem macro e fluxo no day trade",
+    "link": "https://www.infomoney.com.br/mercados/que-grafico-nao-mostra-perretti-molini-levam-analise-macroeconomica-ao-trade/",
+    "data": "2026-11-08T11:15:00+00:00",
+    "categoria": "Mercados"
+   },
    {
     "titulo": "Reação contra a IA se espalha pela Europa com protestos contra data centers",
     "link": "https://www.infomoney.com.br/mercados/reacao-contra-a-ia-se-espalha-pela-europa-com-protestos-contra-data-centers/",
@@ -455,39 +461,21 @@
     "link": "https://www.infomoney.com.br/mercados/bradesco-bbi-rebaixa-b3-em-cenario-de-juro-alto-xp-e-btg-tem-recomendacao-de-compra/",
     "data": "2026-11-06T12:58:51+00:00",
     "categoria": "Mercados"
-   },
-   {
-    "titulo": "JPMorgan vê lucro de emergentes resiliente e mantém Brasil entre mercados preferidos",
-    "link": "https://www.infomoney.com.br/mercados/jpmorgan-ve-lucro-de-emergentes-resiliente-e-mantem-brasil-entre-mercados-preferidos/",
-    "data": "2026-11-06T12:53:52+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Governo prorroga imposto sobre exportação de petróleo até 31 de dezembro",
-    "link": "https://www.infomoney.com.br/mercados/camex-prorroga-imposto-de-exportacao-de-petroleo-ate-31-de-dezembro/",
-    "data": "2026-11-06T12:38:15+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Axia (AXIA3) volta ao lucro, mas gráfico indica risco de mais queda",
-    "link": "https://www.infomoney.com.br/mercados/axia-axia3-volta-ao-lucro-mas-grafico-indica-risco-de-mais-queda/",
-    "data": "2026-11-06T12:13:50+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Ibovespa Futuro sobe à espera do payroll nos EUA em dia de cautela global",
-    "link": "https://www.infomoney.com.br/mercados/ibovespa-futuro-06112026-payroll-nos-eua-dia-de-cautela-global/",
-    "data": "2026-11-06T12:13:14+00:00",
-    "categoria": "Mercados"
-   },
-   {
-    "titulo": "Minério de ferro registra segundo ganho semanal na China",
-    "link": "https://www.infomoney.com.br/mercados/minerio-de-ferro-registra-segundo-ganho-semanal-na-china/",
-    "data": "2026-11-06T11:39:32+00:00",
-    "categoria": "Mercados"
    }
   ],
   "economia": [
+   {
+    "titulo": "Lula precisa de alguém alinhado com o mercado para a Fazenda, diz CEO da BR Partners",
+    "link": "https://www.infomoney.com.br/economia/lula-precisa-de-alguem-alinhado-com-o-mercado-para-a-fazenda-diz-ceo-da-br-partners/",
+    "data": "2026-11-08T12:30:00+00:00",
+    "categoria": "Economia"
+   },
+   {
+    "titulo": "Houve aparelhamento das agências reguladoras sob governo Lula, diz Azevedo, da Ibiuna",
+    "link": "https://www.infomoney.com.br/economia/houve-aparelhamento-nas-agencias-reguladoras-sob-governo-lula-diz-azevedo-da-ibiuna/",
+    "data": "2026-11-08T11:30:00+00:00",
+    "categoria": "Economia"
+   },
    {
     "titulo": "Trenó do Papai Noel vai chegar nos EUA novamente sobrecarregado por tarifas",
     "link": "https://www.infomoney.com.br/economia/treno-do-papai-noel-vai-chegar-nos-eua-novamente-sobrecarregado-por-tarifas/",
@@ -547,21 +535,15 @@
     "link": "https://www.infomoney.com.br/economia/fao-eleva-previsao-de-producao-global-de-cereais-para-2999-bi-de-toneladas-metricas/",
     "data": "2026-11-06T13:17:25+00:00",
     "categoria": "Economia"
-   },
-   {
-    "titulo": "Importações de soja pela China em 2026/27 devem chegar a 110 mi t, diz adido do USDA",
-    "link": "https://www.infomoney.com.br/economia/importacoes-de-soja-pela-china-em-2026-27-devem-chegar-a-110-mi-t-diz-adido-do-usda/",
-    "data": "2026-11-06T11:37:59+00:00",
-    "categoria": "Economia"
-   },
-   {
-    "titulo": "Preços mundiais dos alimentos caem em outubro, mas estão mais altos do que há um ano",
-    "link": "https://www.infomoney.com.br/economia/precos-mundiais-dos-alimentos-caem-em-outubro-mas-estao-mais-altos-do-que-ha-um-ano/",
-    "data": "2026-11-06T11:25:33+00:00",
-    "categoria": "Economia"
    }
   ],
   "politica": [
+   {
+    "titulo": "Modelo de política econômica do PT é muito desequilibrado, avalia Azevedo, da Ibiuna",
+    "link": "https://www.infomoney.com.br/politica/modelo-de-politica-economica-do-pt-e-muito-desequilibrado-avalia-azevedo-da-ibiuna/",
+    "data": "2026-11-08T11:00:00+00:00",
+    "categoria": "Política"
+   },
    {
     "titulo": "Lula pede ‘prontidão’ ao ‘Exército’ de Janones e confirma live na Turquia",
     "link": "https://www.infomoney.com.br/politica/lula-exercito-janones-prontidao-live-turquia/",
@@ -668,18 +650,6 @@
     "titulo": "Integrantes do PT querem que Lula reduza tempo de prisão de Bolsonaro, diz jornal",
     "link": "https://www.infomoney.com.br/politica/integrantes-do-pt-querem-que-lula-reduza-tempo-de-prisao-de-bolsonaro-diz-jornal/",
     "data": "2026-11-06T13:23:38+00:00",
-    "categoria": "Política"
-   },
-   {
-    "titulo": "Justiça rejeita ação contra Jair Bolsonaro no caso de Wal do Açaí",
-    "link": "https://www.infomoney.com.br/politica/justica-rejeita-acao-contra-jair-bolsonaro-no-caso-de-wal-do-acai/",
-    "data": "2026-11-06T12:02:26+00:00",
-    "categoria": "Política"
-   },
-   {
-    "titulo": "Lara Resende nega reunião com Lula e diz que notícia foi plantada para gerar desgaste",
-    "link": "https://www.infomoney.com.br/politica/lara-resende-nega-reuniao-com-lula-e-diz-que-noticia-foi-plantada-para-gerar-desgaste/",
-    "data": "2026-11-06T11:46:04+00:00",
     "categoria": "Política"
    }
   ],
@@ -904,24 +874,6 @@
     "titulo": "Ameaças de bomba em aviões na Europa: o que se sabe e quem pode estar por trás?",
     "link": "https://www.infomoney.com.br/mundo/ameacas-de-bomba-em-avioes-na-europa-o-que-se-sabe-e-quem-pode-estar-por-tras/",
     "data": "2026-11-06T13:01:12+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Nos EUA, juíza federal suspende por 14 dias início de obras de arco memorial de Trump",
-    "link": "https://www.infomoney.com.br/mundo/nos-eua-juiza-federal-suspende-por-14-dias-inicio-de-obras-de-arco-memorial-de-trump/",
-    "data": "2026-11-06T12:45:23+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Papa Leão XIV inicia giro pela América Latina após cirurgia; Uruguai é 1ª parada",
-    "link": "https://www.infomoney.com.br/mundo/papa-leao-xiv-inicia-giro-pela-america-latina-apos-cirurgia-uruguai-e-1a-parada/",
-    "data": "2026-11-06T12:42:45+00:00",
-    "categoria": "Mundo"
-   },
-   {
-    "titulo": "Quatro novas ameaças de bomba são feitas contra aviões que sobrevoavam França",
-    "link": "https://www.infomoney.com.br/mundo/quatro-novas-ameacas-de-bomba-sao-feitas-contra-avioes-que-sobrevoavam-franca/",
-    "data": "2026-11-06T12:39:55+00:00",
     "categoria": "Mundo"
    }
   ]
