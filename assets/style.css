@@ -129,7 +129,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--orange); ou
 input[readonly] { background: #fafafc; color: var(--muted); }
 .combo { display: grid; grid-template-columns: minmax(88px, 1fr) minmax(0, 1fr); gap: 6px; }
 label.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
-label.check input { width: 20px; height: 20px; accent-color: var(--orange); }
+label.check input { width: 20px; height: 20px; accent-color: var(--orange); flex-shrink: 0; }
 
 .seg { display: inline-flex; background: #efeef5; border-radius: 11px; padding: 3px; gap: 2px; }
 .seg button { background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 9px; font-weight: 700; font-size: 13px; }
@@ -256,7 +256,18 @@ footer.foot { text-align: center; color: var(--muted); font-size: 12px; padding:
   background: linear-gradient(90deg, var(--indigo), var(--indigo-2));
   box-shadow: 0 -4px 16px rgba(34,16,90,.18);
 }
+.ticker-bar { display: block; text-decoration: none; color: #fff; }
 .ticker-bar .ticker-ph { color: rgba(255,255,255,.7); font-size: 13px; padding: 14px 16px; }
+.tk-track { display: inline-flex; white-space: nowrap; height: 46px; align-items: center; animation: tk-scroll 60s linear infinite; }
+.ticker-bar:hover .tk-track { animation-play-state: paused; }
+@keyframes tk-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tk { display: inline-flex; align-items: baseline; gap: 6px; padding: 0 22px; border-right: 1px solid rgba(255,255,255,.14); font-size: 13.5px; }
+.tk-n { color: rgba(255,255,255,.72); font-weight: 600; }
+.tk b { font-weight: 800; color: #fff; }
+.tk-var { font-size: 12px; font-weight: 800; }
+.tk-var.up { color: #3ee08f; } .tk-var.down { color: #ff7d73; }
+.tk-s { font-size: 11px; color: rgba(255,255,255,.55); }
+@media (prefers-reduced-motion: reduce) { .tk-track { animation: none; } .ticker-bar { overflow-x: auto; } }
 body.has-ticker { padding-bottom: 46px; }
 body.has-ticker .toast { bottom: 64px; }
 
@@ -295,6 +306,7 @@ body.has-ticker .toast { bottom: 64px; }
 @media (max-width: 640px) {
   h1 { font-size: 23px; }
   .fields.three { grid-template-columns: 1fr 1fr; }
+  .fields .wide, .fields label.check { grid-column: 1 / -1; }
   table { font-size: 13px; }
   .hide-sm { display: none !important; }
   .card { padding: 14px; }

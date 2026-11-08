@@ -31,7 +31,7 @@ def mes_ref(data_br):  # "01/09/2026" -> "set/26"
 
 
 def yahoo(simbolo):
-    j = get_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(simbolo)}?range=5d&interval=1d")
+    j = get_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(simbolo)}?range=1d&interval=5m")
     m = j["chart"]["result"][0]["meta"]
     preco, ant = m.get("regularMarketPrice"), m.get("chartPreviousClose")
     var = (preco / ant - 1) * 100 if preco and ant else None

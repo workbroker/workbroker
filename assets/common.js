@@ -44,6 +44,36 @@ function aliquotaIR(dias) {
   return 0.15;
 }
 
+// Taxa efetiva anual (decimal) a partir do indexador: pre, pctcdi, cdimais, ipcamais
+function taxaEfetiva(idx, taxa, cdi, ipca) {
+  taxa /= 100; cdi /= 100; ipca /= 100;
+  switch (idx) {
+    case 'pre': return taxa;
+    case 'pctcdi': return Math.pow(1 + (Math.pow(1 + cdi, 1 / 252) - 1) * taxa, 252) - 1;
+    case 'cdimais': return (1 + cdi) * (1 + taxa) - 1;
+    case 'ipcamais': return (1 + ipca) * (1 + taxa) - 1;
+  }
+  return NaN;
+}
+// Converte taxa efetiva anual (decimal) de volta para o formato do indexador (%)
+function taxaNoIdx(idx, anual, cdi, ipca) {
+  cdi /= 100; ipca /= 100;
+  switch (idx) {
+    case 'pre': return anual * 100;
+    case 'pctcdi': return (Math.pow(1 + anual, 1 / 252) - 1) / (Math.pow(1 + cdi, 1 / 252) - 1) * 100;
+    case 'cdimais': return ((1 + anual) / (1 + cdi) - 1) * 100;
+    case 'ipcamais': return ((1 + anual) / (1 + ipca) - 1) * 100;
+  }
+  return NaN;
+}
+const IDX_OPTS = [['pre', 'Pré'], ['pctcdi', '% CDI'], ['cdimais', 'CDI +'], ['ipcamais', 'IPCA +']];
+function fmtIdx(idx, x) {
+  if (!Number.isFinite(x)) return '—';
+  if (idx === 'pctcdi') return pct(x) + ' do CDI';
+  if (idx === 'pre') return pct(x) + ' a.a.';
+  return ({ cdimais: 'CDI + ', ipcamais: 'IPCA + ' })[idx] + pct(x);
+}
+
 // Armazenamento local seguro (pode falhar em navegação privada)
 const store = {
   get(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
@@ -76,10 +106,11 @@ function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.ge
 // Cabeçalho comum a todas as páginas: <header class="top" data-page="..."></header>
 const NAV = [
   { id: 'inicio', href: 'index.html', label: 'Início' },
-  { id: 'troca', href: 'rolagem.html', label: 'Troca de ativos' },
+  { id: 'rv', href: 'rv.html', label: 'Renda variável' },
+  { id: 'rf', href: 'rf.html', label: 'Renda fixa' },
   { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },
-  { id: 'relatorio', href: '#', label: 'Relatório mensal', soon: true },
   { id: 'mercado', href: 'mercado.html', label: 'Mercado ao vivo' },
+  { id: 'relatorio', href: '#', label: 'Relatório mensal', soon: true },
 ];
 (function renderHeader() {
   const h = document.querySelector('header.top');
@@ -104,24 +135,41 @@ function tvWidget(container, nome, config) {
   container.firstChild.appendChild(s);
 }
 
-// Ativos da faixa de cotações do rodapé (edite aqui para trocar a lista)
-const TICKERS = [
-  ['BMFBOVESPA:IBOV', 'Ibovespa'], ['FX_IDC:USDBRL', 'Dólar'], ['BMFBOVESPA:IFIX', 'IFIX'],
-  ['BMFBOVESPA:PETR4', 'PETR4'], ['BMFBOVESPA:VALE3', 'VALE3'], ['BMFBOVESPA:ITUB4', 'ITUB4'],
-  ['BMFBOVESPA:BBAS3', 'BBAS3'], ['BMFBOVESPA:BBDC4', 'BBDC4'], ['BMFBOVESPA:B3SA3', 'B3SA3'],
-  ['BMFBOVESPA:WEGE3', 'WEGE3'], ['BMFBOVESPA:ABEV3', 'ABEV3'], ['FX_IDC:EURBRL', 'Euro'],
-  ['TVC:UKOIL', 'Petróleo Brent'], ['TVC:GOLD', 'Ouro'], ['FOREXCOM:SPXUSD', 'S&P 500'],
-  ['FOREXCOM:NSXUSD', 'Nasdaq 100'], ['BITSTAMP:BTCUSD', 'Bitcoin'],
-];
-(function rodapeCotacoes() {
+// ---------- Rodapé com indicadores macro (data/macro.json, atualizado pelo GitHub Actions) ----------
+function fmtMacro(i) {
+  const n = (v, min, max) => v.toLocaleString('pt-BR', { minimumFractionDigits: min, maximumFractionDigits: max });
+  if (i.valor == null) return '—';
+  switch (i.fmt) {
+    case 'pct': return n(i.valor, 2, 2) + '%';
+    case 'brl': return 'R$ ' + n(i.valor, 3, 3);
+    case 'usd': return 'US$ ' + n(i.valor, 2, 2);
+    case 'pts': return n(i.valor, 0, 0) + ' pts';
+    default: return n(i.valor, 2, 2);
+  }
+}
+(function rodapeMacro() {
   if (document.body.dataset.ticker === 'off') return;
-  const bar = document.createElement('div');
+  const bar = document.createElement('a');
   bar.className = 'ticker-bar no-print';
-  bar.innerHTML = '<div class="ticker-ph">Carregando cotações…</div>';
+  bar.href = 'mercado.html';
+  bar.setAttribute('aria-label', 'Indicadores de mercado');
+  bar.innerHTML = '<div class="ticker-ph">Carregando indicadores…</div>';
   document.body.appendChild(bar);
   document.body.classList.add('has-ticker');
-  setTimeout(() => tvWidget(bar, 'ticker-tape', {
-    symbols: TICKERS.map(([proName, title]) => ({ proName, title })),
-    showSymbolLogo: true, isTransparent: true, displayMode: 'adaptive', colorTheme: 'dark', locale: 'br',
-  }), 50);
+  async function carregar() {
+    try {
+      const r = await fetch('data/macro.json?t=' + Math.floor(Date.now() / 300000), { cache: 'no-store' });
+      if (!r.ok) throw 0;
+      const d = await r.json();
+      const itens = d.itens.map(i => {
+        const v = i.var != null ? `<span class="tk-var ${i.var >= 0 ? 'up' : 'down'}">${i.var >= 0 ? '▲' : '▼'} ${Math.abs(i.var).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>` : '';
+        return `<span class="tk"><span class="tk-n">${esc(i.nome)}</span><b>${fmtMacro(i)}</b>${v}${i.sub ? `<span class="tk-s">${esc(i.sub)}</span>` : ''}</span>`;
+      }).join('');
+      bar.innerHTML = `<div class="tk-track">${itens}${itens}</div>`;
+      const track = bar.firstChild;
+      track.style.animationDuration = Math.max(25, track.scrollWidth / 2 / 45) + 's';
+    } catch { if (!bar.querySelector('.tk')) bar.innerHTML = '<div class="ticker-ph">Indicadores indisponíveis no momento</div>'; }
+  }
+  carregar();
+  setInterval(carregar, 5 * 60 * 1000);
 })();

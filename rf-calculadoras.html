@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Calculadoras de renda fixa · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { text-decoration: none; padding: 9px 16px; border-radius: 99px; background: #efeef5; color: var(--muted); font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .tabs a.on { background: var(--orange); color: #fff; }
+  .pane[hidden] { display: none; }
+  .chart-box { margin-top: 12px; }
+  .prem { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .prem label.f { width: 120px; }
+</style>
+</head>
+<body>
+<header class="top" data-page="rf"></header>
+
+<main>
+  <h1>Calculadoras de renda fixa</h1>
+  <p class="lead">Simulações rápidas para explicar ao cliente. Todas consideram a tabela regressiva de IR.</p>
+
+  <nav class="tabs" id="tabs">
+    <a href="#isento" data-t="isento">⚖️ Isento × tributado</a>
+    <a href="#cupons" data-t="cupons">💸 Juros recebidos no tempo</a>
+    <a href="#compostos" data-t="compostos">📈 Juros compostos</a>
+  </nav>
+
+  <div class="card prem">
+    <label class="f">CDI médio <small>% a.a.</small><input id="p_cdi" inputmode="decimal"></label>
+    <label class="f">IPCA médio <small>% a.a.</small><input id="p_ipca" inputmode="decimal"></label>
+    <span class="note" id="premNota" style="padding-bottom:10px"></span>
+  </div>
+
+  <!-- Isento x tributado -->
+  <section class="pane" id="pane-isento">
+    <div class="grid cols-2">
+      <div class="card">
+        <h2>Ativo isento <span class="pill good">LCI · LCA · CRI · CRA · Deb. incentivada</span></h2>
+        <div class="fields">
+          <label class="f full">Taxa <div class="combo"><select id="i_idx"></select><input id="i_taxa" inputmode="decimal" placeholder="92"></div></label>
+        </div>
+        <h2 style="margin-top:16px">Ativo tributado <span class="pill">CDB · LC · debênture · Tesouro</span></h2>
+        <div class="fields">
+          <label class="f full">Taxa <div class="combo"><select id="t_idx"></select><input id="t_taxa" inputmode="decimal" placeholder="110"></div></label>
+        </div>
+        <div class="fields" style="margin-top:12px">
+          <label class="f">Prazo <small>dias corridos</small><input id="i_dias" inputmode="numeric" placeholder="720"></label>
+          <label class="f">Valor (R$) <input id="i_valor" inputmode="decimal" placeholder="100.000"></label>
+        </div>
+      </div>
+      <div class="card"><h2>Resultado</h2><div id="out-isento"><p class="note">Preencha as taxas e o prazo.</p></div></div>
+    </div>
+  </section>
+
+  <!-- Cupons -->
+  <section class="pane" id="pane-cupons" hidden>
+    <div class="card">
+      <div class="fields three">
+        <label class="f">Valor aplicado (R$) <input id="c_valor" inputmode="decimal" placeholder="100.000"></label>
+        <label class="f wide">Taxa <div class="combo"><select id="c_idx"></select><input id="c_taxa" inputmode="decimal" placeholder="7,5"></div></label>
+        <label class="f">Pagamento de juros
+          <select id="c_per"><option value="1">Mensal</option><option value="3">Trimestral</option><option value="6" selected>Semestral</option><option value="12">Anual</option></select></label>
+        <label class="f">Data da aplicação <input id="c_ini" type="date"></label>
+        <label class="f">Vencimento <input id="c_venc" type="date"></label>
+        <label class="check" style="align-self:end;padding-bottom:10px"><input id="c_isento" type="checkbox"> Isento de IR</label>
+      </div>
+      <p class="note">Em IPCA+, o principal é corrigido pela inflação projetada; os cupons pagam a taxa real sobre o principal corrigido (como NTN-B e debêntures IPCA+), e o principal corrigido volta no vencimento.</p>
+    </div>
+    <div class="card"><h2>Fluxo de pagamentos</h2><div id="out-cupons"><p class="note">Preencha os campos acima.</p></div></div>
+  </section>
+
+  <!-- Juros compostos -->
+  <section class="pane" id="pane-compostos" hidden>
+    <div class="card">
+      <div class="fields three">
+        <label class="f">Valor inicial (R$) <input id="j_ini" inputmode="decimal" placeholder="50.000"></label>
+        <label class="f">Aporte mensal (R$) <input id="j_aporte" inputmode="decimal" placeholder="2.000"></label>
+        <label class="f wide">Prazo <div class="combo"><input id="j_prazo" inputmode="numeric" placeholder="10"><select id="j_un"><option value="12">anos</option><option value="1">meses</option></select></div></label>
+        <label class="f wide">Taxa <div class="combo"><select id="j_idx"></select><input id="j_taxa" inputmode="decimal" placeholder="100"></div></label>
+        <label class="check" style="align-self:end;padding-bottom:10px"><input id="j_isento" type="checkbox"> Isento de IR</label>
+        <label class="check" style="align-self:end;padding-bottom:10px"><input id="j_real" type="checkbox"> Mostrar em valores de hoje (descontar IPCA)</label>
+      </div>
+    </div>
+    <div class="card"><h2>Evolução do patrimônio</h2><div id="out-compostos"><p class="note">Preencha os campos acima.</p></div></div>
+  </section>
+</main>
+
+<script src="assets/common.js"></script>
+<script src="assets/rfcalc.js"></script>
+</body>
+</html>
