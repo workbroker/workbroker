@@ -340,7 +340,8 @@ function render() {
     </div>
 
     <div class="row no-print" style="margin-top:14px">
-      <button id="btnCopiar">Copiar resumo para o cliente</button>
+      <button id="btnEmail">✉️ Enviar por e-mail</button>
+      <button class="secondary" id="btnCopiar">Copiar para WhatsApp</button>
       <button class="secondary" onclick="window.print()">Imprimir / PDF</button>
       <button class="ghost" id="btnLimpar">Limpar</button>
     </div>`;
@@ -348,6 +349,12 @@ function render() {
   grafico(P);
   $('segGraf').onclick = e => { const b = e.target.closest('button'); if (!b) return; modoGrafico = b.dataset.v; render(); };
   $('btnCopiar').onclick = () => copyText(resumo(P));
+  $('btnEmail').onclick = () => Email.abrir({
+    assunto: `Simulação: troca de ${P.i.a_tipo} ${fmtTaxa(P.i.a_idx, P.n.aTaxa)} por ${P.i.b_tipo} ${fmtTaxa(P.i.b_idx, P.n.bTaxa)}`,
+    texto: (nome, ass) => emailTexto(P, nome, ass),
+    html: (nome, ass) => emailHtml(P, nome, ass),
+    grafico: () => document.querySelector('#chartBox svg'),
+  });
   $('btnLimpar').onclick = limpar;
   window._P = P;
 }
@@ -367,6 +374,58 @@ function resumo(P) {
   if (P.desagio > 0) L.push('', `Deságio na venda antecipada: ${brl(P.desagio)}${P.dif > 0 && P.cruza && P.cruza !== P.hoje ? `, recuperado em ${fmtDate(P.cruza)}` : ''}.`);
   L.push('', `_Premissas: CDI ${pct(P.n.cdi)} a.a., IPCA ${pct(P.n.ipca)} a.a. Simulação, não é garantia de rentabilidade._`);
   return L.join('\n');
+}
+
+// ---------- E-mail para o cliente ----------
+function conclusao(P) {
+  if (P.dif > 0.003 * P.fim1) return { tipo: 'bom', txt: `Nesse cenário, a troca compensa: o ganho adicional estimado é de ${brl(P.dif)} (${pct(P.difPct)})${P.cruza && P.cruza !== P.hoje ? `, e o deságio da venda é recuperado em ${fmtDate(P.cruza)}` : ''}.` };
+  if (P.dif < -0.003 * P.fim1) return { tipo: 'ruim', txt: `Nesse cenário, a troca não compensa: o resultado seria ${brl(Math.abs(P.dif))} menor. Para empatar, a nova aplicação precisaria pagar pelo menos ${fmtTaxa(P.i.b_idx, P.taxaEmpate).replace(/\.$/, '')}.` };
+  return { tipo: 'neutro', txt: 'Nesse cenário, as duas opções ficam praticamente empatadas; vale considerar liquidez, prazo e risco do emissor.' };
+}
+function linhasEmail(P) {
+  const i = P.i, reinv = i.a_venc !== i.b_venc;
+  const quemReinv = dias(i.a_venc, i.b_venc) > 0 ? 'manter' : 'trocar';
+  return {
+    atual: `${i.a_tipo} ${fmtTaxa(i.a_idx, P.n.aTaxa)}, vencimento ${fmtDate(i.a_venc)}${P.aIsento ? ' (isento de IR)' : ''}`,
+    sugestao: `${i.b_tipo} ${fmtTaxa(i.b_idx, P.n.bTaxa)}, vencimento ${fmtDate(i.b_venc)}${P.bIsento ? ' (isento de IR)' : ''}`,
+    reinvTxt: reinv ? `reinvestindo a ${fmtTaxa(i.r_idx, P.rTaxaUsada)} até ${fmtDate(P.H)}` : '',
+    quemReinv,
+  };
+}
+function emailTexto(P, nome, ass) {
+  const L = linhasEmail(P), c = conclusao(P);
+  return [
+    Email.saudacaoTexto(nome), '',
+    'Conforme conversamos, fiz uma simulação comparando manter o seu investimento atual com a troca por uma nova aplicação.', '',
+    'INVESTIMENTO ATUAL', L.atual, `Valor de venda antecipada hoje: ${brl(P.venda)}`, '',
+    'SUGESTÃO DE TROCA', L.sugestao, '',
+    `RESULTADO ESTIMADO EM ${fmtDate(P.H)} (líquido de IR)`,
+    `• Mantendo o atual${L.reinvTxt && L.quemReinv === 'manter' ? ` (e, após o vencimento, ${L.reinvTxt})` : ''}: ${brl(P.fim1)}`,
+    `• Fazendo a troca${L.reinvTxt && L.quemReinv === 'trocar' ? ` (e, após o vencimento, ${L.reinvTxt})` : ''}: ${brl(P.fim2)}`,
+    `• Diferença: ${P.dif >= 0 ? '+' : '−'}${brl(Math.abs(P.dif))} (${pct(P.difPct)})`, '',
+    c.txt, '',
+    `Premissas: CDI de ${pct(P.n.cdi)} a.a. e IPCA de ${pct(P.n.ipca)} a.a. no período. Trata-se de uma simulação com base nas condições de hoje, não de garantia de rentabilidade.`, '',
+    'Fico à disposição para conversarmos.', '',
+    'Abraço,', ass,
+  ].join('\n');
+}
+function emailHtml(P, nome, ass) {
+  const L = linhasEmail(P), c = conclusao(P), h = Email.h;
+  return h.wrap(
+    h.p(h.saudacao(nome)) +
+    h.p('Conforme conversamos, fiz uma simulação comparando manter o seu investimento atual com a troca por uma nova aplicação.') +
+    h.tabela(['', 'Investimento atual', 'Sugestão de troca'], [
+      ['Ativo', esc(`${P.i.a_tipo} ${fmtTaxa(P.i.a_idx, P.n.aTaxa)}`), esc(`${P.i.b_tipo} ${fmtTaxa(P.i.b_idx, P.n.bTaxa)}`)],
+      ['Vencimento', fmtDate(P.i.a_venc), fmtDate(P.i.b_venc)],
+      ['Valor hoje', `${brl(P.curva)} <span style="color:#6d6a80">(curva)</span>`, `${brl(P.venda)} <span style="color:#6d6a80">(venda)</span>`],
+      [`<b>Líquido em ${fmtDate(P.H)}</b>`, `<b>${brl(P.fim1)}</b>`, `<b style="color:${h.cor.ora}">${brl(P.fim2)}</b>`],
+    ]) +
+    h.destaque(esc(c.txt), c.tipo) +
+    (L.reinvTxt ? h.p(`<span style="color:#6d6a80;font-size:13px">Para comparar no mesmo prazo, considerei, na opção "${L.quemReinv === 'manter' ? 'manter' : 'trocar'}", que após o vencimento o valor segue ${esc(L.reinvTxt)}.</span>`) : '') +
+    h.p('Fico à disposição para conversarmos.') +
+    h.p('Abraço,') + h.assinatura(ass) +
+    h.rodape(`Premissas: CDI de ${pct(P.n.cdi)} a.a. e IPCA de ${pct(P.n.ipca)} a.a. Valores líquidos de IR pela tabela regressiva. Simulação com base nas condições de hoje, não constitui garantia de rentabilidade.`)
+  );
 }
 
 function setVenda(m) {

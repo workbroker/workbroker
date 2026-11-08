@@ -484,6 +484,70 @@ $('btnCopiar').onclick = () => {
   copyText(L.join('\n'));
 };
 
+// ---------- E-mail para o cliente ----------
+const PERFIL_ADJ = { conservadora: 'Conservador', moderada: 'Moderado', sofisticada: 'Sofisticado', personalizada: 'personalizado' };
+function dadosEmail() {
+  const R = calcular();
+  const temOrdens = S.vendas.some(o => v(o.valor)) || S.compras.some(o => v(o.valor));
+  const linhas = R.linhas.filter(l => l.atual > 0.005 || l.pr > 0 || l.novo > 0.005);
+  const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor));
+  const compras = S.compras.filter(o => v(o.valor));
+  return { R, temOrdens, linhas, vendas, compras };
+}
+function emailTextoCarteira(nome, ass) {
+  const { R, temOrdens, linhas, vendas, compras } = dadosEmail();
+  const L = [Email.saudacaoTexto(nome), '',
+    `Analisei a sua carteira${S.dataRef ? ` (posição de ${S.dataRef})` : ''} e comparei com a nossa carteira recomendada para o perfil ${PERFIL_ADJ[S.perfil]}.`, '',
+    `Patrimônio considerado: ${brl(R.total)}`, '', 'ALOCAÇÃO ATUAL × RECOMENDADA'];
+  linhas.forEach(l => L.push(`• ${l.n}: ${pct(l.pa, 1)} (recomendado ${pct(l.pr, 1)})`));
+  if (temOrdens) {
+    L.push('', 'PROPOSTA DE MOVIMENTAÇÕES');
+    if (vendas.length) { L.push('Resgates/vendas:'); vendas.forEach(({ o, a }) => L.push(`• ${a.nome}: ${brl(v(o.valor))}`)); }
+    if (compras.length) { L.push('Aplicações:'); compras.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} (${NOME[o.classe]}): ${brl(v(o.valor))}`)); }
+    if (R.aporte) L.push(`Aporte adicional: ${brl(R.aporte)}`);
+    L.push('', 'COMO A CARTEIRA FICA');
+    linhas.forEach(l => L.push(`• ${l.n}: ${pct(l.pn, 1)} (recomendado ${pct(l.pr, 1)})`));
+    if (R.desvioN < R.desvioA - 0.05) L.push('', `Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`);
+  }
+  L.push('', 'Fico à disposição para conversarmos sobre a proposta.', '', 'Abraço,', ass);
+  return L.join('\n');
+}
+function emailHtmlCarteira(nome, ass) {
+  const { R, temOrdens, linhas, vendas, compras } = dadosEmail(), h = Email.h;
+  const sit = d => Math.abs(d) <= R.tol ? `<span style="color:${h.cor.bom}">● dentro</span>` : d > 0 ? `<span style="color:${h.cor.ruim}">▲ acima</span>` : `<span style="color:#c77800">▼ abaixo</span>`;
+  const cab = temOrdens ? ['Classe', 'Atual', 'Recomendado', 'Proposta', ''] : ['Classe', 'Atual', 'Recomendado', ''];
+  const rows = linhas.map(l => temOrdens
+    ? [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, `<b style="color:${h.cor.ora}">${pct(l.pn, 1)}</b>`, sit(l.difN)]
+    : [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, sit(l.dif)]);
+  let html = h.p(h.saudacao(nome)) +
+    h.p(`Analisei a sua carteira${S.dataRef ? ` (posição de ${esc(S.dataRef)})` : ''} e comparei com a nossa carteira recomendada para o perfil <b>${PERFIL_ADJ[S.perfil]}</b>. Patrimônio considerado: <b>${brl(R.total)}</b>.`) +
+    h.titulo(temOrdens ? 'Alocação atual, recomendada e proposta' : 'Alocação atual × recomendada') +
+    h.tabela(cab, rows, temOrdens ? ['left', 'right', 'right', 'right', 'left'] : ['left', 'right', 'right', 'left']);
+  if (temOrdens) {
+    html += h.titulo('Proposta de movimentações');
+    const ord = [
+      ...vendas.map(({ o, a }) => [`<span style="color:${h.cor.ruim};font-weight:bold">Resgate</span>`, esc(a.nome), esc(NOME[a.classe]), brl(v(o.valor))]),
+      ...compras.map(o => [`<span style="color:${h.cor.bom};font-weight:bold">Aplicação</span>`, esc(o.nome || NOME[o.classe]), esc(NOME[o.classe]), brl(v(o.valor))]),
+    ];
+    if (R.aporte) ord.push([`<span style="color:${h.cor.bom};font-weight:bold">Aporte</span>`, 'Dinheiro novo', '', brl(R.aporte)]);
+    html += h.tabela(['', 'Ativo', 'Classe', 'Valor'], ord, ['left', 'left', 'left', 'right']);
+    if (R.desvioN < R.desvioA - 0.05) html += h.destaque(`Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`, 'bom');
+  }
+  html += h.p('Fico à disposição para conversarmos sobre a proposta.') + h.p('Abraço,') + h.assinatura(ass) +
+    h.rodape('Percentuais calculados sobre a posição informada no relatório. As movimentações dependem de liquidez, prazos e condições de mercado no momento da execução.');
+  return h.wrap(html);
+}
+$('btnEmail').onclick = () => {
+  if (!S.ativos.length) { toast('Importe ou lance a carteira primeiro'); return; }
+  const temOrdens = S.vendas.length || S.compras.length;
+  Email.abrir({
+    assunto: temOrdens ? 'Proposta de rebalanceamento da sua carteira' : 'Análise da sua carteira de investimentos',
+    nome: S.cliente || '', para: S.email || '',
+    texto: emailTextoCarteira, html: emailHtmlCarteira,
+    aoSalvarCliente: (nome, para) => { if (nome && !S.cliente) { S.cliente = nome; $('cliente').value = nome; } S.email = para; salvarAtual(); },
+  });
+};
+
 function confirmar(msg) { try { return window.confirm(msg); } catch { return true; } }
 
 renderRec();
