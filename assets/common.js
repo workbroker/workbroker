@@ -119,6 +119,7 @@ function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.ge
 // Cabeçalho comum a todas as páginas: <header class="top" data-page="..."></header>
 const NAV = [
   { id: 'inicio', href: 'index.html', label: 'Início' },
+  { id: 'pendencias', href: 'pendencias.html', label: 'Pendências' },
   { id: 'rv', href: 'rv.html', label: 'Renda variável' },
   { id: 'rf', href: 'rf.html', label: 'Renda fixa' },
   { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },

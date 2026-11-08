@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Pendências · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .add { display: grid; gap: 8px; grid-template-columns: 120px 1fr 130px 170px 160px 140px auto; align-items: end; }
+  @media (max-width: 1100px) { .add { grid-template-columns: 1fr 1fr; } .add .t { grid-column: 1 / -1; } .add button { grid-column: 1 / -1; } }
+  .filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .filtros input, .filtros select { width: auto; padding: 8px 10px; font-size: 14px; }
+  .filtros input[type=search] { min-width: 200px; flex: 1; }
+  .sync { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #c9c6d6; display: inline-block; }
+  .dot.ok { background: var(--good); } .dot.err { background: var(--bad); } .dot.busy { background: var(--warn); }
+
+  .u-Urgente { background: #fde2e1; color: #b3261e; } .u-Alta { background: #ffe9d6; color: #b45100; }
+  .u-Media { background: #fff4c7; color: #7a5b00; } .u-Baixa { background: #e9f5ee; color: #1b7a47; }
+  .e-parado { background: #f0eef5; color: #5d5875; } .e-andamento { background: #e6eefc; color: #2251b8; }
+  .e-terceiros { background: #fff1dc; color: #9a5a00; } .e-cliente { background: #f3e8ff; color: #6b2fb3; }
+  .e-nao { background: #eef1f4; color: #4b5563; } .e-concluido { background: #e5f6ee; color: #0b6e3f; }
+  select.chip { width: auto; border: 0; font-weight: 800; font-size: 12.5px; padding: 5px 8px; border-radius: 99px; cursor: pointer; }
+
+  .lista { display: grid; gap: 0; }
+  .item { display: grid; grid-template-columns: 100px 1fr 112px 172px 150px 96px 64px; gap: 10px; align-items: center; padding: 11px 4px; border-bottom: 1px solid var(--line); }
+  .item.head { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; padding-top: 0; }
+  .item .cli { font-weight: 800; color: var(--indigo); }
+  .item .txt { font-size: 14.5px; line-height: 1.35; outline: none; border-radius: 6px; padding: 2px 4px; }
+  .item .txt:focus { background: #fff8f3; box-shadow: 0 0 0 2px var(--orange-soft); }
+  .item .dep { font-size: 13px; color: var(--muted); outline: none; border-radius: 6px; padding: 2px 4px; min-height: 20px; }
+  .item .dep:empty::before { content: "—"; color: #c9c6d6; }
+  .item .dep:focus { background: #fff8f3; color: var(--ink); }
+  .item .dt { font-size: 12.5px; color: var(--muted); }
+  .item .dt b { color: var(--ink); font-weight: 700; display: block; }
+  .item.done .txt { text-decoration: line-through; color: var(--muted); }
+  .item .ac { display: flex; gap: 2px; justify-content: flex-end; }
+  .item .ac button { padding: 5px 7px; }
+  .atrasada { color: var(--bad) !important; font-weight: 800; }
+  @media (max-width: 900px) {
+    .item.head { display: none; }
+    .item { grid-template-columns: 1fr auto; grid-template-areas: "cli ac" "txt txt" "urg eta" "dep dt"; row-gap: 6px; padding: 12px 4px; }
+    .item .c-cli { grid-area: cli; } .item .c-txt { grid-area: txt; } .item .c-urg { grid-area: urg; } .item .c-eta { grid-area: eta; justify-self: end; }
+    .item .c-dep { grid-area: dep; } .item .c-dt { grid-area: dt; justify-self: end; text-align: right; } .item .ac { grid-area: ac; }
+  }
+
+  .quadro { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+  .col { background: #f1f0f6; border-radius: 14px; padding: 10px; min-height: 160px; }
+  .col.over { outline: 2px dashed var(--orange); }
+  .col h3 { font-size: 13px; margin: 2px 4px 10px; display: flex; justify-content: space-between; }
+  .card-t { background: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(34,16,90,.08); cursor: grab; border-left: 4px solid #c9c6d6; }
+  .card-t.u-Urgente { border-left-color: #e2403a; background: #fff; color: inherit; } .card-t.u-Alta { border-left-color: #ff7a1a; background: #fff; color: inherit; }
+  .card-t.u-Media { border-left-color: #f2b632; background: #fff; color: inherit; } .card-t.u-Baixa { border-left-color: #129b5a; background: #fff; color: inherit; }
+  .card-t .cli { font-weight: 800; color: var(--indigo); font-size: 13px; }
+  .card-t .tt { font-size: 14px; margin: 3px 0 6px; line-height: 1.3; }
+  .card-t .mt { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+</style>
+</head>
+<body>
+<header class="top" data-page="pendencias"></header>
+
+<main>
+  <div class="card-head" style="margin-bottom:4px"><h1>Pendências</h1>
+    <div class="sync" id="sync"><span class="dot" id="dot"></span><span id="syncTxt">Salvo neste navegador</span></div></div>
+  <p class="lead">Tudo é salvo automaticamente. Ative a cópia na nuvem (passo abaixo) para não perder nada se trocar de computador, limpar o navegador ou o site mudar.</p>
+
+  <div class="card">
+    <div class="add">
+      <label class="f">Cliente <input id="aCli" placeholder="Código" inputmode="numeric"></label>
+      <label class="f t">Tarefa <input id="aTxt" placeholder="O que precisa ser feito"></label>
+      <label class="f">Urgência <select id="aUrg"></select></label>
+      <label class="f">Etapa <select id="aEta"></select></label>
+      <label class="f">Depende de <input id="aDep" placeholder="Ninguém / quem?"></label>
+      <label class="f">Prazo <input id="aPrazo" type="date"></label>
+      <button id="btnAdd">Adicionar</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis" style="margin-bottom:14px"></div>
+
+  <div class="card">
+    <div class="filtros">
+      <input type="search" id="fBusca" placeholder="Buscar cliente, tarefa ou pessoa…">
+      <select id="fUrg"><option value="">Todas as urgências</option></select>
+      <select id="fEta"><option value="">Todas as etapas</option></select>
+      <label class="check"><input type="checkbox" id="fConc"> Mostrar concluídas</label>
+      <div class="seg" id="segVista" style="margin-left:auto"><button data-v="lista" class="on">Lista</button><button data-v="quadro">Quadro</button></div>
+    </div>
+    <div id="vista"></div>
+  </div>
+
+  <details class="card" id="cardNuvem">
+    <summary>☁️ Cópia na nuvem (recomendado)</summary>
+    <p class="note" style="margin-top:0">As pendências ficam guardadas num repositório <b>privado</b> do seu GitHub (só você vê). Assim elas continuam lá mesmo se o site mudar, o navegador for limpo ou você abrir em outro computador ou no celular. Configure uma vez em cada aparelho.</p>
+    <ol class="note" style="padding-left:18px;line-height:1.6">
+      <li>No GitHub, crie um repositório <b>privado</b> chamado <b>rico-dados</b> (marque "Add a README file").</li>
+      <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>: dê um nome, em <b>Repository access</b> escolha "Only select repositories" → <b>rico-dados</b>; em <b>Permissions → Contents</b> escolha <b>Read and write</b>; gere e copie o token.</li>
+      <li>Cole o token abaixo e toque em Conectar.</li>
+    </ol>
+    <div class="fields">
+      <label class="f">Repositório <input id="nRepo" placeholder="workrico/rico-dados"></label>
+      <label class="f">Token <input id="nTok" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnConectar">Conectar</button>
+      <button class="secondary" id="btnSync">Sincronizar agora</button>
+      <button class="ghost" id="btnDesconectar">Desconectar este aparelho</button>
+    </div>
+    <p class="note">O token fica salvo só neste navegador. As pendências têm códigos de clientes, por isso elas nunca vão para o repositório público do site.</p>
+  </details>
+
+  <div class="card no-print">
+    <div class="row">
+      <button class="secondary sm" id="btnCsv">⬇ Exportar para Excel</button>
+      <button class="secondary sm" id="btnJson">⬇ Baixar cópia de segurança</button>
+      <button class="secondary sm" id="btnImp">⬆ Restaurar cópia</button>
+      <input type="file" id="fileImp" accept=".json" hidden>
+      <span class="note">Uma cópia de segurança de vez em quando também é uma boa ideia.</span>
+    </div>
+  </div>
+</main>
+
+<script src="assets/common.js"></script>
+<script src="assets/pendencias.js"></script>
+</body>
+</html>

@@ -19,6 +19,10 @@
   </section>
 
   <div class="tools">
+    <a class="tool" href="pendencias.html">
+      <div class="top"><div class="ico">✅</div><span class="tag" id="pendTag">Dia a dia</span></div>
+      <div class="body"><h3>Pendências</h3><p>Tarefas por cliente com urgência, etapa, data e de quem depende. Salvas automaticamente, com cópia na nuvem.</p></div>
+    </a>
     <a class="tool" href="rv.html">
       <div class="top"><div class="ico">📊</div><span class="tag">Ações e FIIs</span></div>
       <div class="body"><h3>Renda variável</h3><p>Análise de ações e FIIs da carteira e boleta com e-mail de de acordo para o broker.</p></div>
@@ -47,6 +51,7 @@
 <script>
   const h = new Date().getHours();
   document.getElementById('saudacao').textContent = (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', Italo';
+  try { const P = (JSON.parse(localStorage.getItem('rw_pend') || '{}').itens || []).filter(t => !t.deleted && t.etapa !== 'Concluído'); if (P.length) document.getElementById('pendTag').textContent = `${P.length} em aberto`; } catch {}
   document.getElementById('hoje').textContent = '📅 ' + new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 </script>
 </body>
