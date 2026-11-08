@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const SLIDES = [
   ['capa', 'Capa'], ['macro', 'Cenário macro'], ['noticias', 'Notícias'], ['rentab', 'Rentabilidade da carteira'],
-  ['desempenho', 'Carteira × referências'], ['evolucao', 'Últimos 12 meses'], ['destaques', 'Destaques do mês'],
+  ['desempenho', 'Carteira × referências'], ['fluxo', 'Fluxo de caixa'], ['evolucao', 'Últimos 12 meses'], ['destaques', 'Destaques do mês'],
   ['alocacao', 'Alocação'], ['recado', 'Recado do assessor'], ['fim', 'Encerramento'],
 ];
 const CURTO = { 'Pós Fixado': 'Pós', 'Pré Fixado': 'Pré', 'Renda Variável Brasil': 'RV Brasil', 'Renda Variável Internacional': 'RV global', 'Renda Variável Global': 'RV global', 'Renda Fixa Internacional': 'RF global', 'Renda Fixa Global': 'RF global', 'Alternativo': 'Alternativos', 'Carteira Administrada': 'Carteira administrada', 'Fundos Listados': 'Fundos listados', 'Multimercado': 'Multimercado', 'Inflação': 'Inflação' };
@@ -39,6 +39,7 @@ function calc() {
     nacional, usd, cot, internacional: usd * cot, total: nacional + usd * cot,
     hist: (r.historico || []).slice().reverse(),
     liq: liquidos(r, D.dataRef),
+    fluxo: fluxo(r),
   };
 }
 
@@ -52,6 +53,31 @@ function liquidos(r, dataRef) {
   };
   const ano = (dataRef || '').slice(-2);
   return { mes: soma(H.slice(0, 1)), ano: soma(H.filter(h => h.mes.endsWith('/' + ano))), m12: soma(H.slice(0, 12)) };
+}
+
+// Fluxo de caixa: classifica o extrato do mês e usa as movimentações líquidas do histórico
+const semAc = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+function tipoMov(m) {
+  const h = semAc(m.hist);
+  if (/RENDIMENTO|DIVIDEND|JUROS S\/? ?CAP|\bJCP\b|AMORTIZ|CRED DIST|PROVENTO|BONIFICA|FRACAO/.test(h)) return 'proventos';
+  if (/TAXA|CUSTODIA|CORRETAGEM|EMOLUMENT|TARIFA|IRRF|\bIR\b|\bIOF\b|PERMANENCIA|MULTA/.test(h)) return 'custos';
+  if (/\bTED\b|\bPIX\b|\bDOC\b|TRANSF|DEPOSITO|RETIRADA|SAQUE|RECEBIMENTO DE RECURSOS|ENVIO DE RECURSOS/.test(h)) return m.valor >= 0 ? 'aportes' : 'resgates';
+  return 'operacoes';
+}
+function fluxo(r) {
+  const M = r.movimentacoes || [], soma = t => M.filter(m => tipoMov(m) === t).reduce((s, m) => s + m.valor, 0);
+  const f = { aportes: soma('aportes'), resgates: soma('resgates'), proventos: soma('proventos'), custos: soma('custos'), itens: M.length };
+  const mov = r.historico?.[0]?.mov;
+  // sem transferências identificadas no extrato, usa a movimentação líquida do mês informada no relatório
+  if (!f.aportes && !f.resgates && Number.isFinite(mov) && mov !== 0) { if (mov > 0) f.aportes = mov; else f.resgates = mov; f.estimado = true; }
+  const porAtivo = {};
+  M.filter(m => tipoMov(m) === 'proventos').forEach(m => {
+    const tk = (m.hist.match(/\b([A-Z]{4}\d{1,2})\b/) || [])[1];
+    const nome = tk || m.hist.replace(/^(RENDIMENTOS? (DE CLIENTES|FUNDO FECHADO BALC[ÃA]O)|CRED DIST DE RENDIMENTO CARTEIRA ADM|DIVIDENDOS?( DE CLIENTES)?|JUROS S\/ CAPITAL( DE CLIENTES)?)\s*/i, '').replace(/\s+\d{5,}.*$|\s+S\/\s*\d+.*$/, '').trim();
+    porAtivo[nome] = (porAtivo[nome] || 0) + m.valor;
+  });
+  f.proventosPorAtivo = Object.entries(porAtivo).sort((a, b) => b[1] - a[1]);
+  return f;
 }
 
 // ---------- Slides ----------
@@ -122,6 +148,39 @@ function sDesempenho(C) {
     <div class="tiles" style="margin-bottom:18px">${card('MÊS', 'No mês')}${card('ANO', 'No ano')}${card('12M', 'Em 12 meses')}</div>
     <div class="box" style="padding:6px 22px"><table style="font-size:17px" class="compacta"><tr><th></th><th>Mês</th><th>Ano</th><th>12 meses</th></tr>
       ${linha('Portfolio', 'Sua carteira', true)}${linha('CDI', 'CDI')}${linha('Ibovespa', 'Ibovespa')}${linha('IPCA', 'IPCA (inflação)')}${linha('Dolar', 'Dólar')}</table></div>${foot(C)}`;
+}
+
+function sFluxo(C) {
+  const F = C.fluxo, P = C.r.periodos || {}, H = C.hist;
+  const tile = (nome, v, cor, sub) => `<div class="tile"><div class="n">${nome}</div><div class="v" style="color:${cor}">${brl(v)}</div><div class="s">${sub || ''}</div></div>`;
+  // gráfico de movimentações líquidas dos últimos 12 meses
+  const W = 700, Hh = 270, pad = { l: 10, r: 10, t: 30, b: 36 };
+  const vals = H.map(h => h.mov || 0), mx = Math.max(...vals.map(Math.abs), 1), bw = (W - pad.l - pad.r) / Math.max(H.length, 1);
+  const zero = pad.t + (Hh - pad.t - pad.b) / 2, esc2 = (Hh - pad.t - pad.b) / 2 / mx;
+  let svg = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}"><line x1="${pad.l}" x2="${W - pad.r}" y1="${zero}" y2="${zero}" stroke="rgba(255,255,255,.35)"/>`;
+  H.forEach((h, i) => {
+    const v = h.mov || 0, x = pad.l + i * bw, hgt = Math.abs(v) * esc2;
+    if (v) svg += `<rect x="${x + bw * .18}" y="${v > 0 ? zero - hgt : zero}" width="${bw * .64}" height="${Math.max(hgt, 2)}" rx="5" fill="${v > 0 ? '#3ee08f' : '#ff7d73'}"/>`;
+    if (v) svg += `<text x="${x + bw / 2}" y="${v > 0 ? zero - hgt - 8 : zero + hgt + 18}" fill="#fff" font-size="12" font-weight="800" text-anchor="middle">${(v > 0 ? '+' : '−') + (Math.abs(v) >= 1000 ? n2(Math.abs(v) / 1000, 1) + 'k' : n2(Math.abs(v), 0))}</text>`;
+    svg += `<text x="${x + bw / 2}" y="${Hh - 12}" fill="rgba(255,255,255,.6)" font-size="13" text-anchor="middle">${esc(h.mes.replace('.', ''))}</text>`;
+  });
+  svg += '</svg>';
+  const per = (k, nome) => P[k] && Number.isFinite(P[k].mov) ? `<span style="margin-right:22px">${nome}: <b class="${cls(P[k].mov)}">${brl(P[k].mov)}</b></span>` : '';
+  const prov = F.proventosPorAtivo.slice(0, 6);
+  return `<div class="st">Fluxo de caixa</div><div class="ss">Aportes, resgates e proventos no mês</div>
+    <div class="tiles" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
+      ${tile('Aportes (entradas)', F.aportes, '#3ee08f', F.estimado && F.aportes ? 'movimentação líquida do mês' : 'transferências recebidas')}
+      ${tile('Resgates (saídas)', Math.abs(F.resgates), '#ff7d73', F.estimado && F.resgates ? 'movimentação líquida do mês' : 'transferências enviadas')}
+      ${tile('Proventos recebidos', F.proventos, '#ff7a1a', 'dividendos, rendimentos e juros')}
+      ${tile('Custos e taxas', Math.abs(F.custos), '#fff', 'tarifas e impostos no extrato')}
+    </div>
+    <div style="display:grid;grid-template-columns:740px 1fr;gap:24px">
+      <div class="box" style="padding:12px 18px"><div class="lbl" style="margin-bottom:0">Aportes (+) e resgates (−) nos últimos 12 meses</div>${svg}</div>
+      <div class="box" style="padding:14px 22px"><div class="lbl">Proventos do mês</div>
+        ${prov.length ? prov.map(([n, v]) => `<div class="row-l" style="font-size:17px;padding:7px 0"><span style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</span><b class="or">${brl(v)}</b></div>`).join('') : '<div style="font-size:17px;color:rgba(255,255,255,.6)">Nenhum provento no mês.</div>'}
+      </div>
+    </div>
+    <div style="font-size:16px;color:rgba(255,255,255,.75);margin-top:12px">Movimentação líquida · ${per('MÊS', 'Mês')}${per('ANO', 'Ano')}${per('12M', '12 meses')}</div>${foot(C)}`;
 }
 
 function sEvolucao(C) {
@@ -195,7 +254,7 @@ function sFim(C) {
     <div style="font-size:24px;color:rgba(255,255,255,.75);white-space:pre-wrap;margin-top:18px">${esc(ass)}</div></div>
     <div class="foot"><span>Rentabilidade passada não é garantia de rentabilidade futura. Dados do relatório XPerformance de ${esc(C.D.dataRef || '')}.</span><span></span></div>`;
 }
-const GERA = { capa: sCapa, macro: sMacro, noticias: sNoticias, rentab: sRentab, desempenho: sDesempenho, evolucao: sEvolucao, destaques: sDestaques, alocacao: sAlocacao, recado: sRecado, fim: sFim };
+const GERA = { capa: sCapa, macro: sMacro, noticias: sNoticias, rentab: sRentab, desempenho: sDesempenho, fluxo: sFluxo, evolucao: sEvolucao, destaques: sDestaques, alocacao: sAlocacao, recado: sRecado, fim: sFim };
 
 function slidesHtml() {
   const C = calc(); if (!C) return [];
@@ -318,7 +377,8 @@ $('btnEmail').onclick = () => {
       `• Patrimônio total: ${brl(C.total)}${C.usd ? ` (inclui US$ ${n2(C.usd)} no exterior)` : ''}`,
       `• Rentabilidade no mês: ${ps(C.r.rentMes)}${Number.isFinite(m.cdi) ? ` (${p2(m.cdi)} do CDI)` : ''}`,
       `• Resultado financeiro no mês: ${brl(C.r.ganhoMes)}${C.liq.mes ? ` (líquido de IR/IOF: ${brl(C.liq.mes.liquido)})` : ''}`,
-      ...(Number.isFinite(a.rent) ? [`• No ano: ${ps(a.rent)} (${p2(a.cdi)} do CDI)`] : []), '',
+      ...(Number.isFinite(a.rent) ? [`• No ano: ${ps(a.rent)} (${p2(a.cdi)} do CDI)`] : []),
+      `• Aportes no mês: ${brl(C.fluxo.aportes)} · Resgates: ${brl(Math.abs(C.fluxo.resgates))} · Proventos recebidos: ${brl(C.fluxo.proventos)}`, '',
       ...(C.melhoresCat.length ? [`Destaques do mês: ${C.melhoresCat.map(e => `${e.curto} (${ps(e.rentMes)})`).join(', ')}.`, ''] : []),
       ...(REL.coment ? [REL.coment, ''] : []),
       'Fico à disposição para conversarmos.', '', 'Abraço,', ass,
@@ -331,6 +391,7 @@ $('btnEmail').onclick = () => {
         ['Resultado financeiro no mês (bruto)', brl(C.r.ganhoMes)],
         ...(C.liq.mes ? [['Ganho financeiro líquido no mês', `<b>${brl(C.liq.mes.liquido)}</b>`]] : []),
         ...(Number.isFinite(a.rent) ? [['Rentabilidade no ano', `${ps(a.rent)} (${p2(a.cdi)} do CDI)`]] : []),
+        ['Aportes no mês', brl(C.fluxo.aportes)], ['Resgates no mês', brl(Math.abs(C.fluxo.resgates))], ['Proventos recebidos no mês', brl(C.fluxo.proventos)],
       ], ['left', 'right']) +
       (C.melhoresCat.length ? h.p(`<b>Destaques do mês:</b> ${C.melhoresCat.map(e => `${esc(e.curto)} (${ps(e.rentMes)})`).join(', ')}.`) : '') +
       (REL.coment ? h.p(esc(REL.coment).replace(/\n/g, '<br>')) : '') +

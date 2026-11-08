@@ -117,6 +117,10 @@ const XPParser = (() => {
         res.historico.push({ mes: m[1], inicial: num(m[2]), mov: num(m[3]), ir: num(m[4]), iof: num(m[5]), final: num(m[6]), ganho: num(m[7]), rent: num(m[8]), cdi: num(m[9]) });
       }
     }
+    // Movimentações do mês (extrato da conta)
+    const reMov = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?R\$\s*-?[\d.]+,\d{2})\s+(-?R\$\s*-?[\d.]+,\d{2})$/;
+    res.movimentacoes = [];
+    for (const t of todas) { const m = t.match(reMov); if (m) res.movimentacoes.push({ data: m[1], liq: m[2], hist: m[3].trim(), valor: num(m[4]), saldo: num(m[5]) }); }
     const est = todas.join('\n');
     const g = (re) => { const m = est.match(re); return m ? m[1] : null; };
     res.mesesPositivos = parseInt(g(/Meses Positivos[\s\S]{0,80}?\n\s*(\d+)/i), 10) || null;
