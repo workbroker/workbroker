@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>FIIs em atenção · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .ed-bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+  .ed-bar .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); }
+  .ed-bar .meta b { color: var(--indigo); }
+  .abas { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 16px; }
+  .abas button { background: #fff; color: var(--indigo); border: 1px solid var(--line); border-radius: 99px; padding: 9px 16px; font-weight: 700; font-size: 14px; }
+  .abas button.on { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+  .painel { display: none; } .painel.on { display: block; }
+  .lv { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+  .lv.elevada { background: var(--bad-soft); color: var(--bad); }
+  .lv.moderada { background: var(--warn-soft); color: var(--warn); }
+  .lv.ok { background: var(--good-soft); color: var(--good); }
+  .lv.cinza { background: #efeef5; color: var(--muted); }
+  .mud { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; background: var(--orange-soft); color: var(--orange); }
+  .fgrid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .fcard { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; border-left: 5px solid var(--line); }
+  .fcard.elevada { border-left-color: var(--bad); } .fcard.moderada { border-left-color: var(--warn); } .fcard.ok { border-left-color: var(--good); }
+  .fcard .topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .tk { font-weight: 800; font-size: 18px; color: var(--indigo); letter-spacing: .2px; }
+  .fcard .nm { font-size: 13px; color: var(--muted); }
+  .fcard .rs { font-size: 14.5px; line-height: 1.45; }
+  .pontos { display: grid; gap: 6px; font-size: 13.5px; line-height: 1.4; }
+  .pontos .p { display: flex; gap: 8px; padding: 8px 10px; border-radius: 12px; }
+  .pontos .p.crit { background: var(--bad-soft); } .pontos .p.bom { background: var(--good-soft); }
+  .pontos .p > span:first-child { font-weight: 800; }
+  .pontos .p.crit > span:first-child { color: var(--bad); } .pontos .p.bom > span:first-child { color: var(--good); }
+  .mm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mm div { background: #f6f5fa; border-radius: 12px; padding: 7px 9px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .mm b { display: block; font-size: 15px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
+  .nx { font-size: 13px; color: var(--muted); }
+  .nota { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; font-size: 14px; line-height: 1.45; }
+  .nota.ok { border-left: 5px solid var(--good); } .nota.cinza { border-left: 5px solid #cfcde0; }
+  .busca-f { position: relative; }
+  .busca-f input { font-size: 16px; padding: 14px 16px; border-radius: 16px; }
+  .sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 40px rgba(34,16,90,.14); z-index: 20; padding: 6px; display: none; max-height: 380px; overflow-y: auto; }
+  .sug.on { display: block; }
+  .sug button { display: flex; width: 100%; justify-content: space-between; gap: 10px; background: transparent; color: var(--ink); text-align: left; padding: 10px 12px; border-radius: 10px; font-weight: 500; }
+  .sug button:hover, .sug button.hi { background: #f1f0f6; }
+  .sug .sn { color: var(--muted); font-size: 12.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--indigo); color: #fff; border-radius: 99px; padding: 4px 6px 4px 12px; font-weight: 700; font-size: 13px; }
+  .chip button { background: rgba(255,255,255,.18); color: #fff; padding: 0 7px; border-radius: 99px; font-size: 14px; line-height: 20px; }
+  .filtros { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 14px 0 6px; }
+  .temas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .linkchip { background: #efeef5; color: var(--indigo); border-radius: 99px; padding: 4px 10px; font-weight: 700; font-size: 12.5px; margin: 3px 4px 0 0; }
+  .linkchip:hover { background: var(--orange-soft); color: var(--orange); }
+  .linkchip.elevada { background: var(--bad-soft); color: var(--bad); } .linkchip.moderada { background: var(--warn-soft); color: var(--warn); }
+  /* análise completa */
+  .det { display: grid; gap: 14px; }
+  .det h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--indigo); }
+  .det p, .det li { font-size: 14.5px; line-height: 1.5; margin: 0; }
+  .det ul, .det ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .mg { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .mg div { background: #f6f5fa; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .mg b { display: block; color: var(--ink); font-size: 14.5px; margin-top: 2px; }
+  .dois { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+  .caixa { background: #f8f7fc; border-radius: 16px; padding: 12px 14px; }
+  .caixa.crit { background: var(--bad-soft); } .caixa.crit h4 { color: var(--bad); }
+  .caixa.bom { background: var(--good-soft); } .caixa.bom h4 { color: var(--good); }
+  .caixa.explica { background: var(--orange-soft); } .caixa.explica h4 { color: var(--orange); }
+  .fator { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .fator .ev { font-weight: 700; margin-bottom: 4px; }
+  .fator dl { display: grid; grid-template-columns: 140px 1fr; gap: 3px 10px; margin: 0; font-size: 13.5px; }
+  .fator dt { color: var(--muted); font-weight: 600; } .fator dd { margin: 0; }
+  .ativo { border-bottom: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
+  .ativo:last-child { border: 0; }
+  .ativo .an { font-weight: 700; } .ativo .ae { color: var(--muted); font-size: 13px; }
+  .evl { list-style: none; padding: 0 !important; }
+  .evl li { border-left: 3px solid var(--orange); padding: 2px 0 2px 10px; }
+  .evl .pz { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .up { color: var(--good); font-size: 13.5px; } .dn { color: var(--bad); font-size: 13.5px; }
+  .qa li { list-style: none; margin-bottom: 8px; } .qa { padding-left: 0 !important; }
+  .qa .q { font-weight: 700; }
+  .det details { border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+  .det details summary { cursor: pointer; font-weight: 700; color: var(--indigo); }
+  #dlgFii .modal { width: min(920px, 100%); }
+  .tbl-fii td, .tbl-fii th { font-size: 13.5px; }
+  @media (max-width: 700px) { .dois { grid-template-columns: 1fr; } .mm { grid-template-columns: repeat(2, 1fr); } .fgrid, .temas { grid-template-columns: 1fr; } .fator dl { grid-template-columns: 1fr; } }
+  @media print { .abas, .ed-bar button, .busca-f, .filtros { display: none !important; } .painel { display: block !important; } }
+</style>
+</head>
+<body>
+<header class="top" data-page="rv"></header>
+
+<main>
+  <h1>FIIs em atenção</h1>
+  <p class="lead">Busque um fundo imobiliário ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada FII, com o que explicar ao cliente. As informações vêm do Manual de FIIs em atenção importado.</p>
+
+  <div class="card" id="semManual" hidden>
+    <div class="card-head"><h2><span class="step">1</span>Importar o manual</h2></div>
+    <p class="note" style="margin-top:0">Selecione o arquivo do <b>Manual de FIIs em atenção</b> (.html). Ele fica guardado só neste navegador; quando sair uma edição nova, é só importar de novo.</p>
+    <div class="drop" id="dropMan"><div class="big">📘</div><div><b>Importar manual (.html)</b></div><input type="file" id="fileMan" accept=".html,.htm,text/html" hidden></div>
+    <div id="infoMan" style="margin-top:10px"></div>
+  </div>
+
+  <div id="comManual" hidden>
+    <div class="card ed-bar">
+      <div class="meta" id="edMeta"></div>
+      <div class="row"><button class="sm secondary" id="btnNova">📘 Importar nova edição</button><input type="file" id="fileMan2" accept=".html,.htm,text/html" hidden></div>
+    </div>
+    <div class="abas" role="tablist" id="abas"></div>
+    <section class="painel" id="p-busca"></section>
+    <section class="painel" id="p-carteira"></section>
+    <section class="painel" id="p-temas"></section>
+    <section class="painel" id="p-agenda"></section>
+    <section class="painel" id="p-sobre"></section>
+    <p class="note" id="rodapeFii" style="margin-top:18px"></p>
+  </div>
+</main>
+
+<div class="modal-bg no-print" id="dlgFii" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <div class="modal-head"><h2 id="dlgT"></h2><button class="ghost" id="dlgX" aria-label="Fechar">✕</button></div>
+    <div id="dlgB"></div>
+  </div>
+</div>
+
+<script src="assets/common.js"></script>
+<script src="assets/xp-parser.js"></script>
+<script src="assets/email.js"></script>
+<script src="assets/fiis.js"></script>
+</body>
+</html>

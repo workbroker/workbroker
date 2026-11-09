@@ -136,7 +136,7 @@ const MENU = [
   { id: 'pendencias', label: 'Pendências', href: 'pendencias.html', ic: 'check' },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Risco de crédito', 'rf-credito.html']] },
-    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html']] },
+    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
   { id: 'relatorio', label: 'Relatório mensal', ic: 'slides', grupos: [
     { t: 'Relatório mensal', itens: [['Apresentação do mês', 'relatorio.html'], ['Disparo de relatórios', 'disparo.html']] }] },
@@ -144,6 +144,7 @@ const MENU = [
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], ['Pendências', 'pendencias.html', 'tarefas pendencias to-do urgente'],
+  ['FIIs em atenção', 'fiis.html', 'fii fiis fundos imobiliarios fiagro manual atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
   ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],
   ['Isento × tributado', 'rf-calculadoras.html#isento', 'lci lca gross-up equivalencia'],
