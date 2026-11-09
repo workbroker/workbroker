@@ -1,11 +1,12 @@
-"""Indicadores de todos os FIIs listados -> fiis.json (uma vez por dia)
+"""Indicadores de todos os FIIs listados -> fiis.json (duas vezes por dia)
 - CVM (dados abertos, informe mensal): nome, segmento, gestão, administrador,
   valor patrimonial por cota (hoje e 12 meses antes), patrimônio e cotistas.
+- Fundos.NET (B3): fatos relevantes, comunicados, assembleias e o último relatório gerencial (150 dias).
 - Yahoo Finance (gráfico semanal de 2 anos): cotação atual, no início do ano e 12 meses antes,
   volume médio e rendimentos pagos (por mês da data-com).
 Os sinais (pontos críticos e bons) são calculados no site, a partir destes dados.
 Roda no GitHub Actions; o arquivo vai para o ramo "dados" (sem histórico)."""
-import csv, io, json, os, sys, time, zipfile, http.cookiejar, urllib.request, urllib.error
+import csv, io, json, os, sys, time, zipfile, http.cookiejar, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 
@@ -74,7 +75,6 @@ def dados_cvm(debug):
         except Exception as e:
             log("cvm mensal", a, e)
     debug["n_geral"], debug["n_comp"] = len(geral), len(comp)
-    if comp: debug["cols_comp"] = list(comp[0].keys())
     G, C = versao_final(geral), versao_final(comp)
     cad = {}   # cnpj -> linha mais recente do "geral"
     for (cn, d), l in G.items():
@@ -101,7 +101,7 @@ def dados_cvm(debug):
         a12 = (datetime.strptime(ult + "-01", "%Y-%m-%d") - timedelta(days=360)).strftime("%Y-%m")
         m12 = next((m for m in meses if m >= a12), None)
         reg = {
-            "nome": (l.get("Nome_Fundo_Classe") or l.get("Nome_Fundo") or "").strip(),
+            "nome": (l.get("Nome_Fundo_Classe") or l.get("Nome_Fundo") or "").strip(), "cnpj": "".join(ch for ch in cn if ch.isdigit()),
             "seg": (l.get("Segmento_Atuacao") or "").strip(), "mandato": (l.get("Mandato") or "").strip(),
             "gestao": (l.get("Tipo_Gestao") or "").strip(), "adm": (l.get("Nome_Administrador") or "").strip(),
             "vp": h[ult][0], "vp_ref": ult, "pl": h[ult][1], "cot": h[ult][2],
@@ -157,14 +157,66 @@ def mercado(t):
     }
 
 
+# ---------- Fundos.NET (B3): fatos relevantes, comunicados, assembleias, relatório gerencial ----------
+FNET = "https://fnet.bmfbovespa.com.br/fnet/publico/"
+FNET_H = dict(UA, **{"X-Requested-With": "XMLHttpRequest", "Accept": "application/json, text/javascript, */*; q=0.01",
+                     "Referer": FNET + "abrirGerenciadorDocumentosCVM"})
+FNET_ERROS = []
+FNET_AMOSTRA = []
+
+
+def documentos(cnpj):
+    hoje = datetime.now(BRT)
+    q = {"d": 1, "s": 0, "l": 60, "o[0][dataEntrega]": "desc", "cnpjFundo": cnpj, "idCategoriaDocumento": 0,
+         "idTipoDocumento": 0, "idEspecieDocumento": 0, "tipoFundo": 1,
+         "dataInicial": (hoje - timedelta(days=150)).strftime("%d/%m/%Y"), "dataFinal": hoje.strftime("%d/%m/%Y")}
+    url = FNET + "pesquisarGerenciadorDocumentosDados?" + urllib.parse.urlencode(q)
+    for tentativa in range(3):
+        try:
+            dados = json.loads(opener.open(urllib.request.Request(url, headers=FNET_H), timeout=30).read()).get("data") or []
+            break
+        except Exception as e:
+            if tentativa == 2:
+                if len(FNET_ERROS) < 5: FNET_ERROS.append(f"{cnpj}: {e}")
+                return None
+            time.sleep(2 + tentativa * 3)
+    out, gerencial = [], None
+    if dados and len(FNET_AMOSTRA) < 3:
+        FNET_AMOSTRA.append({k: v for k, v in dados[0].items() if k in ("categoriaDocumento", "tipoDocumento", "especieDocumento", "dataEntrega", "dataReferencia", "informacoesAdicionais", "id", "descricaoFundo")})
+    for d in dados:
+        cat = (d.get("categoriaDocumento") or "").strip()
+        tipo = (d.get("tipoDocumento") or "").strip()
+        esp = (d.get("especieDocumento") or "").strip()
+        if not d.get("id") or "Informe" in cat or "Demonstra" in cat or "Listagem" in cat:
+            continue
+        if "Estruturado" in cat and "amortiza" not in tipo.lower():
+            continue  # avisos de rendimento do mês: o valor já aparece nos rendimentos
+        ent = (d.get("dataEntrega") or "").strip()  # dd/mm/aaaa hh:mm
+        try:
+            data = datetime.strptime(ent[:10], "%d/%m/%Y").strftime("%Y-%m-%d")
+        except Exception:
+            continue
+        reg = [data, cat, tipo, esp, " ".join((d.get("informacoesAdicionais") or "").split())[:180], d["id"]]
+        if "Relat" in cat or "Gerencial" in tipo:
+            if "Gerencial" in tipo or "Gerencial" in cat:
+                if gerencial is None:
+                    gerencial = reg
+            continue
+        out.append(reg)
+    out = out[:12]
+    if gerencial:
+        out.append(gerencial)
+    return out
+
+
 def main():
     hoje = datetime.now(BRT)
     if os.path.exists(SAIDA) and not os.environ.get("FORCAR"):
         try:
             ant = json.load(open(SAIDA, encoding="utf-8"))
             ger = datetime.fromisoformat(ant.get("gerado"))
-            if hoje - ger < timedelta(hours=20) and len(ant.get("f", {})) > 50:
-                log("fiis.json gerado há menos de 20 h; nada a fazer")
+            if hoje - ger < timedelta(hours=11) and len(ant.get("f", {})) > 50:
+                log("fiis.json gerado há menos de 11 h; nada a fazer")
                 return
         except Exception:
             pass
@@ -177,8 +229,22 @@ def main():
         pass
     with ThreadPoolExecutor(max_workers=6) as ex:
         res = dict(zip(fundos, ex.map(mercado, list(fundos))))
+    # documentos do Fundos.NET (só dos FIIs com cotação, para não consultar fundos parados)
+    ativos = [t for t in fundos if res.get(t)]
+    try:
+        get(FNET + "abrirGerenciadorDocumentosCVM")
+    except Exception as e:
+        FNET_ERROS.append(f"sessão: {e}")
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        docs = dict(zip(ativos, ex.map(lambda t: documentos(fundos[t]["cnpj"]), ativos)))
+    debug["docs_ok"] = sum(1 for v in docs.values() if v is not None)
+    debug["docs_n"] = sum(len(v) for v in docs.values() if v)
+    debug["docs_erros"] = FNET_ERROS
+    debug["docs_amostra"] = FNET_AMOSTRA
     saida = {}
     for t, f in fundos.items():
+        if docs.get(t):
+            f["docs"] = docs[t]
         m = res.get(t)
         if not m:
             continue
@@ -207,7 +273,7 @@ def main():
         log("poucos FIIs; mantendo o arquivo anterior")
         return
     with open(SAIDA, "w", encoding="utf-8") as fp:
-        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "f": saida}, fp, ensure_ascii=False, separators=(",", ":"))
+        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "f": saida, "_debug": debug}, fp, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":
