@@ -27,6 +27,34 @@ const ArquivosLite = (() => {
     return out;
   }
 
+  // Extrai os arquivos de um .zip grande sem carregar tudo na memória (lê só o índice e fatia o arquivo).
+  async function extrairZip(file) {
+    const tamTotal = file.size, cauda = Math.min(tamTotal, 66000);
+    const fim = new DataView(await file.slice(tamTotal - cauda).arrayBuffer());
+    let eocd = -1;
+    for (let i = cauda - 22; i >= 0; i--) if (fim.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error(`${file.name}: .zip inválido`);
+    const n = fim.getUint16(eocd + 10, true), tamCd = fim.getUint32(eocd + 12, true), offCd = fim.getUint32(eocd + 16, true);
+    const cd = new DataView(await file.slice(offCd, offCd + tamCd).arrayBuffer()), td = new TextDecoder(), out = [];
+    let p = 0;
+    for (let k = 0; k < n; k++) {
+      const flags = cd.getUint16(p + 8, true), metodo = cd.getUint16(p + 10, true), tam = cd.getUint32(p + 20, true);
+      const nl = cd.getUint16(p + 28, true), el = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true), off = cd.getUint32(p + 42, true);
+      const nb = new Uint8Array(cd.buffer, p + 46, nl);
+      const nome = (flags & 0x800) ? td.decode(nb) : new TextDecoder('ibm866').decode(nb);
+      p += 46 + nl + el + cl;
+      if (nome.endsWith('/') || /(^|\/)(__MACOSX|\.)/.test(nome)) continue;
+      out.push({ nome: nome.split('/').pop(), metodo, off, tam });
+    }
+    for (const e of out) {
+      const lh = new DataView(await file.slice(e.off, e.off + 30).arrayBuffer());
+      const ini = e.off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true), bruto = file.slice(ini, ini + e.tam);
+      e.blob = e.metodo === 8 ? await new Response(bruto.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob()
+        : e.metodo === 0 ? bruto : null;
+    }
+    return out.filter(e => e.blob).map(e => ({ nome: e.nome, blob: e.blob }));
+  }
+
   // ---------- XLSX ----------
   const colIdx = ref => { let n = 0; for (const ch of ref.replace(/\d+/g, '')) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
   async function lerXlsx(arrayBuffer) {
@@ -82,29 +110,35 @@ const ArquivosLite = (() => {
   // ---------- ZIP: escrita (sem compressão) ----------
   const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
   const crc32 = u8 => { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-  function criarZip(arquivos) { // [{ nome, dados: Uint8Array | string }]
-    const te = new TextEncoder(), partes = [], central = []; let off = 0;
+  // Monta o .zip aos poucos: cada arquivo vira um Blob assim que é adicionado (não acumula tudo na memória).
+  function novoZip() {
+    const te = new TextEncoder(), partes = [], central = []; let off = 0, qtd = 0;
     const agora = new Date(), dt = ((agora.getFullYear() - 1980) << 9) | ((agora.getMonth() + 1) << 5) | agora.getDate(), hr = (agora.getHours() << 11) | (agora.getMinutes() << 5) | (agora.getSeconds() >> 1);
-    for (const a of arquivos) {
-      const nome = te.encode(a.nome), dados = typeof a.dados === 'string' ? te.encode(a.dados) : a.dados, crc = crc32(dados);
-      const lh = new DataView(new ArrayBuffer(30));
-      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
-      lh.setUint16(10, hr, true); lh.setUint16(12, dt, true); lh.setUint32(14, crc, true); lh.setUint32(18, dados.length, true); lh.setUint32(22, dados.length, true);
-      lh.setUint16(26, nome.length, true); lh.setUint16(28, 0, true);
-      partes.push(new Uint8Array(lh.buffer), nome, dados);
-      const ch = new DataView(new ArrayBuffer(46));
-      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
-      ch.setUint16(12, hr, true); ch.setUint16(14, dt, true); ch.setUint32(16, crc, true); ch.setUint32(20, dados.length, true); ch.setUint32(24, dados.length, true);
-      ch.setUint16(28, nome.length, true); ch.setUint32(42, off, true);
-      central.push(new Uint8Array(ch.buffer), nome);
-      off += 30 + nome.length + dados.length;
-    }
-    const tamCentral = central.reduce((s, x) => s + x.length, 0);
-    const end = new DataView(new ArrayBuffer(22));
-    end.setUint32(0, 0x06054b50, true); end.setUint16(8, arquivos.length, true); end.setUint16(10, arquivos.length, true);
-    end.setUint32(12, tamCentral, true); end.setUint32(16, off, true);
-    return new Blob([...partes, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+    return {
+      add(nomeTxt, dadosIn) {
+        const nome = te.encode(nomeTxt), dados = typeof dadosIn === 'string' ? te.encode(dadosIn) : dadosIn, crc = crc32(dados);
+        const lh = new DataView(new ArrayBuffer(30));
+        lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+        lh.setUint16(10, hr, true); lh.setUint16(12, dt, true); lh.setUint32(14, crc, true); lh.setUint32(18, dados.length, true); lh.setUint32(22, dados.length, true);
+        lh.setUint16(26, nome.length, true); lh.setUint16(28, 0, true);
+        partes.push(new Blob([lh.buffer, nome, dados]));
+        const ch = new DataView(new ArrayBuffer(46));
+        ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+        ch.setUint16(12, hr, true); ch.setUint16(14, dt, true); ch.setUint32(16, crc, true); ch.setUint32(20, dados.length, true); ch.setUint32(24, dados.length, true);
+        ch.setUint16(28, nome.length, true); ch.setUint32(42, off, true);
+        central.push(new Uint8Array(ch.buffer), nome);
+        off += 30 + nome.length + dados.length; qtd++;
+      },
+      blob() {
+        const tamCentral = central.reduce((s, x) => s + x.length, 0);
+        const end = new DataView(new ArrayBuffer(22));
+        end.setUint32(0, 0x06054b50, true); end.setUint16(8, qtd, true); end.setUint16(10, qtd, true);
+        end.setUint32(12, tamCentral, true); end.setUint32(16, off, true);
+        return new Blob([...partes, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+      }
+    };
   }
+  function criarZip(arquivos) { const z = novoZip(); arquivos.forEach(a => z.add(a.nome, a.dados)); return z.blob(); }
 
   // ---------- E-mail .eml (abre no Outlook como mensagem nova, pronta para enviar) ----------
   function b64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
@@ -123,5 +157,5 @@ const ArquivosLite = (() => {
     return m;
   }
 
-  return { lerPlanilha, criarZip, criarEml };
+  return { lerPlanilha, extrairZip, novoZip, criarZip, criarEml };
 })();

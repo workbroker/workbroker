@@ -33,8 +33,11 @@
     </div>
     <div class="card">
       <h2><span class="step">2</span>XPerformance do mês</h2>
-      <p class="note" style="margin-top:0">Selecione todos os PDFs de uma vez (pode arrastar a pasta inteira de arquivos).</p>
-      <div class="drop" id="dropPdf"><div class="big">📄</div><div><b>Importar os PDFs</b></div><input type="file" id="filePdf" accept="application/pdf,.pdf" multiple hidden></div>
+      <p class="note" style="margin-top:0">Pode ser a <b>pasta inteira</b>, o <b>.zip</b> baixado em lote ou vários PDFs selecionados de uma vez. Também dá para arrastar a pasta ou o .zip para cá.</p>
+      <div class="drop" id="dropPdf"><div class="big">📄</div><div><b>Selecionar PDFs ou .zip</b></div>
+        <button type="button" class="sm secondary" id="btnPasta" style="margin-top:8px">📁 Escolher pasta inteira</button>
+        <input type="file" id="filePdf" accept="application/pdf,.pdf,.zip,application/zip" multiple hidden>
+        <input type="file" id="filePasta" webkitdirectory multiple hidden></div>
       <div id="infoPdf" style="margin-top:10px"></div>
     </div>
   </div>
