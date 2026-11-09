@@ -189,14 +189,17 @@ def documentos(cnpj):
         esp = (d.get("especieDocumento") or "").strip()
         if not d.get("id") or "Informe" in cat or "Demonstra" in cat or "Listagem" in cat:
             continue
-        if "Estruturado" in cat and "amortiza" not in tipo.lower():
+        if "Estruturado" in cat:
             continue  # avisos de rendimento do mês: o valor já aparece nos rendimentos
         ent = (d.get("dataEntrega") or "").strip()  # dd/mm/aaaa hh:mm
         try:
             data = datetime.strptime(ent[:10], "%d/%m/%Y").strftime("%Y-%m-%d")
         except Exception:
             continue
-        reg = [data, cat, tipo, esp, " ".join((d.get("informacoesAdicionais") or "").split())[:180], d["id"]]
+        inf = " ".join((d.get("informacoesAdicionais") or "").split())
+        if inf.endswith(";") and len(inf) < 30:
+            inf = ""  # é só o nome de pregão
+        reg = [data, cat, tipo, esp, inf[:180], d["id"]]
         if "Relat" in cat or "Gerencial" in tipo:
             if "Gerencial" in tipo or "Gerencial" in cat:
                 if gerencial is None:
@@ -207,6 +210,61 @@ def documentos(cnpj):
     if gerencial:
         out.append(gerencial)
     return out
+
+
+def texto_documento(id_doc):
+    """Baixa o documento do Fundos.NET e devolve o começo do texto (para resumir fatos relevantes e comunicados)."""
+    import base64, html as htmlmod, re
+    try:
+        bruto = opener.open(urllib.request.Request(FNET + f"downloadDocumento?id={id_doc}", headers=dict(UA, Referer=FNET + "abrirGerenciadorDocumentosCVM")), timeout=40).read()
+    except Exception as e:
+        return None, f"download: {e}"
+    dados = bruto.strip().strip(b'"')
+    if not dados.startswith(b"%PDF") and not dados[:200].lstrip().startswith(b"<"):
+        try:
+            dec = base64.b64decode(dados, validate=False)
+            if dec[:4] == b"%PDF" or dec[:200].lstrip().startswith(b"<"):
+                dados = dec
+        except Exception:
+            pass
+    txt = ""
+    if dados.startswith(b"%PDF"):
+        try:
+            from pypdf import PdfReader
+            r = PdfReader(io.BytesIO(dados))
+            txt = " ".join((pg.extract_text() or "") for pg in r.pages[:2])
+        except Exception as e:
+            return None, f"pdf: {e}"
+    else:
+        try:
+            h = dados.decode("utf-8")
+        except UnicodeDecodeError:
+            h = dados.decode("latin-1")
+        h = re.sub(r"(?is)<(script|style).*?</\1>", " ", h)
+        txt = htmlmod.unescape(re.sub(r"<[^>]+>", " ", h))
+    txt = " ".join(txt.split())
+    return txt, None
+
+
+def resumir(txt):
+    import re
+    if not txt:
+        return ""
+    m = re.search(r"(?i)(fato relevante|comunicado ao mercado|aviso aos cotistas)\s*[:\-–]?\s*", txt)
+    corpo = txt[m.end():] if m and m.start() < 1500 else txt
+    # pula o cabeçalho típico ("A XXX, administradora do ..., vem comunicar aos cotistas e ao mercado que ...")
+    m2 = re.search(r"(?i)\b(vem|vêm|informa|comunica|esclarece)\b", corpo[:900])
+    if m2:
+        m3 = re.search(r"(?i)\bque\b|o seguinte\s*:|:", corpo[m2.end():m2.end() + 350])
+        if m3:
+            corpo = corpo[m2.end() + m3.end():]
+    corpo = re.sub(r"\s*[A-ZÀ-Ú][\wÀ-ú]+(?: [\wÀ-ú]+){0,3}, \d{1,2}º? de [a-zç]+ de \d{4}.*$", "", corpo)
+    corpo = corpo.strip(" :;,.-–")
+    if len(corpo) > 330:
+        corte = corpo[:330]
+        ponto = corte.rfind(". ")
+        corpo = corte[:ponto + 1] if ponto > 120 else corte.rsplit(" ", 1)[0] + "…"
+    return corpo[:1].upper() + corpo[1:] if corpo else ""
 
 
 def main():
@@ -237,10 +295,25 @@ def main():
         FNET_ERROS.append(f"sessão: {e}")
     with ThreadPoolExecutor(max_workers=4) as ex:
         docs = dict(zip(ativos, ex.map(lambda t: documentos(fundos[t]["cnpj"]), ativos)))
+    # resumo do texto dos fatos relevantes e comunicados recentes (até 220 documentos)
+    lim = (hoje - timedelta(days=45)).strftime("%Y-%m-%d")
+    alvos = [reg for v in docs.values() if v for reg in v if reg[0] >= lim and ("Fato" in reg[1] or "Comunicado" in reg[1]) and not reg[4]][:220]
+    amostras, falhas = [], []
+    def resumo_de(reg):
+        txt, erro = texto_documento(reg[5])
+        if erro:
+            if len(falhas) < 5: falhas.append(erro)
+            return
+        r = resumir(txt)
+        if r:
+            reg[4] = r
+            if len(amostras) < 4: amostras.append({"id": reg[5], "inicio": txt[:400], "resumo": r})
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        list(ex.map(resumo_de, alvos))
+    debug["resumos"] = {"alvos": len(alvos), "ok": sum(1 for r in alvos if r[4]), "falhas": falhas, "amostras": amostras}
     debug["docs_ok"] = sum(1 for v in docs.values() if v is not None)
     debug["docs_n"] = sum(len(v) for v in docs.values() if v)
     debug["docs_erros"] = FNET_ERROS
-    debug["docs_amostra"] = FNET_AMOSTRA
     saida = {}
     for t, f in fundos.items():
         if docs.get(t):

@@ -41,8 +41,10 @@ jobs:
         run: python scripts/noticias.py || true
       - name: Indicadores macro
         run: python scripts/macro.py || true
-      - name: FIIs (uma vez por dia)
-        run: python scripts/fiis.py || true
+      - name: FIIs (duas vezes por dia)
+        run: |
+          pip install -q pypdf || true
+          python scripts/fiis.py || true
         timeout-minutes: 15
         env:
           FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
