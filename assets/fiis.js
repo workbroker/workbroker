@@ -1,6 +1,8 @@
-// FIIs em atenção: lê o "Manual de FIIs em atenção" (.html) importado pelo assessor e permite
-// buscar fundos e checar a carteira do cliente (tickers ou XPerformance).
-// O manual fica só no navegador (localStorage), nunca no repositório.
+// FIIs em atenção
+// 1) Indicadores automáticos de todos os FIIs listados (fiis.json, gerado todo dia pelo GitHub Actions a partir de CVM e B3)
+//    com sinais objetivos: pontos críticos e pontos bons.
+// 2) Opcional: o "Manual de FIIs em atenção" (.html) importado pelo assessor acrescenta a análise escrita
+//    (o que aconteceu, como explicar ao cliente etc.). O manual fica só no navegador, nunca no repositório.
 
 const $ = id => document.getElementById(id);
 const CHAVE = 'rw_fii_manual';
@@ -9,23 +11,71 @@ const CHAVE = 'rw_fii_manual';
 const okn = v => typeof v === 'number' && isFinite(v);
 const nf = d => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const fp = (v, d = 1) => okn(v) ? (v < 0 ? '−' : '') + nf(d).format(Math.abs(v * 100)) + '%' : '—';
-const fs = (v, d = 1) => okn(v) ? (v >= 0 ? '+' : '−') + nf(d).format(Math.abs(v * 100)) + '%' : '—';
+const fs = (v, d = 1) => okn(v) ? (Math.abs(v) < 0.5 / Math.pow(10, d + 2) ? '' : v >= 0 ? '+' : '−') + nf(d).format(Math.abs(v * 100)) + '%' : '—';
 const fpp = v => okn(v) ? (v >= 0 ? '+' : '−') + nf(1).format(Math.abs(v * 100)) + ' p.p.' : '—';
 const n0 = v => okn(v) ? nf(0).format(v) : '—';
 const n2 = v => okn(v) ? nf(2).format(v) : '—';
 const rs = v => okn(v) ? 'R$ ' + nf(v < 0.2 ? 3 : 2).format(v) : '—';
+const mi = v => !okn(v) ? '—' : v >= 1e9 ? 'R$ ' + nf(2).format(v / 1e9) + ' bi' : v >= 1e6 ? 'R$ ' + nf(1).format(v / 1e6) + ' mi' : 'R$ ' + nf(0).format(v / 1e3) + ' mil';
 const cl = v => okn(v) ? (v < 0 ? 'neg' : 'pos') : '';
 const arr = v => Array.isArray(v) ? v : (v ? [v] : []);
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const mlab = s => { const p = String(s || '').split('-'); return p.length === 2 ? MES[+p[1] - 1] + '/' + p[0].slice(2) : String(s || ''); };
 const li = a => arr(a).map(x => `<li>${esc(x)}</li>`).join('');
-const LVL = { elevada: 'Atenção elevada', moderada: 'Atenção moderada' };
-const LVLORD = { elevada: 0, moderada: 1 };
+const semAc = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const NIVEL = { elevada: 'Atenção elevada', moderada: 'Atenção moderada', ok: 'Sem alerta' };
+const NORD = { elevada: 0, moderada: 1, ok: 2 };
 const MUD = { novo: 'Novo nesta edição', mantido: 'Mantido', piorou: 'Piorou', melhorou: 'Melhorou' };
-const lv = k => `<span class="lv ${esc(k)}">${esc(LVL[k] || k)}</span>`;
+const lv = k => `<span class="lv ${esc(k)}">${esc(NIVEL[k] || k)}</span>`;
 const mud = k => k ? `<span class="mud">${esc(MUD[k] || k)}</span>` : '';
 
-// ---------- importar o manual ----------
+// ---------- estado ----------
+let AUTO = {}, AUTO_META = null, IFIX = null;   // indicadores automáticos
+let MAN = null;                                   // manual importado (opcional)
+let byT = {}, UT = new Set(), FORA = {}, NLOC = new Set(), PEND = new Set(), DESC = {}, GL = new Map(), ED = '', REF = {}, FM = [];
+
+// ---------- indicadores automáticos e sinais ----------
+function calcAuto(t, a) {
+  const f = { ticker: t, ...a };
+  const r = arr(a.r).map(([m, v]) => ({ m, v: +v })).sort((x, y) => y.m.localeCompare(x.m));
+  f._r = r;
+  const hoje = new Date(), mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  const ANO = hoje.getFullYear();
+  f.ult = r.length ? r[0].v : null; f.ultMes = r.length ? r[0].m : null;
+  f.soma12 = r.slice(0, 12).reduce((s, x) => s + x.v, 0);
+  f.div_ano = r.filter(x => +x.m.slice(0, 4) === ANO).reduce((s, x) => s + x.v, 0);
+  const ant = r.slice(1, 7).map(x => x.v);
+  f.med6 = ant.length >= 4 ? ant.reduce((s, x) => s + x, 0) / ant.length : null;
+  f.varRend = okn(f.ult) && okn(f.med6) && f.med6 > 0 ? f.ult / f.med6 - 1 : null;
+  const okp = okn(f.p) && f.p > 0;
+  f.pvp = okp && okn(f.vp) && f.vp > 0 ? f.p / f.vp : null;
+  f.dy12 = okp && r.length ? f.soma12 / f.p : null;
+  f.var_ano = okp && okn(f.p_ano) ? f.p / f.p_ano - 1 : null;
+  f.var12 = okp && okn(f.p12) ? f.p / f.p12 - 1 : null;
+  f.tr12 = okp && okn(f.p12) ? (f.p + f.soma12) / f.p12 - 1 : null;
+  f.tr_ano = okp && okn(f.p_ano) ? (f.p + f.div_ano) / f.p_ano - 1 : null;
+  f.varVp = okn(f.vp) && okn(f.vp12) && f.vp12 > 0 ? f.vp / f.vp12 - 1 : null;
+  // meses sem rendimento: o último pagamento foi há mais de 2 meses
+  const mesesDesde = f.ultMes ? (ANO - +f.ultMes.slice(0, 4)) * 12 + (hoje.getMonth() + 1 - +f.ultMes.slice(5, 7)) : null;
+  const forte = [], medio = [], info = [], bom = [];
+  if (okn(f.varRend) && f.varRend <= -0.10) forte.push(`Rendimento caiu ${fp(-f.varRend, 0)}: ${rs(f.ult)} em ${mlab(f.ultMes)}, contra média de ${rs(f.med6)} nos 6 meses anteriores.`);
+  if (r.length >= 3 && mesesDesde !== null && mesesDesde >= 3) forte.push(`Sem rendimento desde ${mlab(f.ultMes)}.`);
+  if (okn(f.varVp) && f.varVp <= -0.05) forte.push(`Valor patrimonial por cota caiu ${fp(-f.varVp, 1)} em 12 meses (${rs(f.vp12)} → ${rs(f.vp)}, CVM).`);
+  if (IFIX && okn(IFIX.r12) && okn(f.tr12) && f.tr12 - IFIX.r12 <= -0.15) medio.push(`Retorno de ${fs(f.tr12)} em 12 meses, ${fpp(f.tr12 - IFIX.r12).replace('−', '')} abaixo do IFIX: vale investigar o motivo.`);
+  if (okn(f.pvp) && f.pvp < 0.7) medio.push(`Cota negocia com desconto alto (P/VP ${n2(f.pvp)}): o mercado vê risco no fundo.`);
+  if (okn(f.vol) && f.vol < 100000) info.push(`Pouca liquidez: cerca de ${mi(f.vol)} negociados por dia.`);
+  if (okn(f.varRend) && f.varRend > -0.03 && r.length >= 6) bom.push(f.varRend > 0.03 ? `Rendimento subiu: ${rs(f.ult)} contra média de ${rs(f.med6)} nos 6 meses anteriores.` : `Rendimento estável: ${rs(f.ult)} por cota, em linha com os 6 meses anteriores.`);
+  if (okn(f.varVp) && f.varVp >= -0.01) bom.push(f.varVp > 0.01 ? `Valor patrimonial por cota subiu ${fp(f.varVp, 1)} em 12 meses.` : 'Valor patrimonial por cota estável em 12 meses.');
+  if (IFIX && okn(IFIX.r12) && okn(f.tr12) && f.tr12 > IFIX.r12) bom.push(`Retorno de ${fs(f.tr12)} em 12 meses, acima do IFIX (${fs(IFIX.r12)}).`);
+  if (okn(f.vol) && f.vol >= 3e6) bom.push(`Boa liquidez: cerca de ${mi(f.vol)} negociados por dia.`);
+  if (okn(f.cot) && f.cot >= 100000) bom.push(`Base ampla, com ${n0(f.cot)} cotistas.`);
+  f.forte = forte; f.medio = medio; f.crit = [...forte, ...medio, ...info]; f.bom = bom;
+  f.nivel = forte.length >= 2 || (forte.length && medio.length >= 2) ? 'elevada' : forte.length || medio.length >= 2 ? 'moderada' : 'ok';
+  return f;
+}
+const A = t => AUTO[t] || null;
+
+// ---------- manual (opcional) ----------
 function extrair(texto) {
   const a = texto.indexOf('/*DADOS_INICIO*/'), b = texto.indexOf('/*DADOS_FIM*/');
   if (a < 0 || b < 0) throw new Error('Este arquivo não parece ser o Manual de FIIs em atenção.');
@@ -40,33 +90,21 @@ function extrair(texto) {
 }
 async function importar(file) {
   if (!file) return;
-  const info = $('comManual').hidden ? $('infoMan') : null;
   try {
     const { data, gloss } = extrair(await file.text());
     const pacote = { data, gloss, arquivo: file.name, importado: new Date().toISOString() };
-    try { localStorage.setItem(CHAVE, JSON.stringify(pacote)); }
-    catch (e) { toast('Não deu para guardar no navegador; o manual vale só até fechar a página.'); }
-    iniciar(pacote);
+    try { localStorage.setItem(CHAVE, JSON.stringify(pacote)); } catch (e) { toast('Não deu para guardar no navegador; o manual vale só até fechar a página.'); }
+    prepararManual(pacote); montar();
     toast(`Manual da edição ${data.edicao || ''} importado`);
-  } catch (e) {
-    if (info) info.innerHTML = `<p class="note bad">❌ ${esc(e.message)}</p>`; else toast('❌ ' + e.message);
-  }
+  } catch (e) { toast('❌ ' + e.message); }
 }
-$('dropMan').onclick = () => $('fileMan').click();
+$('btnNova').onclick = () => $('fileMan').click();
 $('fileMan').onchange = e => { importar(e.target.files[0]); e.target.value = ''; };
-$('btnNova').onclick = () => $('fileMan2').click();
-$('fileMan2').onchange = e => { importar(e.target.files[0]); e.target.value = ''; };
-['dragover', 'dragenter'].forEach(ev => $('dropMan').addEventListener(ev, e => { e.preventDefault(); $('dropMan').classList.add('over'); }));
-['dragleave', 'drop'].forEach(ev => $('dropMan').addEventListener(ev, e => { e.preventDefault(); $('dropMan').classList.remove('over'); }));
-$('dropMan').addEventListener('drop', e => importar(e.dataTransfer.files[0]));
 
-// ---------- estado ----------
-let DATA, F, byT, UT, FORA, NLOC, PEND, DESC, GL, ED, REF;
-
-function preparar(pacote) {
-  DATA = pacote.data; ED = DATA.edicao || '';
+function prepararManual(pacote) {
+  MAN = pacote; const D = pacote.data; ED = D.edicao || '';
   const ANO = +String(ED).split('/')[2];
-  F = arr(DATA.fundos).map(f0 => {
+  FM = arr(D.fundos).map(f0 => {
     const f = Object.assign({}, f0);
     f._r = arr(f.rendimentos).map(x => ({ m: String(x[0]), v: +x[1] }));
     f.ult = f._r.length ? f._r[0].v : null;
@@ -75,85 +113,101 @@ function preparar(pacote) {
     const okp = okn(f.preco) && f.preco > 0;
     f.pvp = okn(f.vp) && f.vp > 0 && okp ? f.preco / f.vp : null;
     f.dy12 = f._r.length && okp ? f.soma12 / f.preco : null;
-    f.dym = okn(f.ult) && okp ? f.ult / f.preco : null;
     f.var_ano = okp && okn(f.preco_inicio_ano) ? f.preco / f.preco_inicio_ano - 1 : null;
-    f.var12 = okp && okn(f.preco_12m) ? f.preco / f.preco_12m - 1 : null;
     f.tr_ano = okp && okn(f.preco_inicio_ano) ? (f.preco + f.div_ano) / f.preco_inicio_ano - 1 : null;
     f.tr12 = okp && okn(f.preco_12m) ? (f.preco + f.soma12) / f.preco_12m - 1 : null;
     ['causas', 'acompanhar', 'sinais', 'impactos', 'fatores', 'ativos', 'eventos', 'perguntas', 'fontes'].forEach(k => f[k] = arr(f[k]));
     f.ticker = String(f.ticker || '').toUpperCase();
     return f;
-  }).sort((a, b) => (LVLORD[a.nivel] ?? 9) - (LVLORD[b.nivel] ?? 9) || a.ticker.localeCompare(b.ticker));
-  byT = Object.fromEntries(F.map(f => [f.ticker, f]));
-  const U = DATA.universo || {};
+  });
+  byT = Object.fromEntries(FM.map(f => [f.ticker, f]));
+  const U = D.universo || {};
   UT = new Set(arr(U.tickers).map(t => String(t).toUpperCase()));
   FORA = Object.fromEntries(arr(U.fora_escopo).map(x => [String(x.ticker).toUpperCase(), x.motivo]));
   NLOC = new Set(arr(U.nao_localizados).map(t => String(t).toUpperCase()));
   PEND = new Set(arr(U.pendentes).map(t => String(t).toUpperCase()));
   DESC = Object.fromEntries(arr(U.descartados).map(x => [String(x.ticker).toUpperCase(), x.motivo]));
-  GL = new Map(arr(pacote.gloss)); arr(DATA.glossario_extra).forEach(([k, v]) => GL.set(k, v));
-  REF = DATA.referenciais || {};
+  GL = new Map(arr(pacote.gloss)); arr(D.glossario_extra).forEach(([k, v]) => GL.set(k, v));
+  REF = D.referenciais || {};
 }
 const R = k => { const r = REF[k] || {}; return { ano: okn(r.ano) ? r.ano / 100 : null, doze: okn(r.doze) ? r.doze / 100 : null, fonte: r.fonte }; };
 
-function statusOf(t) {
-  if (byT[t]) return { k: 'card' };
-  if (FORA[t]) return { k: 'fora', motivo: FORA[t] };
-  if (NLOC.has(t)) return { k: 'nloc' };
-  if (PEND.has(t)) return { k: 'pend' };
-  if (UT.has(t)) return { k: 'ok' };
-  const m = /^([A-Z]{4})1[2-5]$/.exec(t);
-  if (m) { const b = m[1] + '11'; if (byT[b] || UT.has(b)) return { k: 'recibo', base: b }; }
-  return { k: 'desconhecido' };
+// ---------- visão unificada de um ticker ----------
+function base(t) { const m = /^([A-Z]{4})1[2-5]$/.exec(t); return m && !A(t) && !byT[t] ? m[1] + '11' : t; }
+function info(t) {
+  t = base(String(t).toUpperCase());
+  const a = A(t), m = byT[t] || null;
+  const nivel = m ? m.nivel : a ? a.nivel : null;
+  return { t, a, m, nivel, nome: m ? m.nome : a ? a.nome : '', seg: m ? m.setor : a ? a.seg : '' };
 }
-const conhecido = t => { const k = statusOf(t).k; return k !== 'desconhecido'; };
+const conhecido = t => { const i = info(t); return !!(i.a || i.m || UT.has(i.t) || FORA[i.t]); };
 
 // ---------- cartões ----------
-function pontosCard(f) {
-  const crit = f.sinais.slice(0, 3), bom = [];
-  if (f.positivo) bom.push(f.positivo);
-  if (f.cobertura_ok === true) bom.push('Último rendimento coberto pelo resultado do fundo.');
-  return `<div class="pontos">
-    ${crit.map(s => `<div class="p crit"><span>⚠</span><span>${esc(s)}</span></div>`).join('')}
-    ${bom.map(s => `<div class="p bom"><span>✓</span><span>${esc(s)}</span></div>`).join('')}</div>`;
+function metricas(i) {
+  const a = i.a, m = i.m, g = k => a && okn(a[k]) ? a[k] : m && okn(m[k]) ? m[k] : null;
+  return `<div class="mm"><div>P/VP<b>${n2(g('pvp'))}</b></div><div>DY 12m<b>${fp(g('dy12'))}</b></div><div>Var. ano<b class="${cl(g('var_ano'))}">${fs(g('var_ano'))}</b></div><div>Últ. rend.<b>${rs(g('ult'))}</b></div></div>`;
 }
-function compacto(f) {
-  const nx = f.eventos.slice().sort((a, b) => String(a.ordem || '9').localeCompare(String(b.ordem || '9')))[0];
-  return `<article class="fcard ${esc(f.nivel)}">
-    <div class="topo"><div><span class="tk">${esc(f.ticker)}</span>${mud(f.mudanca)}</div>${lv(f.nivel)}</div>
-    <div class="nm">${esc(f.nome)} · ${esc(f.gestora)} · ${esc(f.setor)}</div>
-    <div class="rs">${esc(f.resumo)}</div>
-    ${pontosCard(f)}
-    <div class="mm"><div>P/VP<b>${n2(f.pvp)}</b></div><div>DY 12m<b>${fp(f.dy12)}</b></div><div>Var. ano<b class="${cl(f.var_ano)}">${fs(f.var_ano)}</b></div><div>Últ. rend.<b>${rs(f.ult)}</b></div></div>
+function pontos(crit, bom, maxC = 3, maxB = 2) {
+  return `<div class="pontos">${crit.slice(0, maxC).map(s => `<div class="p crit"><span>⚠</span><span>${esc(s)}</span></div>`).join('')}${bom.slice(0, maxB).map(s => `<div class="p bom"><span>✓</span><span>${esc(s)}</span></div>`).join('')}</div>`;
+}
+function cartao(t) {
+  const i = info(t);
+  if (!i.a && !i.m) return nota(i.t);
+  let corpo;
+  if (i.m) {
+    const bom = [i.m.positivo, ...(i.a ? i.a.bom : [])].filter(Boolean);
+    const extra = i.a && i.a.crit.length ? `<div class="nx">Sinais automáticos de hoje: ${i.a.crit.length} crítico(s), ${i.a.bom.length} bom(ns).</div>` : '';
+    corpo = `<div class="rs">${esc(i.m.resumo)}</div>${pontos(i.m.sinais, bom)}${extra}`;
+  } else corpo = (i.a.crit.length || i.a.bom.length ? pontos(i.a.crit, i.a.bom, 4, 3) : '<div class="nx">Sem sinais suficientes nos dados disponíveis.</div>') + notaManual(i.t);
+  const nx = i.m ? i.m.eventos.slice().sort((a, b) => String(a.ordem || '9').localeCompare(String(b.ordem || '9')))[0] : null;
+  return `<article class="fcard ${esc(i.nivel)}">
+    <div class="topo"><div><span class="tk">${esc(i.t)}</span>${i.m ? `<span class="fonte man">Manual ${esc(ED)}</span>${mud(i.m.mudanca)}` : '<span class="fonte">Automático</span>'}</div>${lv(i.nivel)}</div>
+    <div class="nm">${esc(i.nome)}${i.seg ? ' · ' + esc(i.seg) : ''}</div>
+    ${corpo}
+    ${metricas(i)}
     ${nx ? `<div class="nx"><b>Próximo evento:</b> ${esc(nx.prazo)} — ${esc(nx.evento)}</div>` : ''}
-    <div><button class="sm" data-open="${esc(f.ticker)}">Ver análise completa</button></div>
+    <div><button class="sm" data-open="${esc(i.t)}">${i.m ? 'Ver análise completa' : 'Ver detalhes'}</button></div>
   </article>`;
 }
-function nota(t, st) {
-  if (st.k === 'ok') return `<div class="nota ok"><span class="tk" style="font-size:15px">${esc(t)}</span> <span class="lv ok">Sem ponto de atenção</span>
-    <div style="margin-top:6px">Analisado na edição de ${esc(ED)} sem ponto de atenção relevante.${DESC[t] ? `<div class="pontos" style="margin-top:8px"><div class="p bom"><span>✓</span><span>Sinal verificado e descartado: ${esc(DESC[t])}</span></div></div>` : ''}</div></div>`;
-  const msg = st.k === 'fora' ? `fora do escopo do manual (${esc(st.motivo)}).`
-    : st.k === 'nloc' ? 'não foi localizado na B3 nem na CVM durante a triagem.'
-    : st.k === 'pend' ? 'teve sinal na triagem e <b>ainda está em análise</b>; o resultado entra numa próxima atualização.'
-    : `não está entre os fundos analisados na edição de ${esc(ED)}.`;
+function notaManual(t) {
+  if (!MAN || byT[t]) return '';
+  if (DESC[t]) return `<div class="nx">📘 <b>Manual (${esc(ED)}):</b> sinal verificado e descartado. ${esc(DESC[t])}</div>`;
+  if (UT.has(t)) return `<div class="nx">📘 <b>Manual (${esc(ED)}):</b> analisado sem ponto de atenção relevante.</div>`;
+  if (FORA[t]) return `<div class="nx">📘 <b>Manual:</b> fora do escopo (${esc(FORA[t])}).</div>`;
+  return '';
+}
+function nota(t) {
+  t = base(t);
+  const msg = FORA[t] ? `fora do escopo do manual (${esc(FORA[t])}).`
+    : NLOC.has(t) ? 'não foi localizado na B3 nem na CVM.'
+    : 'não encontrado entre os FIIs listados com dados na CVM e cotação recente. Pode ser um Fiagro, um fundo não listado ou um ticker digitado errado.';
   return `<div class="nota cinza"><span class="tk" style="font-size:15px">${esc(t)}</span> — ${msg}</div>`;
 }
-function itensDe(t) {
-  const st = statusOf(t), out = [];
-  if (st.k === 'card') out.push(compacto(byT[t]));
-  else if (st.k === 'recibo') {
-    out.push(`<div class="nota cinza"><span class="tk" style="font-size:15px">${esc(t)}</span> é recibo ou direito de subscrição de <b>${esc(st.base)}</b>.</div>`);
-    out.push(byT[st.base] ? compacto(byT[st.base]) : nota(st.base, statusOf(st.base)));
-  } else out.push(nota(t, st));
-  return out;
-}
 
-// ---------- análise completa ----------
-function completo(f) {
+// ---------- detalhes ----------
+function blocoAuto(a) {
+  const r = a._r.slice(0, 12).reverse(), max = Math.max(...r.map(x => x.v), 0.0001);
+  const ri = IFIX || {};
+  return `<div class="det">
+    <div class="mg">
+      <div>Cotação<b>${rs(a.p)}</b></div><div>VP/cota (${mlab(a.vp_ref)})<b>${rs(a.vp)}</b></div><div>P/VP<b>${n2(a.pvp)}</b></div>
+      <div>DY 12m<b>${fp(a.dy12)}</b></div><div>Último rend.<b>${rs(a.ult)}</b></div><div>Média 6m ant.<b>${rs(a.med6)}</b></div>
+      <div>Var. no ano<b class="${cl(a.var_ano)}">${fs(a.var_ano)}</b></div><div>Var. 12m<b class="${cl(a.var12)}">${fs(a.var12)}</b></div>
+      <div>Retorno 12m<b class="${cl(a.tr12)}">${fs(a.tr12)}</b></div><div>VP 12m<b class="${cl(a.varVp)}">${fs(a.varVp)}</b></div>
+      <div>Patrimônio<b>${mi(a.pl)}</b></div><div>Cotistas<b>${n0(a.cot)}</b></div><div>Liquidez/dia<b>${mi(a.vol)}</b></div>
+    </div>
+    ${r.length ? `<div><h4>Rendimentos por cota (mês da data-com)</h4><div class="rbar">${r.map(x => `<div class="${okn(a.med6) && x === r[r.length - 1] && a.varRend <= -0.1 ? 'corte' : ''}" style="height:${Math.max(2, x.v / max * 100)}%" title="${mlab(x.m)}: ${rs(x.v)}"></div>`).join('')}</div><div class="rlab">${r.map(x => `<span>${mlab(x.m).split('/')[0]}</span>`).join('')}</div></div>` : ''}
+    <div class="table-wrap"><table><thead><tr><th>Período</th><th class="n">Fundo (aprox.)</th><th class="n">IFIX</th><th class="n">Diferença</th></tr></thead><tbody>
+      <tr><td>No ano</td><td class="n">${fs(a.tr_ano)}</td><td class="n">${fs(ri.ano)}</td><td class="n">${okn(a.tr_ano) && okn(ri.ano) ? fpp(a.tr_ano - ri.ano) : '—'}</td></tr>
+      <tr><td>12 meses</td><td class="n">${fs(a.tr12)}</td><td class="n">${fs(ri.r12)}</td><td class="n">${okn(a.tr12) && okn(ri.r12) ? fpp(a.tr12 - ri.r12) : '—'}</td></tr></tbody></table></div>
+    <p class="note" style="margin:0">${esc(a.nome)} · Segmento (CVM): ${esc(a.seg || '—')} · Gestão: ${esc(a.gestao || '—')} · Administrador: ${esc((a.adm || '—').replace(/\.$/, ''))}. Retorno aproximado = (cotação + rendimentos) ÷ cotação inicial − 1, sem reinvestimento. Rendimentos podem incluir amortizações.</p>
+  </div>`;
+}
+function completoManual(f) {
   const ri = R('ifix'), rc = R('cdi'), rp = R('poupanca');
   const dif = (a, b) => okn(a) && okn(b) ? fpp(a - b) : '—';
   const sec = (h, x) => x ? `<div><h4>${h}</h4><p>${esc(x)}</p></div>` : '';
-  const crit = [...f.sinais], bom = [];
+  const bom = [];
   if (f.positivo) bom.push(f.positivo);
   if (f.cobertura_ok === true) bom.push('Último rendimento coberto pelo resultado: ' + (f.cobertura || ''));
   if (f.melhorar) bom.push('Pode melhorar com: ' + f.melhorar);
@@ -162,20 +216,12 @@ function completo(f) {
   const evs = f.eventos.slice().sort((a, b) => String(a.ordem || '9').localeCompare(String(b.ordem || '9'))).map(e => `<li><div class="pz">${esc(e.prazo)}</div><div><b>${esc(e.evento)}</b></div>${e.melhora ? `<div class="up">▲ ${esc(e.melhora)}</div>` : ''}${e.piora ? `<div class="dn">▼ ${esc(e.piora)}</div>` : ''}</li>`).join('');
   const perf = `<div class="table-wrap"><table><thead><tr><th>Período</th><th class="n">Fundo (aprox.)</th><th class="n">IFIX</th><th class="n">CDI</th><th class="n">Poupança</th><th class="n">Dif. vs IFIX</th></tr></thead><tbody>
     <tr><td>No ano</td><td class="n">${fs(f.tr_ano)}</td><td class="n">${fs(ri.ano)}</td><td class="n">${fs(rc.ano)}</td><td class="n">${fs(rp.ano)}</td><td class="n">${dif(f.tr_ano, ri.ano)}</td></tr>
-    <tr><td>12 meses</td><td class="n">${fs(f.tr12)}</td><td class="n">${fs(ri.doze)}</td><td class="n">${fs(rc.doze)}</td><td class="n">${fs(rp.doze)}</td><td class="n">${dif(f.tr12, ri.doze)}</td></tr></tbody></table></div>
-    <p class="note">Retorno aproximado = (cotação final + rendimentos do período) ÷ cotação inicial − 1, sem reinvestimento e antes de IR.</p>`;
+    <tr><td>12 meses</td><td class="n">${fs(f.tr12)}</td><td class="n">${fs(ri.doze)}</td><td class="n">${fs(rc.doze)}</td><td class="n">${fs(rp.doze)}</td><td class="n">${dif(f.tr12, ri.doze)}</td></tr></tbody></table></div>`;
   const fontes = `<div class="table-wrap"><table><thead><tr><th>Informação</th><th>Documento</th><th>Fonte</th><th>Data</th><th>Tipo</th><th></th></tr></thead><tbody>${f.fontes.map(s => `<tr><td>${esc(s.info)}</td><td>${esc(s.doc)}</td><td>${esc(s.fonte)}</td><td>${esc(s.data)}</td><td>${esc(s.tipo)}</td><td>${s.link && /^https?:/i.test(s.link) ? `<a href="${esc(s.link)}" target="_blank" rel="noopener">abrir</a>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
   return `<div class="det">
-    <div class="mg">
-      <div>Tipo<b>${esc(f.tipo)}</b></div><div>Setor<b>${esc(f.setor)}</b></div><div>P/VP<b>${n2(f.pvp)}</b></div>
-      <div>DY 12m<b>${fp(f.dy12)}</b></div><div>DY do mês<b>${fp(f.dym, 2)}</b></div><div>Último rend.<b>${rs(f.ult)}</b></div>
-      <div>Cotação<b>${rs(f.preco)}</b></div><div>VP (${esc(f.vp_mes || '')})<b>${rs(f.vp)}</b></div>
-      <div>Var. no ano<b class="${cl(f.var_ano)}">${fs(f.var_ano)}</b></div><div>Var. 12m<b class="${cl(f.var12)}">${fs(f.var12)}</b></div>
-      <div>Cotistas<b>${n0(f.cotistas)}</b></div><div>Taxa<b>${esc(f.taxa_resumo || '—')}</b></div>
-    </div>
-    <p class="note" style="margin:0">Gestora: ${esc(f.gestor)} · Administradora: ${esc(f.administradora)} · Classificação: ${esc(f.classificacao)} · Atualização: ${esc(f.atualizacao)}</p>
+    <p class="note" style="margin:0">Análise do Manual de FIIs em atenção, edição ${esc(ED)} · Gestora: ${esc(f.gestor)} · Administradora: ${esc(f.administradora)} · Classificação: ${esc(f.classificacao)} · Taxa: ${esc(f.taxa_resumo || '—')} · Atualização: ${esc(f.atualizacao)}</p>
     <div class="dois">
-      <div class="caixa crit"><h4>⚠ Pontos críticos</h4><ul>${li(crit)}</ul></div>
+      <div class="caixa crit"><h4>⚠ Pontos críticos</h4><ul>${li(f.sinais)}</ul></div>
       <div class="caixa bom"><h4>✓ Pontos bons</h4>${bom.length ? `<ul>${li(bom)}</ul>` : '<p>Nenhum ponto positivo destacado pela análise.</p>'}</div>
     </div>
     <div><h4>O que aconteceu</h4><p>${esc(f.acontecido)}</p></div>
@@ -187,18 +233,25 @@ function completo(f) {
     ${evs ? `<div><h4>Próximos eventos</h4><ul class="evl">${evs}</ul></div>` : ''}
     <div class="caixa explica"><h4>Como explicar ao cliente</h4><p>${esc(f.explicar)}</p></div>
     <details><summary>Se o cliente perguntar</summary><ul class="qa" style="margin-top:10px">${f.perguntas.map(x => `<li><div class="q">${esc(x.q)}</div><div>${esc(x.a)}</div></li>`).join('')}</ul>${f.nao_dizer ? `<p class="note"><b>O que não dizer:</b> ${esc(f.nao_dizer)}</p>` : ''}</details>
-    <details><summary>Detalhes técnicos</summary><div class="det" style="margin-top:10px">
+    <details><summary>Detalhes técnicos do manual</summary><div class="det" style="margin-top:10px">
       ${sec('Cobertura do último rendimento', f.cobertura)}${sec('Leitura do P/VP', f.leitura_pvp)}${sec('Sustentabilidade do rendimento', f.sustentabilidade)}
       <div><h4>Classificação da causa</h4><p>Origem: ${esc(f.origem)} · Natureza: ${esc(f.natureza)} · Impacto: ${esc(f.refletido)}</p></div>
-      ${sec('Taxas', f.taxa)}<div><h4>Retorno aproximado × referenciais</h4>${perf}</div>
-      <div><h4>Últimos rendimentos (R$/cota, mês da data-com)</h4><p>${f._r.map(x => `${mlab(x.m)} ${nf(x.v < 0.2 ? 3 : 2).format(x.v)}`).join(' · ')}</p></div></div></details>
-    ${f.fontes.length ? `<details><summary>Fontes</summary><div style="margin-top:10px">${fontes}</div></details>` : ''}
+      ${sec('Taxas', f.taxa)}<div><h4>Retorno aproximado × referenciais (na data do manual)</h4>${perf}</div></div></details>
+    ${f.fontes.length ? `<details><summary>Fontes do manual</summary><div style="margin-top:10px">${fontes}</div></details>` : ''}
   </div>`;
 }
 function abrirFundo(t) {
-  const f = byT[String(t).toUpperCase()]; if (!f) return;
-  $('dlgT').innerHTML = `<span class="tk">${esc(f.ticker)}</span> <span style="font-weight:600;font-size:16px">· ${esc(f.nome)}</span> ${lv(f.nivel)}${mud(f.mudanca)}`;
-  $('dlgB').innerHTML = completo(f);
+  const i = info(t); if (!i.a && !i.m) return;
+  $('dlgT').innerHTML = `<span class="tk">${esc(i.t)}</span> <span style="font-weight:600;font-size:16px">· ${esc(i.nome)}</span> ${lv(i.nivel)}${i.m ? mud(i.m.mudanca) : ''}`;
+  let html = '';
+  if (i.m) html += completoManual(i.m);
+  if (i.a) {
+    const caixas = `<div class="dois"><div class="caixa crit"><h4>⚠ Pontos críticos (automático)</h4>${i.a.crit.length ? `<ul>${li(i.a.crit)}</ul>` : '<p>Nenhum sinal crítico nos indicadores.</p>'}</div><div class="caixa bom"><h4>✓ Pontos bons (automático)</h4>${i.a.bom.length ? `<ul>${li(i.a.bom)}</ul>` : '<p>Nenhum ponto bom destacado nos indicadores.</p>'}</div></div>`;
+    const cab = `<p class="note" style="margin:0 0 10px">Indicadores de hoje calculados automaticamente com dados da CVM (informe de ${mlab(i.a.vp_ref)}) e da B3. São sinais objetivos para investigar, não uma análise do fundo.</p>`;
+    const nm = notaManual(i.t);
+    html += i.m ? `<details style="margin-top:14px" open><summary>Indicadores automáticos de hoje</summary><div class="det" style="margin-top:10px">${cab}${caixas}${blocoAuto(i.a)}</div></details>` : `<div class="det">${cab}${nm}${caixas}${blocoAuto(i.a)}</div>`;
+  }
+  $('dlgB').innerHTML = html;
   $('dlgFii').hidden = false; $('dlgFii').querySelector('.modal').scrollTop = 0;
   document.body.style.overflow = 'hidden';
 }
@@ -209,63 +262,80 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dlgFii
 document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) abrirFundo(b.dataset.open); });
 
 // ---------- abas ----------
-const ABAS = [['busca', '🔎 Buscar fundo'], ['carteira', '📄 Carteira do cliente'], ['temas', '🧩 Temas da edição'], ['agenda', '📅 Agenda'], ['sobre', 'ℹ️ Sobre a edição']];
+let ABAS = [];
 function mostrar(id) {
-  ABAS.forEach(([a]) => { $('p-' + a).classList.toggle('on', a === id); });
+  if (!ABAS.some(a => a[0] === id)) id = 'busca';
+  ['busca', 'carteira', 'temas', 'agenda', 'sobre'].forEach(a => $('p-' + a).classList.toggle('on', a === id));
   $('abas').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.a === id));
   history.replaceState(null, '', '#' + id);
 }
-$('abas').innerHTML = ABAS.map(([a, l]) => `<button type="button" data-a="${a}">${l}</button>`).join('');
 $('abas').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) mostrar(b.dataset.a); });
 
 // ---------- 1. busca ----------
 const escolhidos = [];
+function todosTickers() { return [...new Set([...Object.keys(AUTO), ...Object.keys(byT)])]; }
 function montarBusca() {
-  const uniq = k => [...new Set(F.map(f => f[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
-  const sel = (id, label, opts) => `<label class="f">${label}<select id="${id}"><option value="">Todos</option>${opts.map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}</select></label>`;
-  const nE = F.filter(f => f.nivel === 'elevada').length, nM = F.filter(f => f.nivel === 'moderada').length;
-  const nAn = okn((DATA.universo || {}).analisados) ? DATA.universo.analisados : UT.size;
+  const T = todosTickers(), I = T.map(info);
+  const segs = [...new Set(I.map(i => i.seg).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const cont = k => I.filter(i => i.nivel === k).length;
   $('p-busca').innerHTML = `
     <div class="kpis" style="margin-bottom:14px">
-      <div class="kpi"><div class="l">Fundos analisados</div><div class="v">${n0(nAn)}</div></div>
-      <div class="kpi"><div class="l">Atenção elevada</div><div class="v neg">${nE}</div></div>
-      <div class="kpi"><div class="l">Atenção moderada</div><div class="v" style="color:var(--warn)">${nM}</div></div>
-      <div class="kpi"><div class="l">Sem ponto de atenção</div><div class="v pos">${n0(Math.max(0, nAn - F.length - PEND.size))}</div></div>
+      <div class="kpi"><div class="l">FIIs acompanhados</div><div class="v">${n0(T.length)}</div></div>
+      <div class="kpi"><div class="l">Atenção elevada</div><div class="v neg">${cont('elevada')}</div></div>
+      <div class="kpi"><div class="l">Atenção moderada</div><div class="v" style="color:var(--warn)">${cont('moderada')}</div></div>
+      <div class="kpi"><div class="l">Sem alerta</div><div class="v pos">${cont('ok')}</div></div>
     </div>
     <div class="card">
       <div class="busca-f"><input id="q" type="search" autocomplete="off" placeholder="Digite o ticker ou o nome do FII (ex.: HGLG11) e tecle Enter. Dá para colar vários."><div class="sug" id="sug"></div></div>
       <div class="chips" id="chips"></div>
-      <div class="filtros">${sel('fNivel', 'Nível de atenção', Object.entries(LVL))}${sel('fSetor', 'Setor', uniq('setor').map(v => [v, v]))}${sel('fTipo', 'Tipo', uniq('tipo').map(v => [v, v]))}${sel('fGest', 'Gestora', uniq('gestora').map(v => [v, v]))}</div>
+      <div class="filtros">
+        <label class="f">Nível<select id="fNivel"><option value="">Com alerta (elevada e moderada)</option><option value="elevada">Atenção elevada</option><option value="moderada">Atenção moderada</option><option value="ok">Sem alerta</option><option value="todos">Todos</option></select></label>
+        <label class="f">Segmento<select id="fSeg"><option value="">Todos</option>${segs.map(s => `<option>${esc(s)}</option>`).join('')}</select></label>
+        <label class="f">Origem<select id="fOrig"><option value="">Todas</option><option value="man">Só os do manual</option><option value="auto">Só automáticos</option></select></label>
+        <label class="f">Ordenar por<select id="fOrd"><option value="nivel">Nível de atenção</option><option value="vol">Liquidez</option><option value="dy">DY 12m</option><option value="pvp">P/VP (menor)</option><option value="t">Ticker</option></select></label>
+      </div>
     </div>
-    ${arr(DATA.resumo).length ? `<details class="card"><summary>Resumo da edição</summary><div style="margin-top:10px;display:grid;gap:8px">${arr(DATA.resumo).map(([t, x]) => `<p style="margin:0"><b>${esc(t)}:</b> ${esc(x)}</p>`).join('')}</div></details>` : ''}
     <p class="note" id="cont"></p>
     <div id="res"></div>`;
   const q = $('q'), sg = $('sug');
-  const v = id => ($(id) || {}).value || '';
-  const passa = f => (!v('fNivel') || f.nivel === v('fNivel')) && (!v('fSetor') || f.setor === v('fSetor')) && (!v('fTipo') || f.tipo === v('fTipo')) && (!v('fGest') || f.gestora === v('fGest'));
+  const v = id => $(id).value;
+  const passa = i => {
+    const n = v('fNivel');
+    if (n === '' && i.nivel === 'ok') return false;
+    if (n && n !== 'todos' && i.nivel !== n) return false;
+    if (v('fSeg') && i.seg !== v('fSeg')) return false;
+    if (v('fOrig') === 'man' && !i.m) return false;
+    if (v('fOrig') === 'auto' && i.m) return false;
+    return true;
+  };
+  const ordem = (x, y) => {
+    const o = v('fOrd'), g = (i, k) => i.a && okn(i.a[k]) ? i.a[k] : null;
+    if (o === 'vol') return (g(y, 'vol') || 0) - (g(x, 'vol') || 0);
+    if (o === 'dy') return (g(y, 'dy12') || 0) - (g(x, 'dy12') || 0);
+    if (o === 'pvp') return (g(x, 'pvp') ?? 9) - (g(y, 'pvp') ?? 9);
+    if (o === 't') return x.t.localeCompare(y.t);
+    return (NORD[x.nivel] ?? 9) - (NORD[y.nivel] ?? 9) || (!!y.m - !!x.m) || ((y.a ? y.a.crit.length : 0) - (x.a ? x.a.crit.length : 0)) || ((g(y, 'vol') || 0) - (g(x, 'vol') || 0));
+  };
+  let limite = 60;
   function desenhar() {
     $('chips').innerHTML = escolhidos.map(t => `<span class="chip">${esc(t)}<button type="button" data-rm="${esc(t)}" aria-label="Remover">×</button></span>`).join('') + (escolhidos.length ? `<button class="sm ghost" id="chipsX" type="button">Limpar seleção</button>` : '');
     if (escolhidos.length) {
-      const it = escolhidos.flatMap(t => statusOf(t).k === 'card' && !passa(byT[t]) ? [] : itensDe(t));
-      $('res').innerHTML = `<div class="fgrid">${it.join('')}</div>`;
+      $('res').innerHTML = `<div class="fgrid">${escolhidos.map(cartao).join('')}</div>`;
       $('cont').textContent = `${escolhidos.length} fundo(s) selecionado(s).`;
-    } else {
-      const L = F.filter(passa);
-      $('res').innerHTML = L.length ? `<div class="fgrid">${L.map(compacto).join('')}</div>` : '<div class="nota cinza">Nenhum fundo com esses filtros.</div>';
-      $('cont').textContent = `Mostrando ${L.length} de ${F.length} fundos em atenção. Busque um ticker para ver qualquer fundo analisado, inclusive os que estão sem ponto de atenção.`;
+      return;
     }
+    const L = I.filter(passa).sort(ordem);
+    $('res').innerHTML = L.length ? `<div class="fgrid">${L.slice(0, limite).map(i => cartao(i.t)).join('')}</div>${L.length > limite ? `<div style="text-align:center;margin-top:14px"><button class="secondary" id="mais">Mostrar mais (${L.length - limite})</button></div>` : ''}` : '<div class="nota cinza">Nenhum fundo com esses filtros.</div>';
+    $('cont').textContent = `${L.length} fundo(s) com esses filtros. Busque um ticker para ver qualquer FII.`;
   }
   function add(t) { t = String(t || '').trim().toUpperCase(); if (!t) return; if (!escolhidos.includes(t)) escolhidos.push(t); q.value = ''; sg.classList.remove('on'); desenhar(); }
   let hi = -1;
   function sugerir() {
     const s = q.value.trim().toUpperCase(); hi = -1;
     if (!s) { sg.classList.remove('on'); return; }
-    const sem = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
-    const a = F.filter(f => f.ticker.includes(s) || sem(f.nome).includes(sem(s)) || sem(f.gestora).includes(sem(s))).slice(0, 8).map(f => ({ t: f.ticker, d: f.nome, l: LVL[f.nivel] }));
-    const vistos = new Set(a.map(x => x.t));
-    const b = [...UT, ...Object.keys(FORA)].filter(t => t.startsWith(s) && !vistos.has(t)).slice(0, 6).map(t => ({ t, d: '', l: FORA[t] ? 'fora do escopo' : 'sem ponto de atenção' }));
-    const o = [...a, ...b];
-    sg.innerHTML = o.length ? o.map(x => `<button type="button" data-add="${esc(x.t)}"><span><b>${esc(x.t)}</b> <span class="sn">${esc(x.d || '')}</span></span><span class="sn">${esc(x.l || '')}</span></button>`).join('')
+    const ss = semAc(s);
+    const o = I.filter(i => i.t.includes(s) || semAc(i.nome).includes(ss)).sort((x, y) => (y.t.startsWith(s) - x.t.startsWith(s)) || x.t.localeCompare(y.t)).slice(0, 10);
+    sg.innerHTML = o.length ? o.map(i => `<button type="button" data-add="${esc(i.t)}"><span><b>${esc(i.t)}</b> <span class="sn">${esc(i.nome)}</span></span><span class="sn">${esc(NIVEL[i.nivel] || '')}</span></button>`).join('')
       : `<button type="button" data-add="${esc(s)}"><span><b>${esc(s)}</b></span><span class="sn">buscar mesmo assim</span></button>`;
     sg.classList.add('on');
   }
@@ -276,26 +346,30 @@ function montarBusca() {
     else if (e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, hi - 1); bs.forEach((b, i) => b.classList.toggle('hi', i === hi)); }
     else if (e.key === 'Enter') {
       e.preventDefault();
-      const toks = (q.value.toUpperCase().match(/\b[A-Z]{4}\d{2}\b/g) || []);
+      const toks = q.value.toUpperCase().match(/\b[A-Z]{4}\d{2}\b/g) || [];
       if (hi >= 0 && bs[hi]) add(bs[hi].dataset.add); else if (toks.length) toks.forEach(add); else if (bs[0]) add(bs[0].dataset.add);
     } else if (e.key === 'Escape') sg.classList.remove('on');
   });
   q.addEventListener('paste', () => setTimeout(() => { const toks = q.value.toUpperCase().match(/\b[A-Z]{4}\d{2}\b/g) || []; if (toks.length > 1) toks.forEach(add); }, 0));
   sg.addEventListener('mousedown', e => { const b = e.target.closest('[data-add]'); if (b) { e.preventDefault(); add(b.dataset.add); } });
   q.addEventListener('blur', () => setTimeout(() => sg.classList.remove('on'), 150));
-  $('p-busca').addEventListener('click', e => { const r = e.target.closest('[data-rm]'); if (r) { escolhidos.splice(escolhidos.indexOf(r.dataset.rm), 1); desenhar(); } if (e.target.id === 'chipsX') { escolhidos.length = 0; desenhar(); } });
-  $('p-busca').querySelectorAll('select').forEach(s => s.addEventListener('change', desenhar));
+  $('p-busca').addEventListener('click', e => {
+    const r = e.target.closest('[data-rm]'); if (r) { escolhidos.splice(escolhidos.indexOf(r.dataset.rm), 1); desenhar(); }
+    if (e.target.id === 'chipsX') { escolhidos.length = 0; desenhar(); }
+    if (e.target.id === 'mais') { limite += 60; desenhar(); }
+  });
+  $('p-busca').querySelectorAll('select').forEach(s => s.addEventListener('change', () => { limite = 60; desenhar(); }));
   desenhar();
 }
 
 // ---------- 2. carteira do cliente ----------
-let CART = null;   // { cliente, conta, dataRef, patrimonio, pos: [{ticker, nome, saldo, pct, rentMes, rentAno}], naoListados: [...] }
+let CART = null;   // { cliente, conta, patrimonio, pos: [{ticker, nome, saldo, pct, rentMes, rentAno}], naoListados: [...] }
 function montarCarteira() {
   $('p-carteira').innerHTML = `
-    <div class="passos" style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
       <div class="card" style="margin:0">
         <h2 style="margin-top:0">📄 XPerformance do cliente</h2>
-        <p class="note" style="margin-top:0">O site encontra os FIIs e Fiagros da carteira, com saldo e rentabilidade, e cruza com o manual.</p>
+        <p class="note" style="margin-top:0">O site encontra os FIIs da carteira, com saldo e rentabilidade, e mostra os pontos críticos e bons de cada um.</p>
         <div class="drop" id="dropXp"><div class="big">📄</div><div><b>Anexar XPerformance (PDF)</b></div><input type="file" id="fileXp" accept="application/pdf,.pdf" hidden></div>
         <div id="infoXp" style="margin-top:10px"></div>
       </div>
@@ -313,8 +387,8 @@ function montarCarteira() {
   $('dropXp').addEventListener('drop', e => lerXp(e.dataTransfer.files[0]));
   $('cartTk').addEventListener('input', () => {
     const T = [...new Set($('cartTk').value.toUpperCase().match(/\b[A-Z]{4}\d{2}\b/g) || [])];
-    CART = T.length ? { pos: T.map(t => ({ ticker: t })), naoListados: [] } : null;
-    $('infoXp').innerHTML = '';
+    const antigo = CART && CART.cliente ? CART : null;
+    CART = T.length ? { cliente: antigo ? antigo.cliente : '', patrimonio: antigo ? antigo.patrimonio : null, naoListados: antigo ? antigo.naoListados : [], pos: T.map(t => (antigo && antigo.pos.find(p => p.ticker === t)) || { ticker: t }) } : null;
     desenharCarteira();
   });
   desenharCarteira();
@@ -331,104 +405,96 @@ async function lerXp(file) {
       const fiiNome = /\bFII\b|FIAGRO|IMOBILI/i.test(a.nome);
       if (m && (conhecido(m[1]) || a.classe === 'fl' || fiiNome)) {
         const t = m[1], ex = pos.find(p => p.ticker === t);
-        if (ex) { ex.saldo += a.saldo || 0; ex.pct += a.pct || 0; } else pos.push({ ticker: t, nome: a.nome, saldo: a.saldo || 0, pct: a.pct || 0, rentMes: a.rentMes, rentAno: a.rentAno, qtd: a.qtd });
-      } else if (fiiNome) naoListados.push({ nome: a.nome, saldo: a.saldo || 0, pct: a.pct || 0 });
+        if (ex) { ex.saldo += a.saldo || 0; ex.pct += a.pct || 0; } else pos.push({ ticker: t, nome: a.nome, saldo: a.saldo || 0, pct: a.pct || 0, rentMes: a.rentMes, rentAno: a.rentAno });
+      } else if (fiiNome) naoListados.push({ nome: a.nome, saldo: a.saldo || 0 });
     });
-    CART = { cliente: r.cliente || '', conta: r.conta || '', dataRef: r.dataRef || '', patrimonio: r.patrimonio, pos, naoListados };
+    CART = { cliente: r.cliente || '', patrimonio: r.patrimonio, pos, naoListados };
     $('cartTk').value = pos.map(p => p.ticker).join(', ');
-    $('infoXp').innerHTML = `<span class="pill good">✓ ${esc(r.cliente || file.name)}</span> <span class="note">conta ${esc(r.conta || '—')} · ${pos.length} FII(s) listado(s)${naoListados.length ? ` · ${naoListados.length} não listado(s)` : ''}</span>`;
+    $('infoXp').innerHTML = `<span class="pill good">✓ ${esc(r.cliente || file.name)}</span> <span class="note">conta ${esc(r.conta || '—')} · ${pos.length} FII(s) listado(s)${naoListados.length ? ` · ${naoListados.length} fundo(s) não listado(s)` : ''}</span>`;
   } catch (e) { $('infoXp').innerHTML = `<p class="note bad">❌ Não consegui ler o PDF: ${esc(e.message)}</p>`; CART = null; }
   desenharCarteira();
 }
 function classificar() {
-  const att = [], sem = [], pend = [], outros = [];
-  CART.pos.forEach(p => {
-    let st = statusOf(p.ticker), t = p.ticker;
-    if (st.k === 'recibo') { t = st.base; st = statusOf(t); }
-    p.st = st.k === 'card' ? byT[t].nivel : st.k; p.base = t;
-    if (st.k === 'card') att.push(p); else if (st.k === 'ok') sem.push(p); else if (st.k === 'pend') pend.push(p); else outros.push(p);
-  });
-  att.sort((a, b) => (LVLORD[a.st] ?? 9) - (LVLORD[b.st] ?? 9) || (b.saldo || 0) - (a.saldo || 0));
-  return { att, sem, pend, outros };
+  const att = [], sem = [], outros = [];
+  CART.pos.forEach(p => { const i = info(p.ticker); p.i = i; if (!i.a && !i.m) outros.push(p); else if (i.nivel === 'ok') sem.push(p); else att.push(p); });
+  att.sort((x, y) => (NORD[x.i.nivel] ?? 9) - (NORD[y.i.nivel] ?? 9) || (y.saldo || 0) - (x.saldo || 0));
+  return { att, sem, outros };
 }
-const ST_TXT = { elevada: ['Atenção elevada', 'elevada'], moderada: ['Atenção moderada', 'moderada'], ok: ['Sem ponto de atenção', 'ok'], pend: ['Em análise', 'cinza'], fora: ['Fora do escopo', 'cinza'], nloc: ['Não localizado', 'cinza'], desconhecido: ['Não analisado', 'cinza'] };
 function desenharCarteira() {
   const out = $('cartOut'); if (!out) return;
   if (!CART || (!CART.pos.length && !CART.naoListados.length)) { out.innerHTML = '<div class="nota cinza">Os FIIs do cliente aparecem aqui assim que você anexar o XPerformance ou digitar os tickers.</div>'; return; }
-  const { att, sem, pend, outros } = classificar();
+  const { att, sem, outros } = classificar();
   const temSaldo = CART.pos.some(p => okn(p.saldo) && p.saldo > 0);
-  const totFii = CART.pos.reduce((s, p) => s + (p.saldo || 0), 0);
-  const soma = L => L.reduce((s, p) => s + (p.saldo || 0), 0);
-  const kv = (L) => temSaldo ? `<div class="s">${brl(soma(L))}${totFii ? ` · ${pct(soma(L) / totFii * 100, 1)} dos FIIs` : ''}</div>` : '';
-  const nE = att.filter(p => p.st === 'elevada'), nM = att.filter(p => p.st === 'moderada');
-  const tabela = temSaldo ? `<div class="card"><h3 style="margin-top:0">FIIs na carteira${CART.cliente ? ` de ${esc(CART.cliente)}` : ''}</h3><div class="table-wrap"><table class="tbl-fii"><thead><tr><th>Fundo</th><th class="n">Saldo</th><th class="n">% carteira</th><th class="n">Rent. mês</th><th class="n">Rent. ano</th><th>Situação no manual</th></tr></thead><tbody>
-      ${[...CART.pos].sort((a, b) => (b.saldo || 0) - (a.saldo || 0)).map(p => { const [txt, c] = ST_TXT[p.st] || ST_TXT.desconhecido; const f = byT[p.base];
-        return `<tr><td><b>${esc(p.ticker)}</b>${f ? `<div class="note" style="margin:0">${esc(f.nome)}</div>` : ''}</td><td class="n">${brl(p.saldo)}</td><td class="n">${pct(p.pct, 2)}</td><td class="n ${okn(p.rentMes) ? (p.rentMes < 0 ? 'neg' : 'pos') : ''}">${okn(p.rentMes) ? pct(p.rentMes) : '—'}</td><td class="n ${okn(p.rentAno) ? (p.rentAno < 0 ? 'neg' : 'pos') : ''}">${okn(p.rentAno) ? pct(p.rentAno) : '—'}</td><td>${f ? `<button class="linkchip ${c}" data-open="${esc(p.base)}">${txt} ›</button>` : `<span class="lv ${c}">${txt}</span>`}</td></tr>`; }).join('')}
-      </tbody></table></div></div>` : '';
+  const tot = CART.pos.reduce((s, p) => s + (p.saldo || 0), 0), soma = L => L.reduce((s, p) => s + (p.saldo || 0), 0);
+  const kv = L => temSaldo ? `<div class="s">${brl(soma(L))}${tot ? ` · ${pct(soma(L) / tot * 100, 1)} dos FIIs` : ''}</div>` : '';
+  const nE = att.filter(p => p.i.nivel === 'elevada'), nM = att.filter(p => p.i.nivel === 'moderada');
+  const linhaT = p => {
+    const i = p.i, a = i.a;
+    const sit = i.a || i.m ? `<button class="linkchip ${esc(i.nivel)}" data-open="${esc(i.t)}">${NIVEL[i.nivel]} ›</button>` : '<span class="lv cinza">Sem dados</span>';
+    return `<tr><td><b>${esc(p.ticker)}</b>${i.nome ? `<div class="note" style="margin:0">${esc(i.nome)}</div>` : ''}</td>${temSaldo ? `<td class="n">${brl(p.saldo)}</td><td class="n">${okn(p.pct) ? pct(p.pct, 2) : '—'}</td><td class="n ${okn(p.rentAno) ? (p.rentAno < 0 ? 'neg' : 'pos') : ''}">${okn(p.rentAno) ? pct(p.rentAno) : '—'}</td>` : ''}<td class="n">${a ? n2(a.pvp) : '—'}</td><td class="n">${a ? fp(a.dy12) : '—'}</td><td>${sit}</td></tr>`;
+  };
   out.innerHTML = `
     <div class="kpis" style="margin-bottom:14px">
-      <div class="kpi"><div class="l">FIIs na carteira</div><div class="v">${CART.pos.length}</div>${temSaldo ? `<div class="s">${brl(totFii)}${okn(CART.patrimonio) && CART.patrimonio ? ` · ${pct(totFii / CART.patrimonio * 100, 1)} do patrimônio` : ''}</div>` : ''}</div>
+      <div class="kpi"><div class="l">FIIs na carteira</div><div class="v">${CART.pos.length}</div>${temSaldo ? `<div class="s">${brl(tot)}${okn(CART.patrimonio) && CART.patrimonio ? ` · ${pct(tot / CART.patrimonio * 100, 1)} do patrimônio` : ''}</div>` : ''}</div>
       <div class="kpi"><div class="l">Atenção elevada</div><div class="v neg">${nE.length}</div>${kv(nE)}</div>
       <div class="kpi"><div class="l">Atenção moderada</div><div class="v" style="color:var(--warn)">${nM.length}</div>${kv(nM)}</div>
-      <div class="kpi"><div class="l">Sem ponto de atenção</div><div class="v pos">${sem.length}</div>${kv(sem)}</div>
+      <div class="kpi"><div class="l">Sem alerta</div><div class="v pos">${sem.length}</div>${kv(sem)}</div>
     </div>
     <div class="row" style="margin-bottom:14px"><button id="cartEmail">✉️ E-mail ao cliente</button><button class="secondary" id="cartCopia">Copiar resumo</button></div>
-    ${tabela}
-    ${att.length ? `<h3>Precisam de atenção</h3><div class="fgrid">${[...new Set(att.map(p => p.base))].map(t => compacto(byT[t])).join('')}</div>` : '<div class="nota ok">Nenhum FII da carteira está em atenção nesta edição do manual.</div>'}
-    ${sem.length ? `<h3 style="margin-top:18px">Sem ponto de atenção relevante</h3><div class="fgrid">${sem.map(p => nota(p.base, statusOf(p.base))).join('')}</div>` : ''}
-    ${pend.length || outros.length ? `<h3 style="margin-top:18px">Em análise, fora do escopo ou não analisados</h3><div class="fgrid">${[...pend, ...outros].map(p => nota(p.ticker, statusOf(p.ticker))).join('')}</div>` : ''}
-    ${CART.naoListados.length ? `<div class="nota cinza" style="margin-top:14px"><b>FIIs e Fiagros não listados na bolsa</b> (não fazem parte do manual): ${CART.naoListados.map(n => `${esc(n.nome)} (${brl(n.saldo)})`).join('; ')}.</div>` : ''}`;
+    <div class="card"><h3 style="margin-top:0">FIIs na carteira${CART.cliente ? ` de ${esc(CART.cliente)}` : ''}</h3><div class="table-wrap"><table class="tbl-fii"><thead><tr><th>Fundo</th>${temSaldo ? '<th class="n">Saldo</th><th class="n">% carteira</th><th class="n">Rent. ano</th>' : ''}<th class="n">P/VP</th><th class="n">DY 12m</th><th>Situação</th></tr></thead><tbody>
+      ${[...att, ...sem, ...outros].map(linhaT).join('')}</tbody></table></div></div>
+    ${att.length ? `<h3>Precisam de atenção</h3><div class="fgrid">${[...new Set(att.map(p => p.i.t))].map(cartao).join('')}</div>` : '<div class="nota ok">Nenhum FII da carteira tem alerta neste momento.</div>'}
+    ${sem.length ? `<h3 style="margin-top:18px">Sem alerta</h3><div class="fgrid">${[...new Set(sem.map(p => p.i.t))].map(cartao).join('')}</div>` : ''}
+    ${outros.length ? `<h3 style="margin-top:18px">Sem dados</h3><div class="fgrid">${outros.map(p => nota(p.ticker)).join('')}</div>` : ''}
+    ${CART.naoListados.length ? `<div class="nota cinza" style="margin-top:14px"><b>Fundos não listados na bolsa</b> (sem cotação nem dados diários): ${CART.naoListados.map(n => `${esc(n.nome)} (${brl(n.saldo)})`).join('; ')}.</div>` : ''}`;
   $('cartCopia').onclick = () => copyText(textoResumo());
   $('cartEmail').onclick = emailCliente;
 }
+const explicacao = i => i.m ? i.m.explicar : i.a ? 'Pontos que estou acompanhando: ' + i.a.forte.map(s => s.replace(/\.$/, '')).join('; ') + '.' : '';
+const vaiNoEmail = i => !!(i.m || (i.a && i.a.forte.length && !DESC[i.t]));
 function textoResumo() {
-  const { att, sem, pend, outros } = classificar();
-  const L = [`FIIs da carteira${CART.cliente ? ` de ${CART.cliente}` : ''} no Manual de FIIs em atenção (edição ${ED})`, ''];
-  ['elevada', 'moderada'].forEach(n => { const x = att.filter(p => p.st === n); if (x.length) { L.push(LVL[n] + ':'); [...new Set(x.map(p => p.base))].forEach(t => L.push(`- ${t} (${byT[t].nome}): ${byT[t].resumo}`)); L.push(''); } });
-  if (sem.length) { L.push('Sem ponto de atenção relevante: ' + sem.map(p => p.ticker).join(', ')); L.push(''); }
-  if (pend.length) { L.push('Em análise: ' + pend.map(p => p.ticker).join(', ')); L.push(''); }
-  if (outros.length) { L.push('Fora do escopo ou não analisados: ' + outros.map(p => p.ticker).join(', ')); L.push(''); }
+  const { att, sem, outros } = classificar();
+  const L = [`FIIs da carteira${CART.cliente ? ` de ${CART.cliente}` : ''} · ${new Date().toLocaleDateString('pt-BR')}`, ''];
+  ['elevada', 'moderada'].forEach(n => {
+    const x = [...new Set(att.filter(p => p.i.nivel === n).map(p => p.i.t))];
+    if (x.length) { L.push(NIVEL[n] + ':'); x.forEach(t => { const i = info(t); L.push(`- ${t} (${i.nome}): ${i.m ? i.m.resumo : i.a.crit.join(' ')}`); }); L.push(''); }
+  });
+  if (sem.length) { L.push('Sem alerta: ' + sem.map(p => p.ticker).join(', ')); L.push(''); }
+  if (outros.length) { L.push('Sem dados: ' + outros.map(p => p.ticker).join(', ')); L.push(''); }
   L.push('Material informativo de apoio ao assessor. Não constitui recomendação de investimento.');
   return L.join('\n');
 }
 function emailCliente() {
   const { att, sem } = classificar(), h = Email.h;
-  const fundos = [...new Set(att.map(p => p.base))].map(t => byT[t]);
+  const fundos = [...new Set(att.map(p => p.i.t))].map(info).filter(vaiNoEmail);
+  const outrosOk = [...sem, ...att.filter(p => !vaiNoEmail(p.i))];
   const nome = (CART.cliente || '').split(/\s+/)[0] || '';
+  const abre = fundos.length ? 'Revisei os fundos imobiliários da sua carteira e quero te atualizar sobre alguns deles:' : 'Revisei os fundos imobiliários da sua carteira e, neste momento, nenhum deles apresenta ponto de atenção relevante.';
+  const demais = outrosOk.length && fundos.length ? `Os demais fundos (${outrosOk.map(p => p.ticker).join(', ')}) seguem sem ponto de atenção relevante.` : '';
   Email.abrir({
     assunto: 'Seus fundos imobiliários: pontos de atenção', nome,
-    texto: (n, ass) => [Email.saudacaoTexto(n), '',
-      fundos.length ? 'Revisei os fundos imobiliários da sua carteira e quero te atualizar sobre alguns deles:' : 'Revisei os fundos imobiliários da sua carteira e, neste momento, nenhum deles apresenta ponto de atenção relevante.', '',
-      ...fundos.flatMap(f => [`${f.ticker} (${f.nome})`, f.explicar, '']),
-      sem.length && fundos.length ? `Os demais fundos (${sem.map(p => p.ticker).join(', ')}) seguem sem ponto de atenção relevante.` : '', '',
-      'Fico à disposição para conversarmos sobre a sua carteira.', '', 'Abraço,', ass].join('\n'),
-    html: (n, ass) => h.wrap(
-      h.p(h.saudacao(n)) +
-      h.p(fundos.length ? 'Revisei os fundos imobiliários da sua carteira e quero te atualizar sobre alguns deles:' : 'Revisei os fundos imobiliários da sua carteira e, neste momento, nenhum deles apresenta ponto de atenção relevante.') +
-      fundos.map(f => h.titulo(`${esc(f.ticker)} · ${esc(f.nome)}`) + h.p(esc(f.explicar))).join('') +
-      (sem.length && fundos.length ? h.p(`Os demais fundos (${sem.map(p => esc(p.ticker)).join(', ')}) seguem sem ponto de atenção relevante.`) : '') +
+    texto: (n, ass) => [Email.saudacaoTexto(n), '', abre, '', ...fundos.flatMap(i => [`${i.t} (${i.nome})`, explicacao(i), '']), demais, demais ? '' : null, 'Fico à disposição para conversarmos sobre a sua carteira.', '', 'Abraço,', ass].filter(x => x !== null).join('\n'),
+    html: (n, ass) => h.wrap(h.p(h.saudacao(n)) + h.p(abre) + fundos.map(i => h.titulo(`${esc(i.t)} · ${esc(i.nome)}`) + h.p(esc(explicacao(i)))).join('') + (demais ? h.p(esc(demais)) : '') +
       h.p('Fico à disposição para conversarmos sobre a sua carteira.') + h.p('Abraço,') + h.assinatura(ass) +
       h.rodape('Material informativo. Não constitui recomendação de investimento. Rentabilidade passada não é garantia de rentabilidade futura.')),
   });
 }
 
-// ---------- 3. temas ----------
+// ---------- 3–5. abas do manual ----------
 function montarTemas() {
-  const T = arr(DATA.temas);
-  $('p-temas').innerHTML = `<p class="lead">O que explicou o resultado de vários fundos ao mesmo tempo. Toque no ticker para abrir a análise.</p>
+  const T = arr(MAN.data.temas);
+  $('p-temas').innerHTML = `<p class="lead">Do Manual de FIIs (edição ${esc(ED)}): o que explicou o resultado de vários fundos ao mesmo tempo.</p>
     ${T.length ? `<div class="temas">${T.map((t, i) => `<div class="card" style="margin:0"><h3 style="margin-top:0">${i + 1}. ${esc(t.titulo)}</h3><p style="margin:0 0 8px">${esc(t.descricao)}</p>
       <p class="note" style="margin:0 0 8px"><b>Natureza:</b> ${esc(t.natureza)} · <b>Continua presente?</b> ${esc(t.presente)}</p>
       <div>${arr(t.fundos).map(x => { const f = byT[String(x).toUpperCase()]; return f ? `<button class="linkchip ${esc(f.nivel)}" data-open="${esc(f.ticker)}">${esc(f.ticker)}</button>` : `<span class="linkchip">${esc(x)}</span>`; }).join('')}</div></div>`).join('')}</div>`
     : '<div class="nota cinza">Esta edição não tem temas preenchidos.</div>'}`;
 }
-
-// ---------- 4. agenda ----------
 function montarAgenda() {
   const ev = [];
-  F.forEach(f => f.eventos.forEach(e => ev.push(Object.assign({ t: f.ticker, nivel: f.nivel }, e))));
+  FM.forEach(f => f.eventos.forEach(e => ev.push(Object.assign({ t: f.ticker, nivel: f.nivel }, e))));
   ev.sort((a, b) => String(a.ordem || '9999').localeCompare(String(b.ordem || '9999')));
   const hoje = todayISO();
-  $('p-agenda').innerHTML = `<p class="lead">Eventos dos fundos em atenção que podem mudar a análise, em ordem de data.</p>
+  $('p-agenda').innerHTML = `<p class="lead">Do Manual de FIIs: eventos dos fundos em atenção que podem mudar a análise.</p>
     <label class="check" style="margin-bottom:10px"><input type="checkbox" id="agFut" checked> Mostrar só a partir de hoje</label>
     <div class="table-wrap fixo"><table><thead><tr><th>Quando</th><th>Fundo</th><th>Evento</th><th>Sinal de melhora</th><th>Sinal de piora</th></tr></thead><tbody id="agBody"></tbody></table></div>`;
   const desenhar = () => {
@@ -438,41 +504,57 @@ function montarAgenda() {
   };
   $('agFut').onchange = desenhar; desenhar();
 }
-
-// ---------- 5. sobre ----------
-function montarSobre(pacote) {
-  const U = DATA.universo || {}, fora = arr(U.fora_escopo), desc = arr(U.descartados);
-  const refs = [['ifix', 'IFIX (retorno total)'], ['cdi', 'CDI'], ['poupanca', 'Poupança']];
-  $('p-sobre').innerHTML = `
-    <div class="card"><h3 style="margin-top:0">Edição ${esc(ED)}</h3>
-      <p class="note" style="margin-top:0">Arquivo: ${esc(pacote.arquivo || '—')} · importado em ${new Date(pacote.importado).toLocaleString('pt-BR')} · dados consultados até ${esc(DATA.data_consulta || ED)}. Fica salvo só neste navegador.</p>
-      ${arr(DATA.resumo).map(([t, x]) => `<p style="margin:0 0 8px"><b>${esc(t)}:</b> ${esc(x)}</p>`).join('')}
-      <button class="sm ghost" id="btnRemover" style="margin-top:6px">Remover o manual deste navegador</button></div>
-    <div class="card"><h3 style="margin-top:0">Referenciais</h3><div class="table-wrap"><table><thead><tr><th>Referencial</th><th class="n">No ano</th><th class="n">12 meses</th><th>Fonte</th></tr></thead><tbody>
-      ${refs.map(([k, nm]) => { const r = R(k); return `<tr><td>${nm}</td><td class="n">${fs(r.ano)}</td><td class="n">${fs(r.doze)}</td><td class="note">${esc(r.fonte || '')}</td></tr>`; }).join('')}</tbody></table></div></div>
-    ${desc.length ? `<details class="card"><summary>Sinal verificado e descartado (${desc.length})</summary><div class="table-wrap" style="margin-top:10px"><table><tbody>${desc.map(d => `<tr><td><b>${esc(d.ticker)}</b></td><td>${esc(d.motivo)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
-    ${arr(DATA.limitacoes).length ? `<details class="card"><summary>Limitações</summary><ul style="margin-top:10px">${li(DATA.limitacoes)}</ul></details>` : ''}
-    ${fora.length || arr(U.nao_localizados).length ? `<details class="card"><summary>Fora do escopo e não localizados (${fora.length + arr(U.nao_localizados).length})</summary><p style="margin-top:10px">${fora.map(x => `<b>${esc(x.ticker)}</b> (${esc(x.motivo)})`).join('; ')}${arr(U.nao_localizados).length ? `<br><b>Não localizados:</b> ${esc(arr(U.nao_localizados).join(', '))}` : ''}</p></details>` : ''}
-    ${GL.size ? `<details class="card"><summary>Glossário</summary><dl style="margin-top:10px">${[...GL].map(([k, v]) => `<dt style="font-weight:700;margin-top:8px">${esc(k)}</dt><dd style="margin:2px 0 0">${esc(v)}</dd>`).join('')}</dl></details>` : ''}`;
-  $('btnRemover').onclick = () => { if (!confirm('Remover o manual deste navegador?')) return; try { localStorage.removeItem(CHAVE); } catch (e) {} location.hash = ''; location.reload(); };
+function montarSobre() {
+  const regras = `<div class="card det"><h3 style="margin:0">Como os alertas automáticos são calculados</h3>
+    <p class="note" style="margin-top:0">Indicadores de ${n0(Object.keys(AUTO).length)} FIIs listados, atualizados uma vez por dia${AUTO_META ? ` (última atualização: ${new Date(AUTO_META.gerado).toLocaleString('pt-BR')})` : ''}. Fontes: informe mensal da CVM (valor patrimonial, patrimônio, cotistas) e cotações da B3 via Yahoo Finance (preço, volume e rendimentos).</p>
+    <div class="dois"><div class="caixa crit"><h4>⚠ Pontos críticos</h4><ul>
+      <li>Rendimento 10% ou mais abaixo da média dos 6 meses anteriores.</li><li>Três meses ou mais sem rendimento.</li>
+      <li>Valor patrimonial por cota 5% ou mais menor que 12 meses antes.</li><li>Retorno em 12 meses 15 p.p. ou mais abaixo do IFIX.</li>
+      <li>P/VP abaixo de 0,70.</li><li>Liquidez abaixo de R$ 100 mil por dia (só informativo).</li></ul></div>
+    <div class="caixa bom"><h4>✓ Pontos bons</h4><ul><li>Rendimento estável ou subindo.</li><li>Valor patrimonial por cota estável ou subindo em 12 meses.</li><li>Retorno em 12 meses acima do IFIX.</li><li>Liquidez acima de R$ 3 milhões por dia.</li><li>Mais de 100 mil cotistas.</li></ul></div></div>
+    <p class="note"><b>Sinais fortes:</b> corte ou falta de rendimento e queda do valor patrimonial. <b>Atenção elevada:</b> dois sinais fortes, ou um forte junto com os dois sinais de mercado (retorno muito abaixo do IFIX e P/VP abaixo de 0,70). <b>Moderada:</b> um sinal forte, ou os dois sinais de mercado juntos. O e-mail ao cliente usa só os sinais fortes. São sinais objetivos para investigar, não uma análise do fundo: não explicam o motivo. Rendimentos podem incluir amortizações. Fiagros e fundos não listados não estão na base.${IFIX ? ` IFIX: ${fs(IFIX.r12)} em 12 meses e ${fs(IFIX.ano)} no ano (${esc(IFIX.fonte)}).` : ''}</p></div>`;
+  let man = '';
+  if (MAN) {
+    const D = MAN.data, U = D.universo || {}, fora = arr(U.fora_escopo), desc = arr(U.descartados);
+    const refs = [['ifix', 'IFIX (retorno total)'], ['cdi', 'CDI'], ['poupanca', 'Poupança']];
+    man = `<div class="card"><h3 style="margin-top:0">Manual de FIIs em atenção · edição ${esc(ED)}</h3>
+        <p class="note" style="margin-top:0">Arquivo: ${esc(MAN.arquivo || '—')} · importado em ${new Date(MAN.importado).toLocaleString('pt-BR')} · fica salvo só neste navegador. Quando o fundo está no manual, a análise escrita aparece junto com os indicadores automáticos.</p>
+        ${arr(D.resumo).map(([t, x]) => `<p style="margin:0 0 8px"><b>${esc(t)}:</b> ${esc(x)}</p>`).join('')}
+        <button class="sm ghost" id="btnRemover" style="margin-top:6px">Remover o manual deste navegador</button></div>
+      <div class="card"><h3 style="margin-top:0">Referenciais do manual</h3><div class="table-wrap"><table><thead><tr><th>Referencial</th><th class="n">No ano</th><th class="n">12 meses</th><th>Fonte</th></tr></thead><tbody>
+        ${refs.map(([k, nm]) => { const r = R(k); return `<tr><td>${nm}</td><td class="n">${fs(r.ano)}</td><td class="n">${fs(r.doze)}</td><td class="note">${esc(r.fonte || '')}</td></tr>`; }).join('')}</tbody></table></div></div>
+      ${desc.length ? `<details class="card"><summary>Sinal verificado e descartado no manual (${desc.length})</summary><div class="table-wrap" style="margin-top:10px"><table><tbody>${desc.map(d => `<tr><td><b>${esc(d.ticker)}</b></td><td>${esc(d.motivo)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+      ${arr(D.limitacoes).length ? `<details class="card"><summary>Limitações do manual</summary><ul style="margin-top:10px">${li(D.limitacoes)}</ul></details>` : ''}
+      ${fora.length ? `<details class="card"><summary>Fora do escopo do manual (${fora.length})</summary><p style="margin-top:10px">${fora.map(x => `<b>${esc(x.ticker)}</b> (${esc(x.motivo)})`).join('; ')}</p></details>` : ''}
+      ${GL.size ? `<details class="card"><summary>Glossário</summary><dl style="margin-top:10px">${[...GL].map(([k, v]) => `<dt style="font-weight:700;margin-top:8px">${esc(k)}</dt><dd style="margin:2px 0 0">${esc(v)}</dd>`).join('')}</dl></details>` : ''}`;
+  }
+  $('p-sobre').innerHTML = regras + man;
+  if ($('btnRemover')) $('btnRemover').onclick = () => { if (!confirm('Remover o manual deste navegador?')) return; try { localStorage.removeItem(CHAVE); } catch (e) {} location.hash = ''; location.reload(); };
 }
 
-// ---------- início ----------
-function iniciar(pacote) {
-  preparar(pacote);
+// ---------- montagem ----------
+function montar() {
+  ABAS = [['busca', '🔎 Buscar fundo'], ['carteira', '📄 Carteira do cliente']];
+  if (MAN) ABAS.push(['temas', '🧩 Temas do manual'], ['agenda', '📅 Agenda do manual']);
+  ABAS.push(['sobre', 'ℹ️ Como funciona']);
+  $('abas').innerHTML = ABAS.map(([a, l]) => `<button type="button" data-a="${a}">${l}</button>`).join('');
+  const nAuto = Object.keys(AUTO).length;
+  $('edMeta').innerHTML = (nAuto ? `<span>📊 <b>${n0(nAuto)}</b> FIIs · indicadores de <b>${AUTO_META ? new Date(AUTO_META.gerado).toLocaleDateString('pt-BR') : '—'}</b></span>` : '<span class="bad">Indicadores automáticos indisponíveis no momento.</span>')
+    + (MAN ? `<span>📘 Manual: edição <b>${esc(ED)}</b> (${FM.length} fundos analisados em detalhe)</span>` : '');
+  $('btnNova').textContent = MAN ? '📘 Importar nova edição do manual' : '📘 Importar Manual de FIIs (opcional)';
+  $('rodapeFii').textContent = 'Material informativo de apoio ao assessor. Não constitui recomendação de investimento nem relatório de análise. Os alertas automáticos são sinais objetivos calculados com dados públicos e não explicam o motivo; confira os comunicados do fundo antes de falar com o cliente.';
   escolhidos.length = 0;
-  const nE = F.filter(f => f.nivel === 'elevada').length, nM = F.length - nE;
-  const nAn = okn((DATA.universo || {}).analisados) ? DATA.universo.analisados : UT.size;
-  $('edMeta').innerHTML = `<span>📘 Edição <b>${esc(ED)}</b></span><span><b>${n0(nAn)}</b> fundos analisados</span><span><b>${F.length}</b> em atenção (${nE} elevada · ${nM} moderada)</span>`;
-  $('rodapeFii').textContent = `Material informativo de apoio ao assessor, com dados consultados até ${DATA.data_consulta || ED}. Não constitui recomendação de investimento nem relatório de análise. Eventos posteriores à data da edição não estão considerados.`;
-  montarBusca(); montarCarteira(); montarTemas(); montarAgenda(); montarSobre(pacote);
-  $('semManual').hidden = true; $('comManual').hidden = false;
-  const h = location.hash.slice(1);
-  mostrar(ABAS.some(a => a[0] === h) ? h : 'busca');
+  montarBusca(); montarCarteira();
+  if (MAN) { montarTemas(); montarAgenda(); }
+  montarSobre();
+  mostrar(location.hash.slice(1) || 'busca');
 }
-(function () {
-  let p = null;
-  try { p = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) {}
-  if (p && p.data) { try { iniciar(p); return; } catch (e) { console.error(e); } }
-  $('semManual').hidden = false;
+(async function () {
+  try { const p = JSON.parse(localStorage.getItem(CHAVE) || 'null'); if (p && p.data) prepararManual(p); } catch (e) { console.error(e); }
+  try {
+    const d = await carregarDados('fiis.json');
+    AUTO_META = { gerado: d.gerado }; IFIX = d.ifix || null;
+    Object.entries(d.f || {}).forEach(([t, a]) => { AUTO[t] = calcAuto(t, a); });
+  } catch (e) { console.error(e); }
+  montar();
 })();

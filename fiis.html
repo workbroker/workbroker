@@ -24,6 +24,12 @@
   .fgrid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
   .fcard { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; border-left: 5px solid var(--line); }
   .fcard.elevada { border-left-color: var(--bad); } .fcard.moderada { border-left-color: var(--warn); } .fcard.ok { border-left-color: var(--good); }
+  .fonte { font-size: 11px; font-weight: 700; color: var(--muted); background: #efeef5; border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+  .fonte.man { background: #e8e4fb; color: var(--indigo); }
+  .rbar { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin-top: 6px; }
+  .rbar div { flex: 1; background: var(--orange); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
+  .rbar div.corte { background: var(--bad); }
+  .rlab { display: flex; gap: 4px; font-size: 10.5px; color: var(--muted); } .rlab span { flex: 1; text-align: center; }
   .fcard .topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .tk { font-weight: 800; font-size: 18px; color: var(--indigo); letter-spacing: .2px; }
   .fcard .nm { font-size: 13px; color: var(--muted); }
@@ -94,28 +100,19 @@
 
 <main>
   <h1>FIIs em atenção</h1>
-  <p class="lead">Busque um fundo imobiliário ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada FII, com o que explicar ao cliente. As informações vêm do Manual de FIIs em atenção importado.</p>
+  <p class="lead">Busque qualquer FII listado ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada fundo. Os indicadores de todos os FIIs são atualizados todo dia, de forma automática (CVM e B3).</p>
 
-  <div class="card" id="semManual" hidden>
-    <div class="card-head"><h2><span class="step">1</span>Importar o manual</h2></div>
-    <p class="note" style="margin-top:0">Selecione o arquivo do <b>Manual de FIIs em atenção</b> (.html). Ele fica guardado só neste navegador; quando sair uma edição nova, é só importar de novo.</p>
-    <div class="drop" id="dropMan"><div class="big">📘</div><div><b>Importar manual (.html)</b></div><input type="file" id="fileMan" accept=".html,.htm,text/html" hidden></div>
-    <div id="infoMan" style="margin-top:10px"></div>
+  <div class="card ed-bar">
+    <div class="meta" id="edMeta"><span>⏳ Carregando os indicadores dos FIIs…</span></div>
+    <div class="row"><button class="sm secondary" id="btnNova">📘 Importar Manual de FIIs (opcional)</button><input type="file" id="fileMan" accept=".html,.htm,text/html" hidden></div>
   </div>
-
-  <div id="comManual" hidden>
-    <div class="card ed-bar">
-      <div class="meta" id="edMeta"></div>
-      <div class="row"><button class="sm secondary" id="btnNova">📘 Importar nova edição</button><input type="file" id="fileMan2" accept=".html,.htm,text/html" hidden></div>
-    </div>
-    <div class="abas" role="tablist" id="abas"></div>
-    <section class="painel" id="p-busca"></section>
-    <section class="painel" id="p-carteira"></section>
-    <section class="painel" id="p-temas"></section>
-    <section class="painel" id="p-agenda"></section>
-    <section class="painel" id="p-sobre"></section>
-    <p class="note" id="rodapeFii" style="margin-top:18px"></p>
-  </div>
+  <div class="abas" role="tablist" id="abas"></div>
+  <section class="painel" id="p-busca"></section>
+  <section class="painel" id="p-carteira"></section>
+  <section class="painel" id="p-temas"></section>
+  <section class="painel" id="p-agenda"></section>
+  <section class="painel" id="p-sobre"></section>
+  <p class="note" id="rodapeFii" style="margin-top:18px"></p>
 </main>
 
 <div class="modal-bg no-print" id="dlgFii" hidden>
