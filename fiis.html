@@ -37,6 +37,7 @@
   .pontos { display: grid; gap: 6px; font-size: 13.5px; line-height: 1.4; }
   .pontos .p { display: flex; gap: 8px; padding: 8px 10px; border-radius: 12px; }
   .pontos .p.crit { background: var(--bad-soft); } .pontos .p.bom { background: var(--good-soft); }
+  .pontos a.p.aviso { background: #ecebfb; color: var(--indigo); text-decoration: none; } .pontos a.p.aviso:hover { background: #e0defa; } .pontos a.p.aviso b { color: var(--orange); white-space: nowrap; }
   .pontos .p > span:first-child { font-weight: 800; }
   .pontos .p.crit > span:first-child { color: var(--bad); } .pontos .p.bom > span:first-child { color: var(--good); }
   .mm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -100,7 +101,7 @@
 
 <main>
   <h1>FIIs em atenção</h1>
-  <p class="lead">Busque qualquer FII listado ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada fundo. Os indicadores de todos os FIIs são atualizados todo dia, de forma automática (CVM e B3).</p>
+  <p class="lead">Busque qualquer FII listado ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada fundo. Os indicadores e os comunicados de todos os FIIs são atualizados todo dia, de forma automática (CVM, Fundos.NET e B3).</p>
 
   <div class="card ed-bar">
     <div class="meta" id="edMeta"><span>⏳ Carregando os indicadores dos FIIs…</span></div>

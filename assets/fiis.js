@@ -69,6 +69,14 @@ function calcAuto(t, a) {
   if (IFIX && okn(IFIX.r12) && okn(f.tr12) && f.tr12 > IFIX.r12) bom.push(`Retorno de ${fs(f.tr12)} em 12 meses, acima do IFIX (${fs(IFIX.r12)}).`);
   if (okn(f.vol) && f.vol >= 3e6) bom.push(`Boa liquidez: cerca de ${mi(f.vol)} negociados por dia.`);
   if (okn(f.cot) && f.cot >= 100000) bom.push(`Base ampla, com ${n0(f.cot)} cotistas.`);
+  // documentos do Fundos.NET
+  f.docs = arr(a.docs).filter(d => !/Estruturado/.test(d[1])).map(([data, cat, tipo, esp, inf, id]) => ({ data, cat, tipo, esp, inf: /^FII .{0,20};$/.test(inf || '') ? '' : inf, id }));
+  const diasAtras = d => (Date.now() - new Date(d + 'T12:00:00')) / 864e5;
+  f.avisos = [];
+  f.docs.filter(d => /fato relevante/i.test(d.cat) && diasAtras(d.data) <= 45).slice(0, 2)
+    .forEach(d => f.avisos.push({ d, txt: `Fato relevante em ${fmtDate(d.data)}${d.inf ? ': ' + d.inf : ''}` }));
+  const age = f.docs.find(d => /assembl/i.test(d.cat) && /AGE|extraordin/i.test(d.tipo + ' ' + d.esp) && /convoca|edital|proposta|consulta/i.test(d.esp + ' ' + d.tipo + ' ' + d.cat) && diasAtras(d.data) <= 60);
+  if (age) f.avisos.push({ d: age, txt: `Assembleia extraordinária convocada (${fmtDate(age.data)})${age.inf ? ': ' + age.inf : ''}` });
   f.forte = forte; f.medio = medio; f.crit = [...forte, ...medio, ...info]; f.bom = bom;
   f.nivel = forte.length >= 2 || (forte.length && medio.length >= 2) ? 'elevada' : forte.length || medio.length >= 2 ? 'moderada' : 'ok';
   return f;
@@ -142,6 +150,25 @@ function info(t) {
 }
 const conhecido = t => { const i = info(t); return !!(i.a || i.m || UT.has(i.t) || FORA[i.t]); };
 
+// ---------- documentos (Fundos.NET) ----------
+const FNET = 'https://fnet.bmfbovespa.com.br/fnet/publico/';
+const linkDoc = id => `${FNET}exibirDocumento?id=${encodeURIComponent(id)}&cvm=true`;
+const linkFundo = cnpj => `${FNET}abrirGerenciadorDocumentosCVM?cnpjFundo=${encodeURIComponent(cnpj)}`;
+const rotDoc = d => [d.cat, /Não Considerados Fatos/i.test(d.tipo) ? '' : d.tipo, d.esp].filter((x, i, l) => x && l.indexOf(x) === i && !(i && l[0].includes(x))).join(' · ');
+function avisosHtml(a) {
+  if (!a || !a.avisos.length) return '';
+  return `<div class="pontos">${a.avisos.map(x => `<a class="p aviso" href="${linkDoc(x.d.id)}" target="_blank" rel="noopener"><span>📄</span><span>${esc(x.txt)} <b>Abrir ›</b></span></a>`).join('')}</div>`;
+}
+function docsHtml(a) {
+  if (!a) return '';
+  const L = a.docs;
+  const todos = a.cnpj ? `<a href="${linkFundo(a.cnpj)}" target="_blank" rel="noopener">Ver todos os documentos no Fundos.NET ›</a>` : '';
+  if (!L.length) return `<div><h4>📄 Comunicados e assembleias (Fundos.NET)</h4><p class="note" style="margin:0">Nenhum fato relevante, comunicado ou assembleia nos últimos 150 dias. ${todos}</p></div>`;
+  return `<div><h4>📄 Comunicados e assembleias (Fundos.NET, últimos 150 dias)</h4>
+    <div class="table-wrap"><table><tbody>${L.map(d => `<tr><td style="white-space:nowrap">${fmtDate(d.data)}</td><td><b>${esc(rotDoc(d))}</b>${d.inf ? `<div class="note" style="margin:0">${esc(d.inf)}</div>` : ''}</td><td class="n"><a href="${linkDoc(d.id)}" target="_blank" rel="noopener">abrir</a></td></tr>`).join('')}</tbody></table></div>
+    <p class="note" style="margin:6px 0 0">${todos}</p></div>`;
+}
+
 // ---------- cartões ----------
 function metricas(i) {
   const a = i.a, m = i.m, g = k => a && okn(a[k]) ? a[k] : m && okn(m[k]) ? m[k] : null;
@@ -164,6 +191,7 @@ function cartao(t) {
     <div class="topo"><div><span class="tk">${esc(i.t)}</span>${i.m ? `<span class="fonte man">Manual ${esc(ED)}</span>${mud(i.m.mudanca)}` : '<span class="fonte">Automático</span>'}</div>${lv(i.nivel)}</div>
     <div class="nm">${esc(i.nome)}${i.seg ? ' · ' + esc(i.seg) : ''}</div>
     ${corpo}
+    ${avisosHtml(i.a)}
     ${metricas(i)}
     ${nx ? `<div class="nx"><b>Próximo evento:</b> ${esc(nx.prazo)} — ${esc(nx.evento)}</div>` : ''}
     <div><button class="sm" data-open="${esc(i.t)}">${i.m ? 'Ver análise completa' : 'Ver detalhes'}</button></div>
@@ -244,6 +272,7 @@ function abrirFundo(t) {
   const i = info(t); if (!i.a && !i.m) return;
   $('dlgT').innerHTML = `<span class="tk">${esc(i.t)}</span> <span style="font-weight:600;font-size:16px">· ${esc(i.nome)}</span> ${lv(i.nivel)}${i.m ? mud(i.m.mudanca) : ''}`;
   let html = '';
+  if (i.a && (i.a.docs.length || i.a.cnpj)) html += `<div class="det" style="margin-bottom:14px">${avisosHtml(i.a)}${docsHtml(i.a)}</div>`;
   if (i.m) html += completoManual(i.m);
   if (i.a) {
     const caixas = `<div class="dois"><div class="caixa crit"><h4>⚠ Pontos críticos (automático)</h4>${i.a.crit.length ? `<ul>${li(i.a.crit)}</ul>` : '<p>Nenhum sinal crítico nos indicadores.</p>'}</div><div class="caixa bom"><h4>✓ Pontos bons (automático)</h4>${i.a.bom.length ? `<ul>${li(i.a.bom)}</ul>` : '<p>Nenhum ponto bom destacado nos indicadores.</p>'}</div></div>`;
@@ -506,11 +535,11 @@ function montarAgenda() {
 }
 function montarSobre() {
   const regras = `<div class="card det"><h3 style="margin:0">Como os alertas automáticos são calculados</h3>
-    <p class="note" style="margin-top:0">Indicadores de ${n0(Object.keys(AUTO).length)} FIIs listados, atualizados uma vez por dia${AUTO_META ? ` (última atualização: ${new Date(AUTO_META.gerado).toLocaleString('pt-BR')})` : ''}. Fontes: informe mensal da CVM (valor patrimonial, patrimônio, cotistas) e cotações da B3 via Yahoo Finance (preço, volume e rendimentos).</p>
+    <p class="note" style="margin-top:0">Indicadores de ${n0(Object.keys(AUTO).length)} FIIs listados, atualizados uma vez por dia${AUTO_META ? ` (última atualização: ${new Date(AUTO_META.gerado).toLocaleString('pt-BR')})` : ''}. Fontes: informe mensal da CVM (valor patrimonial, patrimônio, cotistas), Fundos.NET da B3 (fatos relevantes, comunicados, assembleias e relatório gerencial) e cotações da B3 via Yahoo Finance (preço, volume e rendimentos).</p>
     <div class="dois"><div class="caixa crit"><h4>⚠ Pontos críticos</h4><ul>
       <li>Rendimento 10% ou mais abaixo da média dos 6 meses anteriores.</li><li>Três meses ou mais sem rendimento.</li>
       <li>Valor patrimonial por cota 5% ou mais menor que 12 meses antes.</li><li>Retorno em 12 meses 15 p.p. ou mais abaixo do IFIX.</li>
-      <li>P/VP abaixo de 0,70.</li><li>Liquidez abaixo de R$ 100 mil por dia (só informativo).</li></ul></div>
+      <li>P/VP abaixo de 0,70.</li><li>Liquidez abaixo de R$ 100 mil por dia (só informativo).</li></ul><p style="margin-top:8px"><b>📄 Avisos:</b> fato relevante nos últimos 45 dias e assembleia extraordinária convocada nos últimos 60 dias (Fundos.NET). Não mudam o nível: são para ler.</p></div>
     <div class="caixa bom"><h4>✓ Pontos bons</h4><ul><li>Rendimento estável ou subindo.</li><li>Valor patrimonial por cota estável ou subindo em 12 meses.</li><li>Retorno em 12 meses acima do IFIX.</li><li>Liquidez acima de R$ 3 milhões por dia.</li><li>Mais de 100 mil cotistas.</li></ul></div></div>
     <p class="note"><b>Sinais fortes:</b> corte ou falta de rendimento e queda do valor patrimonial. <b>Atenção elevada:</b> dois sinais fortes, ou um forte junto com os dois sinais de mercado (retorno muito abaixo do IFIX e P/VP abaixo de 0,70). <b>Moderada:</b> um sinal forte, ou os dois sinais de mercado juntos. O e-mail ao cliente usa só os sinais fortes. São sinais objetivos para investigar, não uma análise do fundo: não explicam o motivo. Rendimentos podem incluir amortizações. Fiagros e fundos não listados não estão na base.${IFIX ? ` IFIX: ${fs(IFIX.r12)} em 12 meses e ${fs(IFIX.ano)} no ano (${esc(IFIX.fonte)}).` : ''}</p></div>`;
   let man = '';
