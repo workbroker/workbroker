@@ -7,6 +7,24 @@
 <title>Boleta de ações · Rico.Work</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  .cart { display: grid; grid-template-columns: minmax(110px,1.2fr) minmax(120px,1fr) 100px minmax(110px,1fr) 110px minmax(120px,1fr) 40px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .cart.h { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding-top: 0; }
+  .cart input, .cart select { width: 100%; }
+  .cart .calc { font-weight: 800; color: var(--indigo); text-align: right; font-variant-numeric: tabular-nums; }
+  .cart .calc small { display: block; font-weight: 600; color: var(--muted); font-size: 12px; }
+  .cart .lbl { display: none; }
+  .cart-wrap { overflow-x: auto; }
+  .cart-wrap > div { min-width: 760px; }
+  .soma-ok { color: var(--good); } .soma-ruim { color: var(--bad); }
+  @media (max-width: 700px) {
+    .cart-wrap > div { min-width: 0; }
+    .cart.h { display: none; }
+    .cart { grid-template-columns: 1fr 1fr; background: #f7f6fb; border: 0; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+    .cart .lbl { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+    .cart .calc { text-align: left; }
+  }
+</style>
 </head>
 <body>
 <header class="top" data-page="rv"></header>
@@ -24,8 +42,32 @@
     </div>
   </div>
 
+  <div class="card no-print">
+    <div class="card-head"><h2><span class="step">2</span>Montar carteira por percentual <span class="note" style="font-weight:500">(opcional)</span></h2>
+      <div class="row"><button class="sm ghost" id="cLimpar">Limpar</button></div></div>
+    <p class="note" style="margin-top:0">Informe o valor total da operação e o % de cada ativo. O preço de hoje serve só para calcular a quantidade: as ordens saem <b>a mercado</b>.</p>
+    <div class="fields three">
+      <label class="f">Valor total da operação (R$) <input id="cTotal" inputmode="decimal" placeholder="100.000,00"></label>
+      <label class="f">Quantidade em múltiplos de
+        <select id="cLote"><option value="1">1 ação (fracionário)</option><option value="100">100 ações (lote padrão)</option></select></label>
+      <label class="f">Arredondamento
+        <select id="cArred"><option value="baixo">Para baixo (não passa do total)</option><option value="prox">Mais próximo do %</option></select></label>
+    </div>
+    <div class="cart-wrap" style="margin-top:14px"><div id="cLinhas"></div></div>
+    <div class="row" style="margin-top:12px">
+      <button class="sm secondary" id="cAddC">+ Compra</button>
+      <button class="sm secondary" id="cAddV">+ Venda</button>
+      <button class="sm secondary" id="cIgual">Dividir % igualmente</button>
+    </div>
+    <div class="kpis" id="cKpis" style="margin-top:14px"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="cGerar">⬇ Gerar ordens a mercado</button>
+      <span class="note" id="cInfo"></span>
+    </div>
+  </div>
+
   <div class="card">
-    <div class="card-head"><h2><span class="step">2</span>Ordens</h2>
+    <div class="card-head"><h2><span class="step">3</span>Ordens</h2>
       <div class="row no-print"><button class="sm ghost" id="btnLimpar">Limpar</button></div></div>
     <div id="ordens"></div>
     <div class="row no-print" style="margin-top:12px">
@@ -57,6 +99,91 @@ $('btnAddC').onclick = () => ordens.adicionar({ op: 'C' });
 $('btnAddV').onclick = () => ordens.adicionar({ op: 'V' });
 $('btnLimpar').onclick = () => { ordens.limpar(); ordens.adicionar({ op: 'C' }); };
 $('btnEmail').onclick = () => ordens.email();
+
+// ---------- Carteira por percentual ----------
+const C = Object.assign({ total: '', lote: '1', arred: 'baixo', itens: [] }, store.get('rw_boleta_cart', {}));
+const salvarC = () => store.set('rw_boleta_cart', C);
+const novoItem = (o = {}) => ({ id: uid(), ticker: '', op: 'C', pct: '', preco: '', ...o });
+if (!C.itens.length) C.itens.push(novoItem());
+function calcItem(it) {
+  const total = parseNum(C.total), p = parseNum(it.pct), pr = parseNum(it.preco), lote = +C.lote || 1;
+  if (!(total > 0) || !(p > 0) || !(pr > 0)) return null;
+  const alvo = total * p / 100, bruto = alvo / pr / lote;
+  const qtd = (C.arred === 'prox' ? Math.round(bruto) : Math.floor(bruto)) * lote, valor = qtd * pr;
+  return { alvo, qtd, valor, pctReal: valor / total * 100 };
+}
+function renderC() {
+  $('cLinhas').innerHTML = `<div class="cart h"><div>Ativo</div><div>Operação</div><div>% da carteira</div><div>Preço hoje (R$)</div><div style="text-align:right">Quantidade</div><div style="text-align:right">Valor estimado</div><div></div></div>` +
+    C.itens.map(it => `<div class="cart" data-id="${it.id}">
+      <label><span class="lbl">Ativo</span><input data-k="ticker" value="${esc(it.ticker)}" placeholder="PETR4" autocapitalize="characters" maxlength="12"></label>
+      <label><span class="lbl">Operação</span><select data-k="op" class="opsel ${it.op}"><option value="C" ${it.op === 'C' ? 'selected' : ''}>C · Compra</option><option value="V" ${it.op === 'V' ? 'selected' : ''}>V · Venda</option></select></label>
+      <label><span class="lbl">% da carteira</span><input data-k="pct" inputmode="decimal" value="${esc(it.pct)}" placeholder="20"></label>
+      <label><span class="lbl">Preço hoje (R$)</span><input data-k="preco" inputmode="decimal" value="${esc(it.preco)}" placeholder="38,50"></label>
+      <div class="calc" data-q><span class="lbl">Quantidade</span></div>
+      <div class="calc" data-v><span class="lbl">Valor estimado</span></div>
+      <div><button class="danger" data-del title="Remover">✕</button></div></div>`).join('');
+  atualizarC();
+}
+function atualizarC() {
+  const total = parseNum(C.total); let soma = 0, usado = 0;
+  C.itens.forEach(it => {
+    const el = $('cLinhas').querySelector(`.cart[data-id="${it.id}"]`), r = calcItem(it);
+    soma += parseNum(it.pct) || 0;
+    if (r) usado += r.valor;
+    el.querySelector('[data-q]').innerHTML = `<span class="lbl">Quantidade</span>${r ? r.qtd.toLocaleString('pt-BR') + `<small>${pct(r.pctReal)} real</small>` : '—'}`;
+    el.querySelector('[data-v]').innerHTML = `<span class="lbl">Valor estimado</span>${r ? brl(r.valor) + `<small>alvo ${brl(r.alvo)}</small>` : '—'}`;
+  });
+  const ok = Math.abs(soma - 100) < 0.005;
+  $('cKpis').innerHTML = `
+    <div class="kpi"><div class="l">Soma dos %</div><div class="v ${ok ? 'soma-ok' : 'soma-ruim'}">${pct(soma)}</div><div class="s">${ok ? 'fecha 100%' : soma < 100 ? `faltam ${pct(100 - soma)}` : `passou ${pct(soma - 100)}`}</div></div>
+    <div class="kpi"><div class="l">Valor estimado das ordens</div><div class="v">${total > 0 ? brl(usado) : '—'}</div><div class="s">pelos preços de hoje</div></div>
+    <div class="kpi"><div class="l">Sobra (ou falta)</div><div class="v">${total > 0 ? brl(total - usado) : '—'}</div><div class="s">${total > 0 ? pct((total - usado) / total * 100) + ' do total' : 'informe o valor total'}</div></div>`;
+}
+$('cTotal').value = C.total; $('cLote').value = C.lote; $('cArred').value = C.arred;
+$('cTotal').addEventListener('input', e => { C.total = e.target.value; salvarC(); atualizarC(); });
+$('cTotal').addEventListener('blur', e => { const v = parseNum(C.total); if (v > 0) { C.total = NUM2.format(v); e.target.value = C.total; salvarC(); } });
+$('cLote').onchange = e => { C.lote = e.target.value; salvarC(); atualizarC(); };
+$('cArred').onchange = e => { C.arred = e.target.value; salvarC(); atualizarC(); };
+$('cLinhas').addEventListener('input', e => {
+  const row = e.target.closest('.cart'), k = e.target.dataset.k; if (!row || !k) return;
+  const it = C.itens.find(x => x.id === row.dataset.id);
+  it[k] = k === 'ticker' ? e.target.value.toUpperCase().replace(/\s/g, '') : e.target.value;
+  if (k === 'ticker') e.target.value = it.ticker;
+  if (k === 'op') e.target.className = 'opsel ' + it.op;
+  salvarC(); atualizarC();
+});
+$('cLinhas').addEventListener('click', e => {
+  if (!e.target.closest('[data-del]')) return;
+  C.itens = C.itens.filter(x => x.id !== e.target.closest('.cart').dataset.id);
+  if (!C.itens.length) C.itens.push(novoItem());
+  salvarC(); renderC();
+});
+const addItem = op => { const it = novoItem({ op }); C.itens.push(it); salvarC(); renderC(); $('cLinhas').querySelector(`.cart[data-id="${it.id}"] [data-k="ticker"]`).focus(); };
+$('cAddC').onclick = () => addItem('C');
+$('cAddV').onclick = () => addItem('V');
+$('cIgual').onclick = () => {
+  const n = C.itens.length, base = Math.floor(10000 / n) / 100;
+  C.itens.forEach((it, i) => { it.pct = NUM2.format(i === n - 1 ? +(100 - base * (n - 1)).toFixed(2) : base).replace(/,00$/, ''); });
+  salvarC(); renderC();
+};
+$('cLimpar').onclick = () => { C.itens = [novoItem()]; C.total = ''; $('cTotal').value = ''; salvarC(); renderC(); };
+$('cGerar').onclick = () => {
+  if (!(parseNum(C.total) > 0)) { toast('Informe o valor total da operação'); $('cTotal').focus(); return; }
+  const prontos = C.itens.filter(it => it.ticker.trim()).map(it => ({ it, r: calcItem(it) }));
+  const semPreco = prontos.filter(x => !x.r).map(x => x.it.ticker);
+  if (semPreco.length) { toast(`Preencha % e preço de: ${semPreco.join(', ')}`); return; }
+  const zerados = prontos.filter(x => x.r.qtd === 0).map(x => x.it.ticker);
+  const ord = prontos.filter(x => x.r.qtd > 0).map(x => ({ ticker: x.it.ticker, op: x.it.op, qtd: String(x.r.qtd), tipoPreco: 'mercado', preco: '' }));
+  if (!ord.length) { toast('Nenhuma quantidade calculada'); return; }
+  const soma = C.itens.reduce((s, it) => s + (parseNum(it.pct) || 0), 0);
+  if (Math.abs(soma - 100) >= 0.005 && !confirm(`Os percentuais somam ${pct(soma)}, não 100%. Gerar as ordens assim mesmo?`)) return;
+  if (ordens.validas().length && !confirm('Isso substitui as ordens que já estão na lista abaixo. Continuar?')) return;
+  ordens.substituir(ord);
+  $('cInfo').textContent = `${ord.length} ordem(ns) a mercado gerada(s)${zerados.length ? `. Ficaram de fora por dar 0 ações: ${zerados.join(', ')}` : ''}.`;
+  $('ordens').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+renderC();
+
 $('btnCopiar').onclick = () => { if (!ordens.validas().length) { toast('Preencha ao menos uma ordem'); return; } copyText(ordens.tsv()); };
 </script>
 </body>

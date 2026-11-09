@@ -1,5 +1,5 @@
 // Ordens de ações (C/V) e e-mail pedindo o de acordo do cliente.
-// Usado na boleta e na análise de RV.
+// Usado na boleta de ações.
 const Ordens = (() => {
   const COLS = ['Ativo_Ticker', 'Operação', 'Quantidade', 'Código_Cliente', 'Preço'];
   const nova = (o = {}) => ({ id: uid(), ticker: '', op: 'C', qtd: '', tipoPreco: 'mercado', preco: '', ...o });
@@ -45,6 +45,7 @@ const Ordens = (() => {
       if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.focus(), 300); }
     }
     function limpar() { lista = []; salvar(); render(); }
+    function substituir(arr) { lista = arr.map(o => nova(o)); salvar(); render(); }
 
     const linha = (o, cod) => [o.ticker, o.op, qtdNum(o).toLocaleString('pt-BR'), cod, precoTxt(o)];
     function email() {
@@ -80,7 +81,7 @@ const Ordens = (() => {
       return [COLS.join('\t'), ...validas().map(o => [o.ticker, o.op, qtdNum(o), c.codigo, precoTxt(o)].join('\t'))].join('\n');
     }
     render();
-    return { adicionar, limpar, email, tsv, validas, render, lista: () => lista };
+    return { adicionar, limpar, substituir, email, tsv, validas, render, lista: () => lista };
   }
   return { criar, qtdNum };
 })();
