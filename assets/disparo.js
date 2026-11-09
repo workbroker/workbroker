@@ -242,6 +242,33 @@ $('btnZip').onclick = async () => {
   baixar(`emails-relatorios-${ascii(mesRef()).toLowerCase() || todayISO()}.zip`, z.blob());
   $('infoZip').textContent = `${L.length} e-mail(s) gerado(s)${nLotes > 1 ? `, separados em ${nLotes} pastas de até ${TAM}` : ''}. Extraia o .zip e dê dois cliques em cada arquivo para abrir no Outlook.`;
 };
+// ---------- Pacote para a macro do Outlook ----------
+$('btnAuto').onclick = async () => {
+  const L = linhas().filter(x => pronto(x.c, x.rel));
+  if (!L.length) { toast('Nenhum cliente pronto (precisa de relatório e e-mail)'); return; }
+  if (CFG.macro.includes('[Escreva aqui') && !confirm('O comentário macro ainda tem o trecho "[Escreva aqui…]". Gerar assim mesmo?')) return;
+  const z = ArquivosLite.novoZip(), limpa = t => String(t ?? '').replace(/[\t\r\n]+/g, ' ').trim();
+  const lista = [['codigo', 'nome', 'email', 'assunto', 'html', 'pdf'].join('\t')];
+  for (let i = 0; i < L.length; i++) {
+    const { c, rel } = L[i], assunto = CFG.assunto || `Seu relatório de investimentos · ${mesRef(rel.d)}`;
+    const html = `<html><head><meta charset="utf-8"></head><body>${htmlEmail(c, rel)}</body></html>`;
+    const pdf = `anexos/${c.codigo}/${ascii(rel.arquivo.replace(/\.pdf$/i, '')) || 'XPerformance'}.pdf`;
+    z.add(`emails/${c.codigo}.html`, html);
+    z.add(pdf, new Uint8Array(await rel.blob.arrayBuffer()));
+    lista.push([c.codigo, c.nome, c.email, assunto, `emails/${c.codigo}.html`, pdf].map(limpa).join('\t'));
+    if (i % 10 === 0) { $('infoZip').textContent = `Gerando ${i + 1} de ${L.length}…`; await new Promise(r => setTimeout(r, 0)); }
+  }
+  z.add('lista.txt', '\ufeff' + lista.join('\r\n') + '\r\n');
+  try { z.add('EnviarRelatorios.bas', new Uint8Array(await (await fetch('assets/outlook/EnviarRelatorios.bas')).arrayBuffer())); } catch (e) {}
+  z.add('LEIA-ME.txt', ['Rico.Work - envio automatico dos relatorios', '',
+    '1. Extraia este .zip (botao direito > Extrair tudo).',
+    '2. Primeira vez: no Outlook, Alt+F11 > Arquivo > Importar arquivo > EnviarRelatorios.bas > salvar.',
+    '3. No Outlook, Alt+F8 > EnviarRelatorios > Executar e escolha esta pasta.',
+    '4. Rode a opcao 1 (teste para voce), confira, depois rode a opcao 3 (enviar todos).', '',
+    `${L.length} cliente(s) neste pacote. Gerado em ${new Date().toLocaleString('pt-BR')}.`].join('\r\n'));
+  baixar(`envio-automatico-${ascii(mesRef()).toLowerCase() || todayISO()}.zip`, z.blob());
+  $('infoZip').textContent = `Pacote com ${L.length} e-mail(s) gerado. Extraia e rode a macro EnviarRelatorios no Outlook (veja o passo a passo abaixo).`;
+};
 $('btnCsv').onclick = () => {
   const L = linhas(), csv = [['Código', 'Nome', 'E-mail', 'Relatório', 'Rent. mês', 'Situação']].concat(L.map(({ c, rel }) => [c.codigo, c.nome, c.email, rel ? rel.arquivo : '', rel ? ps(dadosCliente(rel).rentMes) : '', status(c, rel)[1]]));
   baixar(`disparo-${todayISO()}.csv`, new Blob(['﻿' + csv.map(l => l.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' }));
