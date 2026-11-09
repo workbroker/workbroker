@@ -16,6 +16,7 @@
   .chart-box { margin-top: 12px; }
   .prem { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
   .prem label.f { width: 120px; }
+  @media (max-width: 520px) { #out-parado .kpi .v { font-size: 18px; } }
 </style>
 </head>
 <body>
@@ -29,6 +30,7 @@
     <a href="#isento" data-t="isento">⚖️ Isento × tributado</a>
     <a href="#cupons" data-t="cupons">💸 Juros recebidos no tempo</a>
     <a href="#compostos" data-t="compostos">📈 Juros compostos</a>
+    <a href="#parado" data-t="parado">💤 Saldo parado × aplicado</a>
   </nav>
 
   <div class="card prem">
@@ -89,9 +91,24 @@
     </div>
     <div class="card"><h2>Evolução do patrimônio</h2><div id="out-compostos"><p class="note">Preencha os campos acima.</p></div></div>
   </section>
+
+  <!-- Saldo parado x aplicado -->
+  <section class="pane" id="pane-parado" hidden>
+    <div class="card">
+      <div class="fields three">
+        <label class="f">Saldo parado do cliente (R$) <input id="s_valor" inputmode="decimal" placeholder="100.000"></label>
+        <label class="f wide">Prazo <div class="combo"><input id="s_prazo" inputmode="numeric" placeholder="12"><select id="s_un"><option value="1">meses</option><option value="12">anos</option></select></div></label>
+        <label class="f">Rendendo <small>% do CDI</small><input id="s_pct" inputmode="decimal" placeholder="100"></label>
+        <label class="check" style="align-self:end;padding-bottom:10px"><input id="s_isento" type="checkbox"> Isento de IR</label>
+      </div>
+      <p class="note">Compara o saldo aplicado a um percentual do CDI (já descontado o IR) com o mesmo saldo parado, que perde poder de compra para a inflação (IPCA das premissas acima).</p>
+    </div>
+    <div class="card"><div class="card-head"><h2>Aplicado × parado</h2><button class="sm secondary no-print" id="s_email">✉️ Enviar ao cliente</button></div><div id="out-parado"><p class="note">Preencha o saldo e o prazo.</p></div></div>
+  </section>
 </main>
 
 <script src="assets/common.js"></script>
+<script src="assets/email.js"></script>
 <script src="assets/rfcalc.js"></script>
 </body>
 </html>

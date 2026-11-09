@@ -6,7 +6,7 @@ const n = id => parseNum($(id).value);
 ['i_idx', 't_idx', 'c_idx', 'j_idx'].forEach(id => $(id).innerHTML = IDX_OPTS.map(([k, l]) => `<option value="${k}">${l}</option>`).join(''));
 $('i_idx').value = 'pctcdi'; $('t_idx').value = 'pctcdi'; $('c_idx').value = 'ipcamais'; $('j_idx').value = 'pctcdi';
 
-const CAMPOS = ['p_cdi', 'p_ipca', 'i_idx', 'i_taxa', 't_idx', 't_taxa', 'i_dias', 'i_valor', 'c_valor', 'c_idx', 'c_taxa', 'c_per', 'c_ini', 'c_venc', 'c_isento', 'j_ini', 'j_aporte', 'j_prazo', 'j_un', 'j_idx', 'j_taxa', 'j_isento', 'j_real'];
+const CAMPOS = ['p_cdi', 'p_ipca', 'i_idx', 'i_taxa', 't_idx', 't_taxa', 'i_dias', 'i_valor', 'c_valor', 'c_idx', 'c_taxa', 'c_per', 'c_ini', 'c_venc', 'c_isento', 'j_ini', 'j_aporte', 'j_prazo', 'j_un', 'j_idx', 'j_taxa', 'j_isento', 'j_real', 's_valor', 's_prazo', 's_un', 's_pct', 's_isento'];
 const prem = () => ({ cdi: n('p_cdi') || 0, ipca: n('p_ipca') || 0 });
 
 // ---------- Gráficos SVG simples ----------
@@ -23,13 +23,18 @@ function barras(el, dados, cor = '#ff5a00') {
   });
   el.innerHTML = s + '</svg>';
 }
-function linhas(el, rotulos, series) {
-  const { W, H } = svgBox(el), pad = { l: 8, r: W < 520 ? 70 : 90, t: 16, b: 26 };
-  const all = series.flatMap(s => s.v), max = Math.max(...all, 1);
+function linhas(el, rotulos, series, opt = {}) {
+  const { W, H } = svgBox(el), pad = { l: opt.eixo ? (W < 520 ? 52 : 64) : 8, r: W < 520 ? 70 : 90, t: 16, b: 26 };
+  const all = series.flatMap(s => s.v);
+  let max = Math.max(...all, 1), min = 0;
+  if (opt.zoom) { const lo = Math.min(...all), hi = max, folga = (hi - lo) * 0.12 || hi * 0.02; min = Math.max(0, lo - folga); max = hi + folga; }
   const X = i => pad.l + i / (rotulos.length - 1 || 1) * (W - pad.l - pad.r);
-  const Y = v => pad.t + (1 - v / max) * (H - pad.t - pad.b);
+  const Y = v => pad.t + (1 - (v - min) / (max - min)) * (H - pad.t - pad.b);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  for (let k = 0; k <= 4; k++) { const y = pad.t + k * (H - pad.t - pad.b) / 4; s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="#eeedf4"/>`; }
+  for (let k = 0; k <= 4; k++) {
+    const y = pad.t + k * (H - pad.t - pad.b) / 4; s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="#eeedf4"/>`;
+    if (opt.eixo) { const v = max - k * (max - min) / 4; s += `<text x="${pad.l - 6}" y="${y + 4}" font-size="10.5" text-anchor="end" fill="#6d6a80">${v >= 1e6 ? (v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi' : Math.round(v / 1000).toLocaleString('pt-BR') + ' mil'}</text>`; }
+  }
   series.forEach(se => {
     const d = se.v.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
     if (se.area) s += `<path d="${d}L${X(se.v.length - 1).toFixed(1)},${H - pad.b}L${X(0)},${H - pad.b}Z" fill="${se.cor}" opacity=".14"/>`;
@@ -185,17 +190,74 @@ function calcCompostos() {
   ]);
 }
 
+// ---------- 4. Saldo parado x aplicado ----------
+let PARADO = null;
+function calcParado() {
+  const out = $('out-parado');
+  const V = n('s_valor'), prazo = parseInt($('s_prazo').value, 10), un = parseInt($('s_un').value, 10), pc = Number.isFinite(n('s_pct')) ? n('s_pct') : 100;
+  const N = prazo * un;
+  PARADO = null;
+  if (!(V > 0) || !(N > 0)) { out.innerHTML = '<p class="note">Preencha o saldo e o prazo.</p>'; return; }
+  if (N > 600) { out.innerHTML = '<p class="note">Use um prazo de até 50 anos.</p>'; return; }
+  const { cdi, ipca } = prem(), isento = $('s_isento').checked;
+  const r = taxaEfetiva('pctcdi', pc, cdi, ipca);
+  const rm = Math.pow(1 + r, 1 / 12) - 1, im = Math.pow(1 + ipca / 100, 1 / 12) - 1;
+  const ponto = m => {
+    const bruto = V * Math.pow(1 + rm, m), ganho = bruto - V, ir = isento ? 0 : ganho * aliquotaIR(Math.round(m * 30.4375));
+    return { liq: bruto - ir, ir, parado: V / Math.pow(1 + im, m) };
+  };
+  const passo = N > 120 ? 12 : N > 36 ? 3 : 1, rot = [], sA = [], sP = [];
+  const lab = m => N > 24 ? (m % 12 === 0 ? `${m / 12}a` : `${(m / 12).toFixed(1).replace('.', ',')}a`) : `${m}m`;
+  for (let m = 0; m <= N; m += passo) { const p = ponto(m); rot.push(lab(m)); sA.push(p.liq); sP.push(p.parado); }
+  if (N % passo) { const p = ponto(N); rot.push(lab(N)); sA.push(p.liq); sP.push(p.parado); }
+  const fim = ponto(N), rend = fim.liq - V, perda = V - fim.parado, dif = fim.liq - fim.parado;
+  const real = fim.liq / Math.pow(1 + im, N) - V;
+  const prazoTxt = un === 12 ? `${prazo} ${prazo === 1 ? 'ano' : 'anos'}` : `${prazo} ${prazo === 1 ? 'mês' : 'meses'}`;
+  PARADO = { V, N, prazoTxt, pc, cdi, ipca, isento, fim, rend, perda, dif, real };
+  out.innerHTML = `
+    <div class="verdict good">Aplicado, o saldo rende ${brl(rend)} líquidos em ${prazoTxt}. Parado, perde ${brl(perda)} de poder de compra.
+      <small>Diferença entre os dois cenários no fim do prazo: ${brl(dif)} (o rendimento líquido mais a perda de poder de compra que o cliente evita).</small></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Se aplicar a ${pct(pc, 0)} do CDI</div><div class="v good">${brl(fim.liq)}</div><div class="s">+${brl(rend)} líquidos${isento ? ' (isento)' : ` · IR ${brl(fim.ir)}`}</div></div>
+      <div class="kpi"><div class="l">Se ficar parado</div><div class="v bad">${brl(fim.parado)}</div><div class="s">poder de compra em valores de hoje · −${brl(perda)}</div></div>
+      <div class="kpi orange"><div class="l">Diferença</div><div class="v">${brl(dif)}</div><div class="s">aplicado − parado</div></div>
+      <div class="kpi"><div class="l">Ganho real se aplicar</div><div class="v ${real >= 0 ? 'good' : 'bad'}">${brl(real)}</div><div class="s">acima da inflação, em valores de hoje</div></div>
+    </div>
+    <div class="legend" style="margin-top:14px"><span><i style="background:#129b5a"></i>Aplicado a ${pct(pc, 0)} do CDI (líquido)</span><span><i style="background:#e2403a"></i>Parado: poder de compra com a inflação</span></div>
+    <div class="chart-box" id="chParado"></div>
+    <p class="note">CDI de ${pct(cdi)} a.a. e IPCA de ${pct(ipca)} a.a. (premissas acima). Rendimento de ${pct(r * 100)} a.a.; IR pela tabela regressiva no resgate. A linha vermelha mostra quanto o saldo parado compraria, em valores de hoje. Simulação, não é garantia de rentabilidade.</p>`;
+  linhas($('chParado'), rot, [{ v: sA, cor: '#129b5a' }, { v: sP, cor: '#e2403a' }], { zoom: true, eixo: true });
+}
+$('s_email').onclick = () => {
+  if (!PARADO) { toast('Preencha o saldo e o prazo'); return; }
+  const P = PARADO, h = Email.h;
+  const linhasTxt = [`Se aplicado a ${pct(P.pc, 0)} do CDI: ${brl(P.fim.liq)} (rendimento líquido de ${brl(P.rend)})`, `Se ficar parado: o poder de compra cai para ${brl(P.fim.parado)} (perda de ${brl(P.perda)} para a inflação)`, `Diferença: ${brl(P.dif)}`];
+  Email.abrir({
+    assunto: 'Seu saldo parado: quanto ele poderia render', nome: '',
+    texto: (nome, ass) => [Email.saudacaoTexto(nome), '', `Fiz uma simulação com o seu saldo de ${brl(P.V)} para os próximos ${P.prazoTxt}:`, '', ...linhasTxt, '',
+      `Premissas: CDI de ${pct(P.cdi)} a.a. e inflação (IPCA) de ${pct(P.ipca)} a.a.${P.isento ? '' : ', com IR descontado'}. É uma simulação, não uma garantia de rentabilidade.`, '',
+      'Posso te ajudar a escolher a melhor aplicação para esse valor?', '', 'Abraço,', ass].join('\n'),
+    html: (nome, ass) => h.wrap(h.p(h.saudacao(nome)) + h.p(`Fiz uma simulação com o seu saldo de <b>${brl(P.V)}</b> para os próximos <b>${P.prazoTxt}</b>:`) +
+      h.tabela(['', 'Valor no fim', 'Resultado'], [
+        [`<b>Aplicado a ${pct(P.pc, 0)} do CDI</b>`, `<b style="color:${h.cor.bom}">${brl(P.fim.liq)}</b>`, `+${brl(P.rend)} líquidos`],
+        ['<b>Parado</b> (poder de compra)', `<b style="color:${h.cor.ruim}">${brl(P.fim.parado)}</b>`, `−${brl(P.perda)} para a inflação`]], ['left', 'right', 'right']) +
+      h.destaque(`Diferença entre aplicar e deixar parado: ${brl(P.dif)}`, 'bom') +
+      h.p('Posso te ajudar a escolher a melhor aplicação para esse valor?') + h.p('Abraço,') + h.assinatura(ass) +
+      h.rodape(`Premissas: CDI de ${pct(P.cdi)} a.a. e IPCA de ${pct(P.ipca)} a.a.${P.isento ? '' : '; IR pela tabela regressiva'}. Simulação, não é garantia de rentabilidade.`)),
+  });
+};
+
 // ---------- Abas, premissas e persistência ----------
 function aba() {
   const t = (location.hash || '#isento').slice(1);
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === t));
-  ['isento', 'cupons', 'compostos'].forEach(k => $('pane-' + k).hidden = k !== t);
+  ['isento', 'cupons', 'compostos', 'parado'].forEach(k => $('pane-' + k).hidden = k !== t);
   calcular();
 }
 function calcular() {
   const s = {}; CAMPOS.forEach(c => { const el = $(c); s[c] = el.type === 'checkbox' ? el.checked : el.value; }); store.set('rw_rfcalc', s);
   const t = (location.hash || '#isento').slice(1);
-  if (t === 'isento') calcIsento(); else if (t === 'cupons') calcCupons(); else calcCompostos();
+  if (t === 'isento') calcIsento(); else if (t === 'cupons') calcCupons(); else if (t === 'parado') calcParado(); else calcCompostos();
 }
 (async function init() {
   const s = store.get('rw_rfcalc', null);
