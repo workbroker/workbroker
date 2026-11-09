@@ -156,9 +156,9 @@ const FNET = 'https://fnet.bmfbovespa.com.br/fnet/publico/';
 const linkDoc = id => `${FNET}exibirDocumento?id=${encodeURIComponent(id)}&cvm=true`;
 const linkFundo = cnpj => `${FNET}abrirGerenciadorDocumentosCVM?cnpjFundo=${encodeURIComponent(cnpj)}`;
 const rotDoc = d => [d.cat, /Não Considerados Fatos/i.test(d.tipo) ? '' : d.tipo, d.esp].filter((x, i, l) => x && l.indexOf(x) === i && !(i && l[0].includes(x))).join(' · ');
-function avisosHtml(a) {
+function avisosHtml(a, max = 9) {
   if (!a || !a.avisos.length) return '';
-  return `<div class="pontos">${a.avisos.map(x => `<a class="p aviso" href="${linkDoc(x.d.id)}" target="_blank" rel="noopener"><span>📄</span><span>${esc(x.txt)} <b>Abrir ›</b></span></a>`).join('')}</div>`;
+  return `<div class="pontos">${a.avisos.slice(0, max).map(x => `<a class="p aviso" href="${linkDoc(x.d.id)}" target="_blank" rel="noopener"><span>📄</span><span>${esc(x.txt)} <b>Abrir ›</b></span></a>`).join('')}</div>`;
 }
 function docsHtml(a) {
   if (!a) return '';
@@ -192,7 +192,7 @@ function cartao(t) {
     <div class="topo"><div><span class="tk">${esc(i.t)}</span>${i.m ? `<span class="fonte man">Manual ${esc(ED)}</span>${mud(i.m.mudanca)}` : '<span class="fonte">Automático</span>'}</div>${lv(i.nivel)}</div>
     <div class="nm">${esc(i.nome)}${i.seg ? ' · ' + esc(i.seg) : ''}</div>
     ${corpo}
-    ${avisosHtml(i.a)}
+    ${avisosHtml(i.a, 1)}
     ${metricas(i)}
     ${nx ? `<div class="nx"><b>Próximo evento:</b> ${esc(nx.prazo)} — ${esc(nx.evento)}</div>` : ''}
     <div><button class="sm" data-open="${esc(i.t)}">${i.m ? 'Ver análise completa' : 'Ver detalhes'}</button></div>
