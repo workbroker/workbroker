@@ -134,12 +134,9 @@ const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
   { id: 'pendencias', label: 'Pendências', href: 'pendencias.html', ic: 'check' },
-  { id: 'rv', label: 'Renda variável', ic: 'trend', grupos: [
-    { t: 'Renda variável', itens: [['Análise de ações e FIIs', 'rv-analise.html'], ['Boleta de ações', 'rv-boleta.html'], ['Visão geral', 'rv.html']] }] },
-  { id: 'rf', label: 'Renda fixa', ic: 'bank', grupos: [
-    { t: 'Simulações', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos']] },
-    { t: 'Carteira', itens: [['Risco de crédito', 'rf-credito.html'], ['Visão geral', 'rf.html']] }] },
-  { id: 'carteira', label: 'Carteira', ic: 'pie', grupos: [
+  { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
+    { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Risco de crédito', 'rf-credito.html']] },
+    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html']] },
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
   { id: 'relatorio', label: 'Relatório mensal', ic: 'slides', grupos: [
     { t: 'Relatório mensal', itens: [['Apresentação do mês', 'relatorio.html'], ['Disparo de relatórios', 'disparo.html']] }] },
@@ -147,13 +144,13 @@ const MENU = [
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], ['Pendências', 'pendencias.html', 'tarefas pendencias to-do urgente'],
-  ['Análise de ações e FIIs', 'rv-analise.html', 'renda variavel acoes fii dividendos consenso estruturadas'],
-  ['Boleta de ações', 'rv-boleta.html', 'ordens compra venda de acordo broker'],
+  ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
   ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],
   ['Isento × tributado', 'rf-calculadoras.html#isento', 'lci lca gross-up equivalencia'],
   ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons', 'cupom cupons fluxo ntn-b juros semestrais pagamento'],
   ['Juros compostos', 'rf-calculadoras.html#compostos', 'aportes simulacao patrimonio'],
-  ['Risco de crédito', 'rf-credito.html', 'rating fgc emissor concentracao vencimentos'],
+  ['Risco de crédito', 'rf-credito.html', 'renda fixa rating fgc emissor concentracao vencimentos'],
+  ['Visão geral de renda fixa', 'rf.html', 'renda fixa ferramentas'],
   ['Carteira e rebalanceamento', 'carteira.html', 'xperformance alocacao over under recomendada'],
   ['Relatório mensal', 'relatorio.html', 'apresentacao cliente xperformance mensal pdf'],
   ['Disparo de relatórios', 'disparo.html', 'disparo lote email todos clientes xperformance anexo planilha excel'],
@@ -172,7 +169,7 @@ const semAcentoNav = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toL
   side.className = 'side no-print';
   side.innerHTML = `<a class="side-logo" href="index.html" title="Rico.Work">RW</a>
     <nav class="side-nav">${MENU.map(m => {
-      const ativo = m.id === page || (m.id === 'carteira' && page === 'carteira');
+      const ativo = m.id === page || (m.paginas || []).includes(page);
       const inner = `${svgI(m.ic)}<span>${m.label}</span>`;
       return m.href && !m.grupos ? `<a class="side-item ${ativo ? 'on' : ''}" href="${m.href}" data-m="${m.id}">${inner}</a>`
         : `<button class="side-item ${ativo ? 'on' : ''}" data-m="${m.id}" type="button">${inner}</button>`;

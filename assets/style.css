@@ -78,8 +78,8 @@ body.has-ticker .side, body.has-ticker .fly { bottom: 62px; }
 }
 .fly.on { display: block; animation: flyIn .14s ease-out; }
 @keyframes flyIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
-.fly-t { font-size: 13.5px; font-weight: 800; color: var(--indigo); text-transform: uppercase; letter-spacing: .5px; margin: 4px 6px 10px; }
-.fly hr { border: 0; border-top: 1px solid var(--line); margin: 16px 6px; }
+.fly-t { font-size: 15px; font-weight: 800; color: var(--indigo); text-transform: uppercase; letter-spacing: .4px; margin: 6px 8px 10px; }
+.fly hr { border: 0; border-top: 1.5px solid #dcdae6; margin: 18px 8px 20px; }
 .fly-row { display: flex; align-items: center; justify-content: space-between; border-radius: 12px; }
 .fly-row a { flex: 1; padding: 10px 10px; color: var(--ink); text-decoration: none; font-size: 14.5px; }
 .fly-row:hover { background: #f1f0f6; }

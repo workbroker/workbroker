@@ -35,13 +35,12 @@ jobs:
           else
             cp -r data/. out/ 2>/dev/null || true
           fi
+          rm -f out/rv.json out/rv_cache.json
           ls -la out
       - name: Manchetes do InfoMoney
         run: python scripts/noticias.py || true
       - name: Indicadores macro
         run: python scripts/macro.py || true
-      - name: Ações, ETFs e FIIs
-        run: python scripts/rv.py || true
       - name: Publicar no ramo dados (sem histórico)
         run: |
           cd out
