@@ -6,7 +6,7 @@
   volume médio e rendimentos pagos (por mês da data-com).
 Os sinais (pontos críticos e bons) são calculados no site, a partir destes dados.
 Roda no GitHub Actions; o arquivo vai para o ramo "dados" (sem histórico)."""
-import csv, io, json, os, sys, time, zipfile, http.cookiejar, urllib.request, urllib.error, urllib.parse
+import csv, io, json, os, re, sys, time, zipfile, http.cookiejar, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 
@@ -246,25 +246,58 @@ def texto_documento(id_doc):
     return txt, None
 
 
-def resumir(txt):
-    import re
+RUIDO = [r"Sua opinião é importante para nós\.?\s*Avalie esta comunicação aqui\.?", r"BTG Pactual btgpactual\.com"]
+
+
+def _cap(t):
+    return t[:1].upper() + t[1:] if t else t
+
+
+def _titulo(t):
+    pequenas = {"de", "da", "do", "das", "dos", "e", "a", "o", "em", "para", "por", "com", "no", "na", "nos", "nas", "ao", "aos"}
+    ps = t.lower().split()
+    return " ".join(p if (i and p in pequenas) else p[:1].upper() + p[1:] for i, p in enumerate(ps))
+
+
+def resumir(txt, limite=330):
     if not txt:
         return ""
-    m = re.search(r"(?i)(fato relevante|comunicado ao mercado|aviso aos cotistas)\s*[:\-–]?\s*", txt)
-    corpo = txt[m.end():] if m and m.start() < 1500 else txt
-    # pula o cabeçalho típico ("A XXX, administradora do ..., vem comunicar aos cotistas e ao mercado que ...")
-    m2 = re.search(r"(?i)\b(vem|vêm|informa|comunica|esclarece)\b", corpo[:900])
-    if m2:
-        m3 = re.search(r"(?i)\bque\b|o seguinte\s*:|:", corpo[m2.end():m2.end() + 350])
-        if m3:
-            corpo = corpo[m2.end() + m3.end():]
+    for r in RUIDO:
+        txt = re.sub(r, " ", txt, flags=re.I)
+    txt = " ".join(txt.split())
+    cab = txt[:3500]
+    sub = ""
+    ms = re.search(r"(?:FATO RELEVANTE|F A T O R E L E V A N T E|COMUNICADO AO MERCADO|COMUNICADO AOS COTISTAS|COMUNICADO|AVISO AOS COTISTAS)\s*[–\-:]\s*([A-ZÀ-Ú0-9][A-ZÀ-Ú0-9 ,/()ºª%$\.\-]{8,160}?)(?=\s+(?:[A-ZÀ-Ú][a-zà-ú]|O |A |\d))", cab)
+    if ms:
+        sub = ms.group(1).strip(" .-–")
+    corpo = None
+    mr = re.search(r"\bRESUMO\b\s*:?\s*", cab[:1200])
+    if mr:
+        corpo = txt[mr.end():]
+    else:
+        ancoras = (r"(?i)mercado em geral\s*,?\s*(?:o que segue|o quanto segue|o seguinte|sobre o seguinte|que)?\s*[:,]?\s*",
+                   r"(?i)\b(?:comunicar|informar|esclarecer|comunica|informa|comunicam|informam)\s*(?:o seguinte|o quanto segue|o que segue)?\s*:\s*",
+                   r"(?i)(?:a|aos) (?:seus )?(?:quotistas|cotistas)(?: d[oa] (?:fundo|classe))?(?: \([^)]{0,20}\))?\s*,?\s*(?:o que segue|o quanto segue|o seguinte|que)\s*[:,]?\s*")
+        for pad in ancoras:
+            m = next((m for m in re.finditer(pad, cab) if m.start() > 60), None)
+            if m:
+                corpo = txt[m.end():]
+                break
+    if corpo is None:
+        return _titulo(sub) if sub else ""
+    corpo = re.sub(r"^(?:que\s*[:,]?\s*)", "", corpo.strip(" :;,.-–•\"“”"), flags=re.I)
+    corpo = re.sub(r"^(?:e\s+|(?:comunica|informa)\w*\s+(?:o quanto segue|o seguinte|o que segue)\s*:\s*)", "", corpo, flags=re.I)
+    corpo = re.sub(r"^(?:\(?[IVX]{1,4}[\.\)]|\d{1,2}[\.\)]|[a-z]\))\s+", "", corpo)
     corpo = re.sub(r"\s*[A-ZÀ-Ú][\wÀ-ú]+(?: [\wÀ-ú]+){0,3}, \d{1,2}º? de [a-zç]+ de \d{4}.*$", "", corpo)
-    corpo = corpo.strip(" :;,.-–")
-    if len(corpo) > 330:
-        corte = corpo[:330]
-        ponto = corte.rfind(". ")
+    corpo = corpo.replace(" •", ";").replace("• ", "")
+    if len(corpo) > limite:
+        corte = corpo[:limite]
+        ponto = max(corte.rfind(". "), corte.rfind("; "))
         corpo = corte[:ponto + 1] if ponto > 120 else corte.rsplit(" ", 1)[0] + "…"
-    return corpo[:1].upper() + corpo[1:] if corpo else ""
+    corpo = _cap(corpo.strip())
+    if sub and len(sub) < 120 and not corpo.lower().startswith(sub.lower()[:20]):
+        corpo = _titulo(sub) + ": " + corpo
+    return corpo
 
 
 def main():
@@ -299,22 +332,17 @@ def main():
     lim = (hoje - timedelta(days=45)).strftime("%Y-%m-%d")
     alvos = [reg for v in docs.values() if v for reg in v if reg[0] >= lim and ("Fato" in reg[1] or "Comunicado" in reg[1]) and not reg[4]][:220]
     amostras, falhas = [], []
-    BRUTOS = []
     def resumo_de(reg):
         txt, erro = texto_documento(reg[5])
         if erro:
             if len(falhas) < 5: falhas.append(erro)
             return
-        BRUTOS.append({"id": reg[5], "cat": reg[1], "txt": txt[:3500]})
         r = resumir(txt)
         if r:
             reg[4] = r
-            if len(amostras) < 4: amostras.append({"id": reg[5], "inicio": txt[:400], "resumo": r})
+            if len(amostras) < 3: amostras.append({"id": reg[5], "resumo": r})
     with ThreadPoolExecutor(max_workers=4) as ex:
         list(ex.map(resumo_de, alvos))
-    if os.environ.get("FORCAR"):
-        with open(os.path.join(DATA_DIR, "docs_debug.json"), "w", encoding="utf-8") as fp:
-            json.dump(BRUTOS, fp, ensure_ascii=False)
     debug["resumos"] = {"alvos": len(alvos), "ok": sum(1 for r in alvos if r[4]), "falhas": falhas, "amostras": amostras}
     debug["docs_ok"] = sum(1 for v in docs.values() if v is not None)
     debug["docs_n"] = sum(len(v) for v in docs.values() if v)

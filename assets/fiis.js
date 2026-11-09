@@ -73,10 +73,11 @@ function calcAuto(t, a) {
   f.docs = arr(a.docs).filter(d => !/Estruturado/.test(d[1])).map(([data, cat, tipo, esp, inf, id]) => ({ data, cat, tipo, esp, inf: /^FII .{0,20};$/.test(inf || '') ? '' : inf, id }));
   const diasAtras = d => (Date.now() - new Date(d + 'T12:00:00')) / 864e5;
   f.avisos = [];
+  const curto = t => t && t.length > 170 ? t.slice(0, 170).replace(/\s+\S*$/, '') + '…' : t;
   f.docs.filter(d => /fato relevante/i.test(d.cat) && diasAtras(d.data) <= 45).slice(0, 2)
-    .forEach(d => f.avisos.push({ d, txt: `Fato relevante em ${fmtDate(d.data)}${d.inf ? ': ' + d.inf : ''}` }));
+    .forEach(d => f.avisos.push({ d, txt: `Fato relevante em ${fmtDate(d.data)}${d.inf ? ': ' + curto(d.inf) : ''}` }));
   const age = f.docs.find(d => /assembl/i.test(d.cat) && /AGE|extraordin/i.test(d.tipo + ' ' + d.esp) && /convoca|edital|proposta|consulta/i.test(d.esp + ' ' + d.tipo + ' ' + d.cat) && diasAtras(d.data) <= 60);
-  if (age) f.avisos.push({ d: age, txt: `Assembleia extraordinária convocada (${fmtDate(age.data)})${age.inf ? ': ' + age.inf : ''}` });
+  if (age) f.avisos.push({ d: age, txt: `Assembleia extraordinária convocada (${fmtDate(age.data)})${age.inf ? ': ' + curto(age.inf) : ''}` });
   f.forte = forte; f.medio = medio; f.crit = [...forte, ...medio, ...info]; f.bom = bom;
   f.nivel = forte.length >= 2 || (forte.length && medio.length >= 2) ? 'elevada' : forte.length || medio.length >= 2 ? 'moderada' : 'ok';
   return f;
