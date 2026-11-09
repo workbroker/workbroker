@@ -116,27 +116,127 @@ function uid() { return Math.random().toString(36).slice(2, 9); }
 function fmtDate(iso) { return iso ? iso.split('-').reverse().join('/') : '—'; }
 function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
 
-// Cabeçalho comum a todas as páginas: <header class="top" data-page="..."></header>
-const NAV = [
-  { id: 'inicio', href: 'index.html', label: 'Início' },
-  { id: 'pendencias', href: 'pendencias.html', label: 'Pendências' },
-  { id: 'rv', href: 'rv.html', label: 'Renda variável' },
-  { id: 'rf', href: 'rf.html', label: 'Renda fixa' },
-  { id: 'carteira', href: 'carteira.html', label: 'Carteira e rebalanceamento' },
-  { id: 'mercado', href: 'mercado.html', label: 'Mercado ao vivo' },
-  { id: 'relatorio', href: 'relatorio.html', label: 'Relatório mensal' },
+// ---------- Menu lateral (estilo hub) + busca ----------
+const ICON = {
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  check: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+  trend: '<path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/>',
+  bank: '<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/>',
+  pie: '<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M14.5 3.3A9 9 0 0 1 20.7 9.5H14.5z"/>',
+  slides: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>',
+  news: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+};
+const svgI = (k, sz = 20) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+const MENU = [
+  { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
+  { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
+  { id: 'pendencias', label: 'Pendências', href: 'pendencias.html', ic: 'check' },
+  { id: 'rv', label: 'Renda variável', ic: 'trend', grupos: [
+    { t: 'Renda variável', itens: [['Análise de ações e FIIs', 'rv-analise.html'], ['Boleta de ações', 'rv-boleta.html'], ['Visão geral', 'rv.html']] }] },
+  { id: 'rf', label: 'Renda fixa', ic: 'bank', grupos: [
+    { t: 'Simulações', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos']] },
+    { t: 'Carteira', itens: [['Risco de crédito', 'rf-credito.html'], ['Visão geral', 'rf.html']] }] },
+  { id: 'carteira', label: 'Carteira', ic: 'pie', grupos: [
+    { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
+  { id: 'relatorio', label: 'Relatório mensal', href: 'relatorio.html', ic: 'slides' },
+  { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
-(function renderHeader() {
+const PAGINAS = [
+  ['Início', 'index.html', 'home inicio painel'], ['Pendências', 'pendencias.html', 'tarefas pendencias to-do urgente'],
+  ['Análise de ações e FIIs', 'rv-analise.html', 'renda variavel acoes fii dividendos consenso estruturadas'],
+  ['Boleta de ações', 'rv-boleta.html', 'ordens compra venda de acordo broker'],
+  ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],
+  ['Isento × tributado', 'rf-calculadoras.html#isento', 'lci lca gross-up equivalencia'],
+  ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons', 'cupom cupons fluxo ntn-b juros semestrais pagamento'],
+  ['Juros compostos', 'rf-calculadoras.html#compostos', 'aportes simulacao patrimonio'],
+  ['Risco de crédito', 'rf-credito.html', 'rating fgc emissor concentracao vencimentos'],
+  ['Carteira e rebalanceamento', 'carteira.html', 'xperformance alocacao over under recomendada'],
+  ['Relatório mensal', 'relatorio.html', 'apresentacao cliente xperformance mensal pdf'],
+  ['Mercado ao vivo', 'mercado.html', 'noticias infomoney cotacoes'],
+];
+const favs = () => store.get('rw_favs', []);
+const semAcentoNav = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+(function renderLayout() {
   const h = document.querySelector('header.top');
   if (!h) return;
-  const page = h.dataset.page;
-  h.innerHTML = `
-    <div class="bar">
-      <a class="brand" href="index.html"><span class="mark">RW</span><span class="name">Rico<b>.</b>Work</span></a>
-    </div>
-    <nav>${NAV.map(n => `<a href="${n.href}" class="${n.id === page ? 'active' : ''}">${n.label}${n.soon ? '<span class="soon">em breve</span>' : ''}</a>`).join('')}</nav>`;
-})();
+  const page = h.dataset.page, arq = (location.pathname.split('/').pop() || 'index.html') + (location.hash || '');
+  document.body.classList.add('has-side');
 
+  const side = document.createElement('aside');
+  side.className = 'side no-print';
+  side.innerHTML = `<a class="side-logo" href="index.html" title="Rico.Work">RW</a>
+    <nav class="side-nav">${MENU.map(m => {
+      const ativo = m.id === page || (m.id === 'carteira' && page === 'carteira');
+      const inner = `${svgI(m.ic)}<span>${m.label}</span>`;
+      return m.href && !m.grupos ? `<a class="side-item ${ativo ? 'on' : ''}" href="${m.href}" data-m="${m.id}">${inner}</a>`
+        : `<button class="side-item ${ativo ? 'on' : ''}" data-m="${m.id}" type="button">${inner}</button>`;
+    }).join('')}</nav>`;
+  document.body.appendChild(side);
+
+  const fly = document.createElement('div');
+  fly.className = 'fly no-print'; fly.id = 'fly';
+  document.body.appendChild(fly);
+  const shade = document.createElement('div');
+  shade.className = 'side-shade no-print';
+  document.body.appendChild(shade);
+
+  h.innerHTML = `<div class="bar">
+      <button class="menu-btn" type="button" aria-label="Menu">${svgI('menu', 22)}</button>
+      <a class="brand" href="index.html"><span class="mark">RW</span><span class="name">Rico<b>.</b>Work</span></a>
+      <div class="busca"><input type="search" id="buscaPag" placeholder="Buscar página ou ferramenta" autocomplete="off">${svgI('search', 18)}<div class="busca-res" id="buscaRes"></div></div>
+    </div>`;
+
+  // painel de subpáginas
+  let fecharT;
+  const linha = ([nome, href]) => {
+    const f = favs().includes(href), atual = href === arq || href.split('#')[0] === arq && !href.includes('#');
+    return `<div class="fly-row ${atual ? 'on' : ''}"><a href="${href}">${esc(nome)}</a><button class="fly-star ${f ? 'f' : ''}" data-fav="${href}" data-nome="${esc(nome)}" title="${f ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" type="button">${svgI('star', 16)}</button></div>`;
+  };
+  function abrir(id) {
+    const m = MENU.find(x => x.id === id); if (!m) return;
+    let html;
+    if (m.fav) {
+      const F = favs().map(href => PAGINAS.find(p => p[1] === href)).filter(Boolean);
+      html = `<div class="fly-t">Favoritos</div>${F.length ? F.map(p => linha([p[0], p[1]])).join('') : '<p class="note">Toque na ☆ ao lado de qualquer página para fixá-la aqui.</p>'}`;
+    } else html = m.grupos.map(g => `<div class="fly-t">${esc(g.t)}</div>${g.itens.map(linha).join('')}`).join('<hr>');
+    fly.innerHTML = html; fly.classList.add('on'); fly.dataset.m = id;
+    side.querySelectorAll('.side-item').forEach(b => b.classList.toggle('hover', b.dataset.m === id));
+  }
+  function fechar() { fly.classList.remove('on'); side.querySelectorAll('.side-item').forEach(b => b.classList.remove('hover')); }
+  const temPainel = id => { const m = MENU.find(x => x.id === id); return m && (m.grupos || m.fav); };
+  let abertoEm = 0;
+  side.addEventListener('mouseover', e => { const b = e.target.closest('.side-item'); if (!b || !matchMedia('(hover: hover)').matches) return; clearTimeout(fecharT); if (temPainel(b.dataset.m)) { if (fly.dataset.m !== b.dataset.m || !fly.classList.contains('on')) abertoEm = Date.now(); abrir(b.dataset.m); } else fechar(); });
+  side.addEventListener('click', e => { const b = e.target.closest('button.side-item'); if (!b) return; const recem = Date.now() - abertoEm < 500; fly.classList.contains('on') && fly.dataset.m === b.dataset.m && !recem ? fechar() : abrir(b.dataset.m); });
+  [side, fly].forEach(el => { el.addEventListener('mouseleave', () => { if (matchMedia('(hover: hover)').matches) fecharT = setTimeout(fechar, 250); }); el.addEventListener('mouseenter', () => clearTimeout(fecharT)); });
+  fly.addEventListener('click', e => {
+    const st = e.target.closest('[data-fav]'); if (!st) return;
+    e.preventDefault();
+    const F = favs(), href = st.dataset.fav;
+    store.set('rw_favs', F.includes(href) ? F.filter(x => x !== href) : [...F, href]);
+    abrir(fly.dataset.m);
+  });
+  // celular: menu abre por cima
+  const menuBtn = h.querySelector('.menu-btn');
+  menuBtn.onclick = () => document.body.classList.toggle('side-open');
+  shade.onclick = () => { document.body.classList.remove('side-open'); fechar(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { fechar(); document.body.classList.remove('side-open'); } });
+
+  // busca de páginas
+  const inp = h.querySelector('#buscaPag'), res = h.querySelector('#buscaRes');
+  const achar = q => { q = semAcentoNav(q.trim()); return q ? PAGINAS.filter(p => semAcentoNav(p[0] + ' ' + p[2]).includes(q)).slice(0, 7) : []; };
+  inp.addEventListener('input', () => {
+    const r = achar(inp.value);
+    res.innerHTML = r.length ? r.map(p => `<a href="${p[1]}">${esc(p[0])}</a>`).join('') : inp.value.trim() ? '<div class="note" style="padding:10px 14px">Nada encontrado</div>' : '';
+    res.classList.toggle('on', !!inp.value.trim());
+  });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { const r = achar(inp.value); if (r[0]) location.href = r[0][1]; } });
+  inp.addEventListener('blur', () => setTimeout(() => res.classList.remove('on'), 200));
+  document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); inp.focus(); } });
+})();
 
 // ---------- Widgets do TradingView (cotações) ----------
 function tvWidget(container, nome, config) {

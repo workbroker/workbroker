@@ -12,12 +12,18 @@
 <header class="top" data-page="inicio"></header>
 
 <main>
-  <section class="hero">
-    <h1 id="saudacao">Olá, Italo</h1>
-    <p>Suas ferramentas do dia a dia na assessoria, num lugar só.</p>
-    <div class="chips"><span class="chip" id="hoje"></span><span class="chip">🔒 Dados de clientes ficam só no seu navegador</span></div>
-  </section>
+  <h1 id="saudacao">Olá, Italo</h1>
+  <p class="lead" id="hoje" style="margin-bottom:22px"></p>
 
+  <div class="kcards" id="kcards">
+    <a class="kcard" href="pendencias.html"><div class="t">Pendências</div><div class="s" id="kPendS">em aberto</div><div class="n" id="kPend">—</div></a>
+    <a class="kcard" href="pendencias.html"><div class="t">Urgentes</div><div class="s">alta prioridade</div><div class="n" id="kUrg">—</div></a>
+    <a class="kcard" href="mercado.html"><div class="t">Selic</div><div class="s" id="kSelicS">meta a.a.</div><div class="n" id="kSelic">—</div></a>
+    <a class="kcard" href="mercado.html"><div class="t">Dólar</div><div class="s" id="kDolS">hoje</div><div class="n" id="kDol">—</div></a>
+    <a class="kcard" href="mercado.html"><div class="t">Ibovespa</div><div class="s" id="kIbovS">pontos</div><div class="n" id="kIbov">—</div></a>
+  </div>
+
+  <h2 style="font-size:20px;margin:26px 0 12px;color:#2b2838">Ferramentas</h2>
   <div class="tools">
     <a class="tool" href="pendencias.html">
       <div class="top"><div class="ico">✅</div><span class="tag" id="pendTag">Dia a dia</span></div>
@@ -49,10 +55,25 @@
 
 <script src="assets/common.js"></script>
 <script>
-  const h = new Date().getHours();
-  document.getElementById('saudacao').textContent = (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', Italo';
-  try { const P = (JSON.parse(localStorage.getItem('rw_pend') || '{}').itens || []).filter(t => !t.deleted && t.etapa !== 'Concluído'); if (P.length) document.getElementById('pendTag').textContent = `${P.length} em aberto`; } catch {}
-  document.getElementById('hoje').textContent = '📅 ' + new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hr = new Date().getHours();
+  document.getElementById('saudacao').textContent = (hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite') + ', Italo';
+  const d = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('hoje').textContent = d.charAt(0).toUpperCase() + d.slice(1);
+  try {
+    const P = (JSON.parse(localStorage.getItem('rw_pend') || '{}').itens || []).filter(t => !t.deleted && t.etapa !== 'Concluído');
+    document.getElementById('kPend').textContent = P.length;
+    document.getElementById('kUrg').textContent = P.filter(t => t.urgencia === 'Urgente' || t.urgencia === 'Alta').length;
+    const esp = P.filter(t => /Esperando/.test(t.etapa)).length;
+    if (esp) document.getElementById('kPendS').textContent = `em aberto · ${esp} esperando alguém`;
+    if (P.length) document.getElementById('pendTag').textContent = `${P.length} em aberto`;
+  } catch {}
+  carregarDados('macro.json').then(m => {
+    const g = id => m.itens.find(i => i.id === id);
+    const pint = (id, el, sub, f) => { const i = g(id); if (!i) return; document.getElementById(el).innerHTML = f(i); if (sub && i.var != null) document.getElementById(sub).innerHTML = `<span class="${i.var >= 0 ? 'good' : 'bad'}">${i.var >= 0 ? '▲' : '▼'} ${Math.abs(i.var).toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}%</span> hoje`; };
+    pint('selic', 'kSelic', null, i => `${i.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<small>%</small>`);
+    pint('dolar', 'kDol', 'kDolS', i => `<small>R$</small>${i.valor.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`);
+    pint('ibov', 'kIbov', 'kIbovS', i => `${(i.valor / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}<small>mil</small>`);
+  }).catch(() => {});
 </script>
 </body>
 </html>
