@@ -1,6 +1,6 @@
 """Indicadores de todos os FIIs listados -> fiis.json (uma vez por dia)
-- CVM (dados abertos, informes mensal e trimestral): nome, segmento, mandato, gestão, administrador,
-  valor patrimonial por cota (hoje e 12 meses antes), patrimônio, cotistas, vacância.
+- CVM (dados abertos, informe mensal): nome, segmento, gestão, administrador,
+  valor patrimonial por cota (hoje e 12 meses antes), patrimônio e cotistas.
 - Yahoo Finance (gráfico semanal de 2 anos): cotação atual, no início do ano e 12 meses antes,
   volume médio e rendimentos pagos (por mês da data-com).
 Os sinais (pontos críticos e bons) são calculados no site, a partir destes dados.
@@ -65,7 +65,7 @@ def versao_final(linhas):
 
 def dados_cvm(debug):
     ano = datetime.now(BRT).year
-    geral, comp, imoveis = [], [], []
+    geral, comp = [], []
     for a in (ano - 1, ano):
         try:
             for nm, linhas in ler_zip(f"https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_{a}.zip").items():
@@ -73,14 +73,8 @@ def dados_cvm(debug):
                 elif "complemento" in nm: comp += linhas
         except Exception as e:
             log("cvm mensal", a, e)
-        try:
-            for nm, linhas in ler_zip(f"https://dados.cvm.gov.br/dados/FII/DOC/INF_TRIMESTRAL/DADOS/inf_trimestral_fii_{a}.zip").items():
-                if nm.endswith(f"imovel_{a}.csv"): imoveis += linhas
-        except Exception as e:
-            log("cvm trimestral", a, e)
-    debug["n_geral"], debug["n_comp"], debug["n_imoveis"] = len(geral), len(comp), len(imoveis)
+    debug["n_geral"], debug["n_comp"] = len(geral), len(comp)
     if comp: debug["cols_comp"] = list(comp[0].keys())
-    if imoveis: debug["cols_imovel"] = list(imoveis[0].keys())
     G, C = versao_final(geral), versao_final(comp)
     cad = {}   # cnpj -> linha mais recente do "geral"
     for (cn, d), l in G.items():
@@ -93,24 +87,6 @@ def dados_cvm(debug):
         ct = num(col(l, "Total_Numero_Cotistas", "Total", "Cotistas"))
         if vp:
             hist.setdefault(cn, {})[d[:7]] = (vp, pl, ct)
-    # vacância (física) média ponderada pela área/receita, por trimestre
-    vac = {}
-    acc = {}
-    for l in imoveis:
-        cn, d = l.get("CNPJ_Fundo_Classe") or l.get("CNPJ_Fundo"), l.get("Data_Referencia", "")
-        v = num(col(l, "Percentual_Vacancia", "Vacancia"))
-        if not cn or not d or v is None:
-            continue
-        w = num(col(l, "Area", "Area")) or num(col(l, "Percentual_Receitas_FII", "Receitas")) or 1
-        acc.setdefault(cn, {}).setdefault(d, []).append((v, w))
-    for cn, por_data in acc.items():
-        serie = []
-        for d in sorted(por_data):
-            lst = por_data[d]
-            fator = 100 if max(v for v, _ in lst) <= 1 else 1
-            tw = sum(w for _, w in lst)
-            serie.append((d, round((sum(v * w for v, w in lst) / tw if tw else 0) * fator, 2)))
-        vac[cn] = serie
     fundos = {}
     for cn, l in cad.items():
         isin = (l.get("Codigo_ISIN") or "").strip().upper()
@@ -131,11 +107,6 @@ def dados_cvm(debug):
             "vp": h[ult][0], "vp_ref": ult, "pl": h[ult][1], "cot": h[ult][2],
             "vp12": h[m12][0] if m12 and m12 != ult else None, "vp12_ref": m12 if m12 != ult else None,
         }
-        if cn in vac:
-            s = vac[cn]
-            reg["vac"], reg["vac_ref"] = s[-1][1], s[-1][0][:7]
-            if len(s) > 1:
-                reg["vac_ant"] = s[-2][1]
         if t not in fundos or reg["vp_ref"] > fundos[t]["vp_ref"]:
             fundos[t] = reg
     return fundos
@@ -225,7 +196,9 @@ def main():
             atual = r["meta"].get("regularMarketPrice") or pts[-1][1]
             antes = lambda lim: next((c for d, c in reversed(pts) if d < lim), None)
             p12, pano = antes(hoje - timedelta(days=365)), antes(datetime(hoje.year, 1, 1, tzinfo=BRT))
-            ifix = {"fonte": s, "r12": round(atual / p12 - 1, 4) if p12 else None, "ano": round(atual / pano - 1, 4) if pano else None}
+            if not p12 or not pano:
+                continue
+            ifix = {"fonte": s, "r12": round(atual / p12 - 1, 4), "ano": round(atual / pano - 1, 4)}
             break
         except Exception:
             continue
@@ -234,7 +207,7 @@ def main():
         log("poucos FIIs; mantendo o arquivo anterior")
         return
     with open(SAIDA, "w", encoding="utf-8") as fp:
-        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "f": saida, "_debug": debug}, fp, ensure_ascii=False, separators=(",", ":"))
+        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "f": saida}, fp, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":

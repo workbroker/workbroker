@@ -44,6 +44,8 @@ jobs:
       - name: FIIs (uma vez por dia)
         run: python scripts/fiis.py || true
         timeout-minutes: 15
+        env:
+          FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
       - name: Publicar no ramo dados (sem histórico)
         run: |
           cd out
