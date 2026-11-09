@@ -299,17 +299,22 @@ def main():
     lim = (hoje - timedelta(days=45)).strftime("%Y-%m-%d")
     alvos = [reg for v in docs.values() if v for reg in v if reg[0] >= lim and ("Fato" in reg[1] or "Comunicado" in reg[1]) and not reg[4]][:220]
     amostras, falhas = [], []
+    BRUTOS = []
     def resumo_de(reg):
         txt, erro = texto_documento(reg[5])
         if erro:
             if len(falhas) < 5: falhas.append(erro)
             return
+        BRUTOS.append({"id": reg[5], "cat": reg[1], "txt": txt[:3500]})
         r = resumir(txt)
         if r:
             reg[4] = r
             if len(amostras) < 4: amostras.append({"id": reg[5], "inicio": txt[:400], "resumo": r})
     with ThreadPoolExecutor(max_workers=4) as ex:
         list(ex.map(resumo_de, alvos))
+    if os.environ.get("FORCAR"):
+        with open(os.path.join(DATA_DIR, "docs_debug.json"), "w", encoding="utf-8") as fp:
+            json.dump(BRUTOS, fp, ensure_ascii=False)
     debug["resumos"] = {"alvos": len(alvos), "ok": sum(1 for r in alvos if r[4]), "falhas": falhas, "amostras": amostras}
     debug["docs_ok"] = sum(1 for v in docs.values() if v is not None)
     debug["docs_n"] = sum(len(v) for v in docs.values() if v)

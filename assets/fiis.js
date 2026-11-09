@@ -272,13 +272,13 @@ function abrirFundo(t) {
   const i = info(t); if (!i.a && !i.m) return;
   $('dlgT').innerHTML = `<span class="tk">${esc(i.t)}</span> <span style="font-weight:600;font-size:16px">· ${esc(i.nome)}</span> ${lv(i.nivel)}${i.m ? mud(i.m.mudanca) : ''}`;
   let html = '';
-  if (i.a && (i.a.docs.length || i.a.cnpj)) html += `<div class="det" style="margin-bottom:14px">${avisosHtml(i.a)}${docsHtml(i.a)}</div>`;
-  if (i.m) html += completoManual(i.m);
+  const docs = i.a && (i.a.docs.length || i.a.cnpj) ? `${avisosHtml(i.a)}${docsHtml(i.a)}` : '';
+  if (i.m) html += completoManual(i.m) + (docs ? `<div class="det" style="margin-top:14px">${docs}</div>` : '');
   if (i.a) {
     const caixas = `<div class="dois"><div class="caixa crit"><h4>⚠ Pontos críticos (automático)</h4>${i.a.crit.length ? `<ul>${li(i.a.crit)}</ul>` : '<p>Nenhum sinal crítico nos indicadores.</p>'}</div><div class="caixa bom"><h4>✓ Pontos bons (automático)</h4>${i.a.bom.length ? `<ul>${li(i.a.bom)}</ul>` : '<p>Nenhum ponto bom destacado nos indicadores.</p>'}</div></div>`;
     const cab = `<p class="note" style="margin:0 0 10px">Indicadores de hoje calculados automaticamente com dados da CVM (informe de ${mlab(i.a.vp_ref)}) e da B3. São sinais objetivos para investigar, não uma análise do fundo.</p>`;
     const nm = notaManual(i.t);
-    html += i.m ? `<details style="margin-top:14px" open><summary>Indicadores automáticos de hoje</summary><div class="det" style="margin-top:10px">${cab}${caixas}${blocoAuto(i.a)}</div></details>` : `<div class="det">${cab}${nm}${caixas}${blocoAuto(i.a)}</div>`;
+    html += i.m ? `<details style="margin-top:14px" open><summary>Indicadores automáticos de hoje</summary><div class="det" style="margin-top:10px">${cab}${caixas}${blocoAuto(i.a)}</div></details>` : `<div class="det">${cab}${nm}${caixas}${docs}${blocoAuto(i.a)}</div>`;
   }
   $('dlgB').innerHTML = html;
   $('dlgFii').hidden = false; $('dlgFii').querySelector('.modal').scrollTop = 0;
