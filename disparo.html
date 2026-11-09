@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Disparo de relatórios · Rico.Work</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ERW%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .passos { display: grid; gap: 14px; }
+  @media (min-width: 1000px) { .passos { grid-template-columns: 1fr 1fr; } }
+  #tCli td, #tCli th { padding: 8px 6px; }
+  #tCli input[type=text], #tCli input[type=email] { padding: 6px 8px; font-size: 13.5px; }
+  .barra { height: 8px; background: #efeef5; border-radius: 6px; overflow: hidden; margin-top: 8px; }
+  .barra i { display: block; height: 100%; background: var(--orange); width: 0; transition: width .2s; }
+  .comoenviar li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<header class="top" data-page="relatorio"></header>
+
+<main>
+  <h1>Disparo de relatórios</h1>
+  <p class="lead">Suba a planilha de clientes e todos os XPerformance do mês. O site cruza a conta de cada relatório com a planilha e monta um e-mail personalizado para cada cliente, com o PDF em anexo e o seu comentário macro. Tudo é processado no seu navegador.</p>
+
+  <div class="passos">
+    <div class="card">
+      <h2><span class="step">1</span>Planilha de clientes</h2>
+      <p class="note" style="margin-top:0">Excel (.xlsx) ou CSV com as colunas <b>código</b> (conta), <b>primeiro nome</b> e <b>e-mail</b>. A ordem e os nomes das colunas não precisam ser exatos.</p>
+      <div class="drop" id="dropPlan"><div class="big">📊</div><div><b>Importar planilha</b></div><input type="file" id="filePlan" accept=".xlsx,.csv,.txt" hidden></div>
+      <div id="infoPlan" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2><span class="step">2</span>XPerformance do mês</h2>
+      <p class="note" style="margin-top:0">Selecione todos os PDFs de uma vez (pode arrastar a pasta inteira de arquivos).</p>
+      <div class="drop" id="dropPdf"><div class="big">📄</div><div><b>Importar os PDFs</b></div><input type="file" id="filePdf" accept="application/pdf,.pdf" multiple hidden></div>
+      <div id="infoPdf" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2><span class="step">3</span>Comentário macro (vai para todos)</h2>
+      <button class="sm secondary" id="btnSugerir">↻ Gerar texto com os indicadores</button></div>
+    <textarea id="macro" rows="7" placeholder="O texto com os indicadores aparece aqui depois de importar os PDFs. Complete com a sua visão sobre política e economia."></textarea>
+    <div class="fields" style="margin-top:12px">
+      <label class="f">Assunto <input id="assunto"></label>
+      <label class="f">Assinatura <textarea id="ass" rows="2"></textarea></label>
+    </div>
+    <div class="row" style="margin-top:10px;gap:16px">
+      <label class="check"><input type="checkbox" id="optCat" checked> Rentabilidade por estratégia</label>
+      <label class="check"><input type="checkbox" id="optTop" checked> Melhores e piores ativos</label>
+      <label class="check"><input type="checkbox" id="optAno" checked> Resultado no ano</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2><span class="step">4</span>Clientes</h2><div class="kpis" id="kpis" style="flex:1;max-width:720px"></div></div>
+    <div class="table-wrap fixo"><table id="tCli"></table></div>
+    <div class="row no-print" style="margin-top:14px">
+      <button id="btnZip">⬇ Baixar e-mails prontos (.zip)</button>
+      <button class="secondary" id="btnCsv">⬇ Exportar lista</button>
+      <span class="note" id="infoZip"></span>
+    </div>
+  </div>
+
+  <details class="card" open>
+    <summary>📮 Como enviar</summary>
+    <ol class="note comoenviar" style="padding-left:18px;line-height:1.55;font-size:14px">
+      <li>Toque em <b>Baixar e-mails prontos</b> e abra o arquivo .zip (extrair tudo).</li>
+      <li>Dentro tem um arquivo <b>.eml</b> por cliente. Dê dois cliques: ele abre no <b>Outlook</b> como e-mail novo, já com destinatário, assunto, texto e o XPerformance anexado.</li>
+      <li>Confira e clique em <b>Enviar</b>. O e-mail sai da sua conta, como qualquer outro, e fica registrado nos seus enviados.</li>
+    </ol>
+    <p class="note">Funciona no Outlook do Windows (clássico) e no Mail do Mac. Para enviar um cliente pelo Gmail ou pelo Outlook na web, use o botão ✉️ da linha e anexe o PDF à mão.</p>
+  </details>
+</main>
+
+<script src="assets/common.js"></script>
+<script src="assets/xp-parser.js"></script>
+<script src="assets/email.js"></script>
+<script src="assets/arquivos-lite.js"></script>
+<script src="assets/disparo.js"></script>
+</body>
+</html>

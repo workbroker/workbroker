@@ -141,7 +141,8 @@ const MENU = [
     { t: 'Carteira', itens: [['Risco de crédito', 'rf-credito.html'], ['Visão geral', 'rf.html']] }] },
   { id: 'carteira', label: 'Carteira', ic: 'pie', grupos: [
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
-  { id: 'relatorio', label: 'Relatório mensal', href: 'relatorio.html', ic: 'slides' },
+  { id: 'relatorio', label: 'Relatório mensal', ic: 'slides', grupos: [
+    { t: 'Relatório mensal', itens: [['Apresentação do mês', 'relatorio.html'], ['Disparo de relatórios', 'disparo.html']] }] },
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
 const PAGINAS = [
@@ -155,6 +156,7 @@ const PAGINAS = [
   ['Risco de crédito', 'rf-credito.html', 'rating fgc emissor concentracao vencimentos'],
   ['Carteira e rebalanceamento', 'carteira.html', 'xperformance alocacao over under recomendada'],
   ['Relatório mensal', 'relatorio.html', 'apresentacao cliente xperformance mensal pdf'],
+  ['Disparo de relatórios', 'disparo.html', 'disparo lote email todos clientes xperformance anexo planilha excel'],
   ['Mercado ao vivo', 'mercado.html', 'noticias infomoney cotacoes'],
 ];
 const favs = () => store.get('rw_favs', []);
