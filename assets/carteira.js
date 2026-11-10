@@ -31,6 +31,10 @@ let S = Object.assign(estadoVazio(), store.get('rw_carteira_atual', {}));
 const salvarAtual = () => store.set('rw_carteira_atual', S);
 const v = x => { const n = parseNum(x); return Number.isFinite(n) ? n : 0; };
 
+const ativoDe = id => S.ativos.find(x => x.id === id);
+const clsCompra = o => (o.ativoId && ativoDe(o.ativoId)?.classe) || o.classe || 'pos';
+const nomeCompra = o => (o.ativoId && ativoDe(o.ativoId)?.nome) || o.nome || '';
+
 // ================= Cálculos =================
 function calcular() {
   const atual = Object.fromEntries(CLASSES.map(c => [c.k, 0]));
@@ -58,7 +62,7 @@ function calcular() {
     const val = v(o.valor); if (val <= 0) return;
     totComprasTodas += val;
     if (!conta(o)) return;
-    comprasCls[o.classe] += val; totCompras += val;
+    comprasCls[clsCompra(o)] += val; totCompras += val;
   });
   const saldoConta = v(S.saldoConta), aporte = v(S.aporte);
   const disponivel = totVendas + saldoConta + aporte;
@@ -220,41 +224,84 @@ function renderSummary(R) {
     <div class="kpi"><div class="l">Total em compras</div><div class="v good">${brl(R.totCompras)}</div>${S.considerar === 'concluidas' ? `<div class="s">de ${brl(R.totComprasTodas)} lançadas</div>` : ''}</div>
     <div class="kpi ${dif < -0.005 ? '' : 'orange'}" style="${dif < -0.005 ? 'background:var(--bad-soft)' : ''}"><div class="l">${dif < -0.005 ? 'Falta (necessidade)' : 'Sobra'}</div><div class="v ${dif < -0.005 ? 'bad' : ''}">${brl(Math.abs(dif))}</div><div class="s">${dif < -0.005 ? 'compras maiores que o disponível' : 'fica em caixa (Pós-fixado)'}</div></div>
     ${R.avisos.length ? `<div class="kpi" style="grid-column:1/-1;background:var(--warn-soft)"><div class="s warn">${R.avisos.map(esc).join('<br>')}</div></div>` : ''}`;
-  $('totVendas').textContent = brl(R.totVendasTodas);
-  $('totCompras').textContent = brl(R.totComprasTodas);
 }
 
-function optsAtivos(sel) {
-  return '<option value="">Escolha o ativo…</option>' + CLASSES.map(c => {
-    const lista = S.ativos.filter(a => a.classe === c.k);
-    if (!lista.length) return '';
-    return `<optgroup label="${c.n}">${lista.map(a => `<option value="${a.id}" ${a.id === sel ? 'selected' : ''}>${esc(a.nome || '(sem nome)')} · ${brl(v(a.saldo))}</option>`).join('')}</optgroup>`;
+// ---------- Movimentações (layout de posição consolidada) ----------
+const FECHADAS = new Set(store.get('rw_carteira_fechadas', []));
+function donut(p, cor) {
+  const r = 20, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, p / 100));
+  return `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="${r}" fill="none" stroke="#eceaf3" stroke-width="5"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${cor}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 26 26)"/><text x="26" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="#22105a">${pct(p, 1).replace('%', '')}%</text></svg>`;
+}
+function cabecalhoClasse(l, R) {
+  const muda = Math.abs(l.novo - l.atual) > 0.005;
+  const cor = Math.abs((muda ? l.difN : l.dif)) <= R.tol ? '#16a06a' : (muda ? l.difN : l.dif) > 0 ? '#e2403a' : '#e89a0c';
+  return `<div>${donut(muda ? l.pn : l.pa, cor)}</div>
+    <div><div class="nmc">${l.n}</div><div class="sub">Atual ${pct(l.pa, 1)} · Recomendado ${pct(l.pr, 1)}${muda ? ` · <b style="color:var(--orange)">Depois ${pct(l.pn, 1)}</b>` : ''}</div></div>
+    <div class="pos"><small>Posição</small><b>${brl(l.atual)}</b>${muda ? `<div class="dlt ${l.novo > l.atual ? 'good' : 'bad'}">${l.novo > l.atual ? '+' : '−'}${brl(Math.abs(l.novo - l.atual))} → ${brl(l.novo)}</div>` : ''}</div>
+    <div class="chev">⌄</div>`;
+}
+function linhaOrdem(tipo, o, a) {
+  const st = `<select data-k="status" class="status-sel ${o.status}">${optsStatus(o.status)}</select>`;
+  const del = `<button class="danger sm" data-del type="button" title="Desfazer">✕</button>`;
+  if (tipo === 'v') return `<div class="mord" data-v="${o.id}"><span class="lbl">Resgatar R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"><button class="sm secondary" data-tudo type="button">Tudo</button>${st}${del}</div>`;
+  if (a) return `<div class="mord" data-c="${o.id}"><span class="lbl">Aplicar R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00">${st}${del}</div>`;
+  return `<div class="mord" data-c="${o.id}"><input class="nome" data-k="nome" value="${esc(o.nome)}" placeholder="Nome do ativo novo (ex.: LCD BNDES, CDB IPCA+, fundo…)"><span class="lbl">R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"><select data-k="classe">${optsClasse(o.classe)}</select>${st}${del}</div>`;
+}
+function renderMov() {
+  const R = calcular();
+  const total = R.total;
+  const grupos = R.linhas.filter(l => S.ativos.some(a => a.classe === l.k) || S.compras.some(o => clsCompra(o) === l.k) || l.pr > 0);
+  if (!S.ativos.length && !S.compras.length) { $('mov').innerHTML = '<p class="note">Importe o XPerformance no passo 1 para ver os ativos do cliente aqui.</p>'; return; }
+  $('mov').innerHTML = grupos.map(l => {
+    const ativos = S.ativos.filter(a => a.classe === l.k);
+    const novos = S.compras.filter(o => !o.ativoId && clsCompra(o) === l.k);
+    const fechado = FECHADAS.has(l.k) || (!ativos.length && !novos.length && !FECHADAS.has('_' + l.k));
+    const linhas = ativos.map(a => {
+      const vendas = S.vendas.filter(o => o.ativoId === a.id), aplic = S.compras.filter(o => o.ativoId === a.id);
+      const vv = vendas.reduce((s, o) => s + v(o.valor), 0), va = aplic.reduce((s, o) => s + v(o.valor), 0), mv = va - Math.min(vv, v(a.saldo));
+      const cls = vendas.length ? 'venda' + (vv >= v(a.saldo) - 0.005 && vv > 0 ? ' zerou' : '') : aplic.length ? 'aplic' : '';
+      const tag = vendas.length ? `<span class="tg venda">${vv >= v(a.saldo) - 0.005 && vv > 0 ? 'Resgate total' : 'Resgate'}</span>` : aplic.length ? '<span class="tg aplic">Aplicar</span>' : '';
+      const rent = Number.isFinite(a.rentAno) ? `${pct(a.rentAno)}${Number.isFinite(a.cdiAno) && a.rentAno > 0 ? `<br><small class="note">${pct(a.cdiAno, 0)} CDI</small>` : ''}` : '—';
+      return `<div class="mrow ${cls}" data-a="${a.id}">
+        <div class="an">${tag}${esc(a.nome || '(sem nome)')}${a.estrategia ? `<small>${esc(a.estrategia)}</small>` : ''}</div>
+        <div class="n sal">${brl(v(a.saldo))}</div>
+        <div class="n hide-m">${total ? pct(v(a.saldo) / total * 100, 1) : '—'}</div>
+        <div class="n hide-m">${rent}</div>
+        <div class="n mv">${Math.abs(mv) > 0.005 ? `<span class="mov-n ${mv < 0 ? 'neg' : 'posi'}">${mv < 0 ? '−' : '+'}${brl(Math.abs(mv))}</span>` : '<span class="note">—</span>'}</div>
+        <div class="acts"><button class="ib ap ${aplic.length ? 'on' : ''}" data-act="aplic" title="Aplicar mais neste ativo">$↗</button><button class="ib rs ${vendas.length ? 'on' : ''}" data-act="resg" title="Resgatar / vender">↙$</button></div>
+        ${vendas.map(o => linhaOrdem('v', o, a)).join('')}${aplic.map(o => linhaOrdem('c', o, a)).join('')}
+      </div>`;
+    }).join('');
+    const linhasNovas = novos.map(o => `<div class="mrow novo" data-n="${o.id}">
+        <div class="an"><span class="tg novo">Novo</span>${esc(o.nome || 'Ativo novo')}</div>
+        <div class="n sal">—</div><div class="n hide-m"></div><div class="n hide-m"></div>
+        <div class="n mv">${v(o.valor) ? `<span class="mov-n posi">+${brl(v(o.valor))}</span>` : '<span class="note">—</span>'}</div><div class="acts"></div>
+        ${linhaOrdem('c', o, null)}</div>`).join('');
+    return `<div class="mgrp ${fechado ? 'fechado' : ''}" data-cls="${l.k}">
+      <div class="mhead" data-toggle="${l.k}">${cabecalhoClasse(l, R)}</div>
+      <div class="mbody">
+        ${ativos.length || novos.length ? `<div class="mrow h"><div>Ativo</div><div class="n">Posição</div><div class="n">% cart.</div><div class="n">Rent. ano</div><div class="n">Movimento</div><div class="n">Aplicar / Resgatar</div></div>` : ''}
+        ${linhas}${linhasNovas}
+        ${!ativos.length && !novos.length ? `<div class="mempty">O cliente não tem ativos nesta classe.${Math.abs(l.bal) > 0.5 && l.bal > 0 ? ` Para chegar ao recomendado faltam ${brl(l.bal)}.` : ''}</div>` : ''}
+        <div class="madd no-print"><button class="sm ghost" data-novo="${l.k}" type="button">+ Novo ativo em ${l.n}</button></div>
+      </div></div>`;
   }).join('');
 }
-
-function renderVendas() {
-  if (!S.vendas.length) { $('vendas').innerHTML = '<p class="note">Nenhuma venda lançada.</p>'; return; }
-  $('vendas').innerHTML = S.vendas.map((o, i) => {
-    const a = S.ativos.find(x => x.id === o.ativoId);
-    return `<div class="order" data-id="${o.id}">
-      <label class="f full">Ativo <select data-k="ativoId">${optsAtivos(o.ativoId)}</select></label>
-      <label class="f">Valor (R$)
-        <div class="row" style="flex-wrap:nowrap;gap:4px"><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"><button class="sm secondary" data-tudo type="button">Tudo</button></div></label>
-      <label class="f">Status <select data-k="status" class="status-sel ${o.status}">${optsStatus(o.status)}</select></label>
-      <div class="meta"><span>${a ? `<span class="pill">${NOME[a.classe]}</span>` : ''}</span><button class="danger sm" data-del type="button">Remover</button></div>
-    </div>`;
-  }).join('');
-}
-
-function renderCompras() {
-  if (!S.compras.length) { $('compras').innerHTML = '<p class="note">Nenhuma compra lançada.</p>'; return; }
-  $('compras').innerHTML = S.compras.map(o => `
-    <div class="order" data-id="${o.id}">
-      <label class="f full">Ativo <input data-k="nome" value="${esc(o.nome)}" placeholder="Ex.: LCD BNDES, CDB IPCA+, fundo…"></label>
-      <label class="f">Classe <select data-k="classe">${optsClasse(o.classe)}</select></label>
-      <label class="f">Valor (R$) <input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"></label>
-      <div class="meta"><label class="f" style="flex-direction:row;align-items:center;gap:6px">Status <select data-k="status" class="status-sel ${o.status}" style="width:auto">${optsStatus(o.status)}</select></label><button class="danger sm" data-del type="button">Remover</button></div>
-    </div>`).join('');
+function atualizarMovNumeros() {
+  // atualiza só cabeçalhos e colunas de movimento sem redesenhar os campos (mantém o foco)
+  const R = calcular();
+  R.linhas.forEach(l => { const h = document.querySelector(`.mhead[data-toggle="${l.k}"]`); if (h) h.innerHTML = cabecalhoClasse(l, R); });
+  document.querySelectorAll('#mov .mrow[data-a]').forEach(el => {
+    const id = el.dataset.a;
+    const vv = S.vendas.filter(o => o.ativoId === id).reduce((s, o) => s + v(o.valor), 0);
+    const va = S.compras.filter(o => o.ativoId === id).reduce((s, o) => s + v(o.valor), 0), mv = va - Math.min(vv, v(ativoDe(id)?.saldo));
+    el.querySelector('.mv').innerHTML = Math.abs(mv) > 0.005 ? `<span class="mov-n ${mv < 0 ? 'neg' : 'posi'}">${mv < 0 ? '−' : '+'}${brl(Math.abs(mv))}</span>` : '<span class="note">—</span>';
+  });
+  document.querySelectorAll('#mov .mrow[data-n]').forEach(el => {
+    const o = S.compras.find(x => x.id === el.dataset.n); if (!o) return;
+    el.querySelector('.mv').innerHTML = v(o.valor) ? `<span class="mov-n posi">+${brl(v(o.valor))}</span>` : '<span class="note">—</span>';
+    el.querySelector('.an').innerHTML = `<span class="tg novo">Novo</span>${esc(o.nome || 'Ativo novo')}`;
+  });
 }
 
 function renderRec() {
@@ -277,7 +324,7 @@ function recalcular() {
 }
 
 function renderTudo() {
-  renderCliente(); renderAtivos(); renderVendas(); renderCompras(); renderSalvas(); recalcular();
+  renderCliente(); renderAtivos(); renderSalvas(); recalcular(); renderMov();
 }
 
 // ================= Importar PDF =================
@@ -338,17 +385,18 @@ $('assets').addEventListener('change', e => {
   if (e.target.dataset.k !== 'classe') return;
   const a = S.ativos.find(x => x.id === e.target.closest('.asset').dataset.id);
   a.classe = e.target.value; a.revisar = false;
-  renderAtivos(); renderVendas(); recalcular();
+  renderAtivos(); recalcular(); renderMov();
 });
 $('assets').addEventListener('focusout', e => {
-  if (e.target.dataset.k === 'nome') renderVendas();
+  if (e.target.dataset.k === 'nome' || e.target.dataset.k === 'saldo') renderMov();
 });
 $('assets').addEventListener('click', e => {
   if (!e.target.closest('[data-del]')) return;
   const id = e.target.closest('.asset').dataset.id;
   S.ativos = S.ativos.filter(a => a.id !== id);
   S.vendas = S.vendas.filter(o => o.ativoId !== id);
-  renderAtivos(); renderVendas(); recalcular();
+  S.compras = S.compras.filter(o => o.ativoId !== id);
+  renderAtivos(); recalcular(); renderMov();
 });
 $('btnAddAtivo').onclick = () => {
   S.ativos.push({ id: uid(), nome: '', classe: 'pos', saldo: '' });
@@ -357,52 +405,74 @@ $('btnAddAtivo').onclick = () => {
   const last = [...inputs].find(i => !i.value); if (last) last.focus();
 };
 
-// Vendas
-$('btnAddVenda').onclick = () => { S.vendas.push({ id: uid(), ativoId: '', valor: '', status: 'Pendente' }); renderVendas(); recalcular(); };
-$('vendas').addEventListener('input', e => {
-  const el = e.target.closest('.order'); if (!el || !e.target.dataset.k) return;
-  const o = S.vendas.find(x => x.id === el.dataset.id);
-  o[e.target.dataset.k] = e.target.value;
-  if (e.target.dataset.k === 'ativoId') {
-    const a = S.ativos.find(x => x.id === o.ativoId);
-    if (a && !v(o.valor)) o.valor = NUM2.format(v(a.saldo));
-    renderVendas();
+// Movimentações
+function focar(sel) { const el = document.querySelector(sel); if (el) { el.focus(); el.select && el.select(); } }
+$('mov').addEventListener('click', e => {
+  const tg = e.target.closest('[data-toggle]');
+  if (tg && !e.target.closest('button,input,select')) {
+    const k = tg.dataset.toggle, g = tg.parentElement, fechar = !g.classList.contains('fechado');
+    g.classList.toggle('fechado', fechar);
+    if (fechar) { FECHADAS.add(k); FECHADAS.delete('_' + k); } else { FECHADAS.delete(k); FECHADAS.add('_' + k); }
+    store.set('rw_carteira_fechadas', [...FECHADAS]);
+    return;
   }
-  if (e.target.dataset.k === 'status') e.target.className = 'status-sel ' + o.status;
-  recalcular();
-});
-$('vendas').addEventListener('click', e => {
-  const el = e.target.closest('.order'); if (!el) return;
-  const o = S.vendas.find(x => x.id === el.dataset.id);
-  if (e.target.closest('[data-del]')) { S.vendas = S.vendas.filter(x => x !== o); renderVendas(); recalcular(); }
+  const row = e.target.closest('.mrow');
+  const act = e.target.closest('[data-act]');
+  if (act && row?.dataset.a) {
+    const a = ativoDe(row.dataset.a);
+    if (act.dataset.act === 'resg') {
+      let o = S.vendas.find(x => x.ativoId === a.id);
+      if (!o) { o = { id: uid(), ativoId: a.id, valor: '', status: 'Pendente' }; S.vendas.push(o); }
+      recalcular(); renderMov(); focar(`.mord[data-v="${o.id}"] input[data-k="valor"]`);
+    } else {
+      let o = S.compras.find(x => x.ativoId === a.id);
+      if (!o) { o = { id: uid(), ativoId: a.id, nome: a.nome, classe: a.classe, valor: '', status: 'Pendente' }; S.compras.push(o); }
+      recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="valor"]`);
+    }
+    return;
+  }
+  const nv = e.target.closest('[data-novo]');
+  if (nv) { const o = { id: uid(), nome: '', classe: nv.dataset.novo, valor: '', status: 'Pendente' }; S.compras.push(o); recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="nome"]`); return; }
+  const mo = e.target.closest('.mord'); if (!mo) return;
+  if (e.target.closest('[data-del]')) {
+    if (mo.dataset.v) S.vendas = S.vendas.filter(x => x.id !== mo.dataset.v); else S.compras = S.compras.filter(x => x.id !== mo.dataset.c);
+    recalcular(); renderMov(); return;
+  }
   if (e.target.closest('[data-tudo]')) {
-    const a = S.ativos.find(x => x.id === o.ativoId); if (!a) { toast('Escolha o ativo primeiro'); return; }
+    const o = S.vendas.find(x => x.id === mo.dataset.v), a = ativoDe(o.ativoId);
     const outras = S.vendas.filter(x => x !== o && x.ativoId === a.id).reduce((s, x) => s + v(x.valor), 0);
     o.valor = NUM2.format(Math.max(v(a.saldo) - outras, 0));
-    renderVendas(); recalcular();
+    recalcular(); renderMov();
   }
 });
-
-// Compras
-$('btnAddCompra').onclick = () => { S.compras.push({ id: uid(), nome: '', classe: 'pos', valor: '', status: 'Pendente' }); renderCompras(); recalcular(); };
-$('compras').addEventListener('input', e => {
-  const el = e.target.closest('.order'); if (!el || !e.target.dataset.k) return;
-  const o = S.compras.find(x => x.id === el.dataset.id);
-  o[e.target.dataset.k] = e.target.value;
-  if (e.target.dataset.k === 'status') e.target.className = 'status-sel ' + o.status;
-  recalcular();
+$('mov').addEventListener('input', e => {
+  const mo = e.target.closest('.mord'), k = e.target.dataset.k; if (!mo || !k || k === 'classe') return;
+  const o = mo.dataset.v ? S.vendas.find(x => x.id === mo.dataset.v) : S.compras.find(x => x.id === mo.dataset.c);
+  o[k] = e.target.value;
+  if (k === 'status') e.target.className = 'status-sel ' + o.status;
+  recalcular(); atualizarMovNumeros();
 });
-$('compras').addEventListener('click', e => {
-  const el = e.target.closest('.order'); if (!el || !e.target.closest('[data-del]')) return;
-  S.compras = S.compras.filter(x => x.id !== el.dataset.id); renderCompras(); recalcular();
+$('mov').addEventListener('change', e => {
+  const mo = e.target.closest('.mord'); if (!mo) return;
+  if (e.target.dataset.k === 'classe') { const o = S.compras.find(x => x.id === mo.dataset.c); o.classe = e.target.value; FECHADAS.delete(o.classe); recalcular(); renderMov(); }
+  else if (e.target.dataset.k === 'valor' && mo.dataset.v) renderMov(); // atualiza destaque de resgate total
 });
+$('btnAddCompra').onclick = () => {
+  const o = { id: uid(), nome: '', classe: 'pos', valor: '', status: 'Pendente' }; S.compras.push(o); FECHADAS.delete('pos');
+  recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="nome"]`);
+};
+$('btnAbrirTudo').onclick = () => {
+  const grupos = [...document.querySelectorAll('#mov .mgrp')], abrir = grupos.some(g => g.classList.contains('fechado'));
+  grupos.forEach(g => { const k = g.dataset.cls; g.classList.toggle('fechado', !abrir); if (abrir) { FECHADAS.delete(k); FECHADAS.add('_' + k); } else { FECHADAS.add(k); FECHADAS.delete('_' + k); } });
+  store.set('rw_carteira_fechadas', [...FECHADAS]);
+};
 $('btnSugerir').onclick = () => {
   const R = calcular();
   // Usa o balanceamento depois das vendas já lançadas
   const faltas = R.linhas.filter(l => l.balN > 0.5 && !(l.k === 'pos' && false));
   if (!faltas.length) { toast('Nenhuma classe abaixo do recomendado'); return; }
-  faltas.forEach(l => S.compras.push({ id: uid(), nome: '', classe: l.k, valor: NUM2.format(Math.round(l.balN * 100) / 100), status: 'Pendente' }));
-  renderCompras(); recalcular();
+  faltas.forEach(l => { S.compras.push({ id: uid(), nome: '', classe: l.k, valor: NUM2.format(Math.round(l.balN * 100) / 100), status: 'Pendente' }); FECHADAS.delete(l.k); });
+  recalcular(); renderMov();
   toast(`${faltas.length} compra(s) sugerida(s) — preencha os ativos`);
 };
 
@@ -474,7 +544,7 @@ $('btnCopiar').onclick = () => {
     const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor));
     const compras = S.compras.filter(o => v(o.valor));
     if (vendas.length) { L.push('', '*Vendas*'); vendas.forEach(({ o, a }) => L.push(`• ${a.nome}: ${brl(v(o.valor))}`)); }
-    if (compras.length) { L.push('', '*Compras*'); compras.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} (${NOME[o.classe]}): ${brl(v(o.valor))}`)); }
+    if (compras.length) { L.push('', '*Compras*'); compras.forEach(o => L.push(`• ${nomeCompra(o) || NOME[clsCompra(o)]}${o.ativoId ? '' : ' (novo)'} — ${NOME[clsCompra(o)]}: ${brl(v(o.valor))}`)); }
     L.push('', '*Como fica*');
     R.linhas.filter(l => l.novo || l.pr).forEach(l => {
       const tag = Math.abs(l.difN) <= R.tol ? '✅' : l.difN > 0 ? '🔺' : '🔻';
@@ -490,10 +560,26 @@ function dadosEmail() {
   const R = calcular();
   const temOrdens = S.vendas.some(o => v(o.valor)) || S.compras.some(o => v(o.valor));
   const linhas = R.linhas.filter(l => l.atual > 0.005 || l.pr > 0 || l.novo > 0.005);
-  const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor));
+  const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor))
+    .map(({ o, a }) => ({ a, o: Object.assign({}, o, { valor: Math.min(v(o.valor), v(a.saldo)) }) }));
   const compras = S.compras.filter(o => v(o.valor));
   return { R, temOrdens, linhas, vendas, compras };
 }
+// carteira ativo a ativo depois das movimentações (para o cliente ver o que entra e o que sai)
+function carteiraDepois() {
+  return CLASSES.map(c => {
+    const itens = [];
+    S.ativos.filter(a => a.classe === c.k).forEach(a => {
+      const vv = S.vendas.filter(o => o.ativoId === a.id).reduce((s, o) => s + v(o.valor), 0);
+      const va = S.compras.filter(o => o.ativoId === a.id).reduce((s, o) => s + v(o.valor), 0);
+      const hoje = v(a.saldo), mov = va - Math.min(vv, hoje);
+      itens.push({ nome: a.nome, hoje, mov, depois: hoje + mov, tipo: vv > 0 && vv >= hoje - 0.005 ? 'sai' : vv > 0 ? 'reduz' : va > 0 ? 'aumenta' : '' });
+    });
+    S.compras.filter(o => !o.ativoId && clsCompra(o) === c.k && v(o.valor)).forEach(o => itens.push({ nome: o.nome || 'Ativo novo', hoje: 0, mov: v(o.valor), depois: v(o.valor), tipo: 'novo' }));
+    return { c, itens };
+  }).filter(g => g.itens.length && g.itens.some(i => i.depois > 0.005 || i.hoje > 0.005));
+}
+const TIPO_TXT = { sai: 'resgate total', reduz: 'resgate parcial', aumenta: 'aplicação', novo: 'novo' };
 function emailTextoCarteira(nome, ass) {
   const { R, temOrdens, linhas, vendas, compras } = dadosEmail();
   const L = [Email.saudacaoTexto(nome), '',
@@ -503,8 +589,10 @@ function emailTextoCarteira(nome, ass) {
   if (temOrdens) {
     L.push('', 'PROPOSTA DE MOVIMENTAÇÕES');
     if (vendas.length) { L.push('Resgates/vendas:'); vendas.forEach(({ o, a }) => L.push(`• ${a.nome}: ${brl(v(o.valor))}`)); }
-    if (compras.length) { L.push('Aplicações:'); compras.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} (${NOME[o.classe]}): ${brl(v(o.valor))}`)); }
+    if (compras.length) { L.push('Aplicações:'); compras.forEach(o => L.push(`• ${nomeCompra(o) || NOME[clsCompra(o)]}${o.ativoId ? '' : ' (novo)'} — ${NOME[clsCompra(o)]}: ${brl(v(o.valor))}`)); }
     if (R.aporte) L.push(`Aporte adicional: ${brl(R.aporte)}`);
+    L.push('', 'SUA CARTEIRA ATIVO A ATIVO');
+    carteiraDepois().forEach(g => { L.push(g.c.n + ':'); g.itens.forEach(i => L.push(`  ${i.tipo === 'novo' ? '[NOVO] ' : i.tipo === 'sai' ? '[SAI] ' : ''}${i.nome}: ${brl(i.hoje)} → ${brl(i.depois)}${i.tipo && i.tipo !== 'novo' && i.tipo !== 'sai' ? ` (${TIPO_TXT[i.tipo]})` : ''}`)); });
     L.push('', 'COMO A CARTEIRA FICA');
     linhas.forEach(l => L.push(`• ${l.n}: ${pct(l.pn, 1)} (recomendado ${pct(l.pr, 1)})`));
     if (R.desvioN < R.desvioA - 0.05) L.push('', `Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`);
@@ -527,10 +615,23 @@ function emailHtmlCarteira(nome, ass) {
     html += h.titulo('Proposta de movimentações');
     const ord = [
       ...vendas.map(({ o, a }) => [`<span style="color:${h.cor.ruim};font-weight:bold">Resgate</span>`, esc(a.nome), esc(NOME[a.classe]), brl(v(o.valor))]),
-      ...compras.map(o => [`<span style="color:${h.cor.bom};font-weight:bold">Aplicação</span>`, esc(o.nome || NOME[o.classe]), esc(NOME[o.classe]), brl(v(o.valor))]),
+      ...compras.map(o => [`<span style="color:${h.cor.bom};font-weight:bold">${o.ativoId ? 'Aplicação' : 'Novo ativo'}</span>`, esc(nomeCompra(o) || NOME[clsCompra(o)]), esc(NOME[clsCompra(o)]), brl(v(o.valor))]),
     ];
     if (R.aporte) ord.push([`<span style="color:${h.cor.bom};font-weight:bold">Aporte</span>`, 'Dinheiro novo', '', brl(R.aporte)]);
     html += h.tabela(['', 'Ativo', 'Classe', 'Valor'], ord, ['left', 'left', 'left', 'right']);
+    html += h.titulo('Sua carteira ativo a ativo');
+    const etq = (txt, cor, fundo) => `<span style="display:inline-block;background:${fundo};color:${cor};font-size:10px;font-weight:bold;border-radius:9px;padding:1px 7px;margin-right:6px">${txt}</span>`;
+    const rowsA = [];
+    carteiraDepois().forEach(g => {
+      rowsA.push([`<b style="color:#22105a">${esc(g.c.n)}</b>`, '', '', '']);
+      g.itens.forEach(i => {
+        const tag = i.tipo === 'novo' ? etq('NOVO', '#fff', h.cor.bom) : i.tipo === 'sai' ? etq('SAI', '#fff', h.cor.ruim) : i.tipo === 'reduz' ? etq('RESGATE', h.cor.ruim, '#fde8e7') : i.tipo === 'aumenta' ? etq('APLICAÇÃO', h.cor.bom, '#e3f5ec') : '';
+        const nm = i.tipo === 'sai' ? `<span style="text-decoration:line-through;color:#8a8799">${esc(i.nome)}</span>` : esc(i.nome);
+        const mv = Math.abs(i.mov) > 0.005 ? `<span style="color:${i.mov < 0 ? h.cor.ruim : h.cor.bom};font-weight:bold">${i.mov < 0 ? '−' : '+'}${brl(Math.abs(i.mov))}</span>` : '—';
+        rowsA.push([tag + nm, i.hoje ? brl(i.hoje) : '—', mv, `<b>${i.depois > 0.005 ? brl(i.depois) : '—'}</b>`]);
+      });
+    });
+    html += h.tabela(['Ativo', 'Hoje', 'Movimento', 'Depois'], rowsA, ['left', 'right', 'right', 'right']);
     if (R.desvioN < R.desvioA - 0.05) html += h.destaque(`Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`, 'bom');
   }
   html += h.p('Fico à disposição para conversarmos sobre a proposta.') + h.p('Abraço,') + h.assinatura(ass) +
