@@ -35,6 +35,9 @@
   .cm .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; font-size: 12px; color: var(--muted); }
   .cm .nums strong { display: block; font-size: 14px; color: var(--ink); }
   .cm .ou { margin-top: 8px; }
+  /* Under à esquerda, Over à direita */
+  .ou i.under { left: auto; right: 50%; background: linear-gradient(270deg, #8fdcb6, var(--good)); }
+  .ou i.over { right: auto; left: 50%; background: linear-gradient(90deg, #f7a29f, var(--bad)); }
   .imported { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   /* movimentações no estilo da posição consolidada */
   .mov-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
@@ -157,13 +160,13 @@
       <table id="tComp">
         <thead><tr>
           <th>Classe</th><th class="n">Atual (R$)</th><th class="n">Atual %</th><th class="n">Recom. %</th>
-          <th class="c">Over | Under</th><th class="n">Balanceamento</th><th class="n">Novo (R$)</th><th class="n">Novo %</th><th class="c">Situação</th>
+          <th class="c">Under | Over</th><th class="n">Balanceamento</th><th class="n">Novo (R$)</th><th class="n">Novo %</th><th class="c">Situação</th>
         </tr></thead>
         <tbody></tbody>
         <tfoot></tfoot>
       </table>
     </div>
-    <p class="note">Over (vermelho) = acima do recomendado; Under (verde) = abaixo. Balanceamento = quanto vender (−) ou comprar (+) em cada classe para chegar ao recomendado. "Novo" já considera as ordens do passo 4.</p>
+    <p class="note">Under (verde, à esquerda) = abaixo do recomendado; Over (vermelho, à direita) = acima. Balanceamento = quanto vender (−) ou comprar (+) em cada classe para chegar ao recomendado. "Novo" já considera as ordens do passo 4.</p>
   </div>
 
   <!-- 4. Ordens -->
