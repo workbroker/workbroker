@@ -25,6 +25,25 @@
   #tComp .cls { font-weight: 700; color: var(--indigo); white-space: nowrap; }
   #tComp td.rec { background: #f3fbf6; font-weight: 700; }
   #tComp td.novo { background: #faf9fd; }
+  #tComp td.real { background: #fff8f2; }
+  #tComp th { vertical-align: bottom; line-height: 1.25; }
+  #tComp .th-sub { display: block; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  #tComp .acao { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+  #tComp .val { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+  #tComp .mini { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  #tComp .ou-cell { display: flex; align-items: center; gap: 8px; justify-content: center; }
+  #tComp .ou-txt { font-size: 12.5px; font-weight: 800; text-align: left; line-height: 1.2; white-space: nowrap; }
+  #tComp .ou { width: 60px; min-width: 0; flex: none; }
+  #tComp th { white-space: normal; }
+  #tComp th.n, #tComp th.c { min-width: 0; }
+  #tComp td, #tComp th { padding: 9px 7px; }
+  #tComp .cls { white-space: normal !important; min-width: 110px; }
+  #tComp td.n { white-space: nowrap; }
+  #tComp .ou-txt small { display: block; font-weight: 600; font-size: 10.5px; }
+  .cobre { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 1px 7px; line-height: 1.35; text-align: right; }
+  .cobre.ok { background: var(--good-soft); color: var(--good); } .cobre.parcial { background: var(--warn-soft); color: var(--warn); } .cobre.passou { background: var(--bad-soft); color: var(--bad); } .cobre.contra { background: var(--bad-soft); color: var(--bad); }
+  .legenda-comp { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 18px; margin-top: 12px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .legenda-comp b { display: block; color: var(--indigo); font-size: 12.5px; }
   .pp { font-size: 12px; font-weight: 800; min-width: 48px; display: inline-block; text-align: right; }
   .rec-table input { text-align: right; width: 84px; }
   .show-sm { display: none; }
@@ -156,14 +175,19 @@
     <div class="table-wrap hide-sm">
       <table id="tComp">
         <thead><tr>
-          <th>Classe</th><th class="n">Atual (R$)</th><th class="n">Atual %</th><th class="n">Recom. %</th>
-          <th class="c">Over | Under</th><th class="n">Balanceamento</th><th class="n">Novo (R$)</th><th class="n">Novo %</th><th class="c">Situação</th>
+          <th>Classe</th><th class="n">Atual (R$)</th><th class="n">Atual %</th><th class="n">Recomen-<br>dado %</th>
+          <th class="c">Under | Over</th><th class="n">Balanceamento<br>necessário</th><th class="n">Ajuste real <span class="th-sub">(simulador)</span></th><th class="n">Novo %</th><th class="c">Situação</th>
         </tr></thead>
         <tbody></tbody>
         <tfoot></tfoot>
       </table>
     </div>
-    <p class="note">Over (vermelho) = acima do recomendado; Under (verde) = abaixo. Balanceamento = quanto vender (−) ou comprar (+) em cada classe para chegar ao recomendado. "Novo" já considera as ordens do passo 4.</p>
+    <div class="legenda-comp">
+      <div><b>Under | Over</b> quanto a classe está abaixo (verde, falta) ou acima (vermelho, sobra) do recomendado, em pontos percentuais.</div>
+      <div><b>Balanceamento necessário</b> quanto comprar ou vender na classe para chegar exatamente ao recomendado.</div>
+      <div><b>Ajuste real</b> o que as compras e vendas lançadas no simulador (passo 4) fazem na classe, e quanto isso cobre do necessário.</div>
+      <div><b>Novo % e Situação</b> como a classe fica depois das movimentações (dentro da tolerância de ± <span id="tolTxt">2</span> p.p.?).</div>
+    </div>
   </div>
 
   <!-- 4. Ordens -->

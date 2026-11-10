@@ -176,37 +176,64 @@ function situacao(dif, tol) {
   return dif > 0 ? '<span class="pill bad">▲ Acima</span>' : '<span class="pill warn">▼ Abaixo</span>';
 }
 
+function textoOU(dif, tol) {
+  if (Math.abs(dif) <= tol && Math.abs(dif) < 0.05) return '<span class="ou-txt" style="color:var(--good)">No alvo</span>';
+  const cor = Math.abs(dif) <= tol ? 'var(--muted)' : dif > 0 ? 'var(--bad)' : 'var(--good)';
+  return `<span class="ou-txt" style="color:${cor}">${dif > 0 ? '+' : '−'}${pct(Math.abs(dif), 1).replace('%', '')} p.p.<small>${dif > 0 ? 'Over · acima' : 'Under · abaixo'}</small></span>`;
+}
+function textoBal(bal) {
+  if (Math.abs(bal) < 0.5) return '<span class="note">—</span>';
+  return `<span class="acao ${bal > 0 ? 'good' : 'bad'}">${bal > 0 ? 'Comprar' : 'Vender'}</span><span class="val ${bal > 0 ? 'good' : 'bad'}">${brl(Math.abs(bal))}</span>`;
+}
+function cobertura(bal, aj) {
+  if (Math.abs(aj) < 0.5) return '';
+  if (Math.abs(bal) < 0.5) return '<span class="cobre passou">classe já estava no alvo</span>';
+  if (Math.sign(aj) !== Math.sign(bal)) return '<span class="cobre contra">sentido contrário</span>';
+  const r = aj / bal;
+  if (r > 1.05) return `<span class="cobre passou">passou ${brl(Math.abs(aj - bal))}</span>`;
+  if (r >= 0.95) return '<span class="cobre ok">✓ cobre o necessário</span>';
+  return `<span class="cobre parcial">cobre ${pct(r * 100, 0)}<br>faltam ${brl(Math.abs(bal - aj))}</span>`;
+}
+function textoAjuste(l) {
+  const aj = l.novo - l.atual;
+  if (Math.abs(aj) < 0.005) return '<span class="note">—</span>';
+  return `<span class="acao ${aj > 0 ? 'good' : 'bad'}">${aj > 0 ? 'Comprando' : 'Vendendo'}</span><span class="val ${aj > 0 ? 'good' : 'bad'}">${aj > 0 ? '+' : '−'}${brl(Math.abs(aj))}</span><br>${cobertura(l.bal, aj)}`;
+}
 function renderComparacao(R) {
   const max = Math.max(5, ...R.linhas.map(l => Math.abs(l.dif)), ...R.linhas.map(l => Math.abs(l.difN)));
   const mostrar = R.linhas.filter(l => l.atual || l.pr || l.novo);
   const temOrdens = Math.abs(R.totalNovo - R.total) > 0.005 || R.linhas.some(l => Math.abs(l.novo - l.atual) > 0.005);
+  if ($('tolTxt')) $('tolTxt').textContent = String(R.tol).replace('.', ',');
   $('tComp').querySelector('tbody').innerHTML = mostrar.map(l => `
     <tr>
       <td class="cls">${l.n}</td>
       <td class="n">${brl(l.atual)}</td>
       <td class="n">${pct(l.pa, 1)}</td>
       <td class="n rec">${pct(l.pr, 1)}</td>
-      <td><div class="row" style="flex-wrap:nowrap;gap:6px">${ouBar(l.dif, max)}<span class="pp ${Math.abs(l.dif) <= R.tol ? '' : l.dif > 0 ? 'bad' : 'good'}">${l.dif > 0 ? '+' : ''}${pct(l.dif, 1)}</span></div></td>
-      <td class="n ${Math.abs(l.bal) < 0.5 ? '' : l.bal > 0 ? 'good' : 'bad'}">${Math.abs(l.bal) < 0.5 ? '—' : (l.bal > 0 ? '+' : '') + brl(l.bal)}</td>
-      <td class="n novo">${brl(l.novo)}${Math.abs(l.novo - l.atual) > 0.005 ? `<br><span class="note ${l.novo > l.atual ? 'good' : 'bad'}">${l.novo > l.atual ? '+' : ''}${brl(l.novo - l.atual)}</span>` : ''}</td>
-      <td class="n novo"><b>${pct(l.pn, 1)}</b><br><span class="note">${l.difN > 0 ? '+' : ''}${pct(l.difN, 1)}</span></td>
+      <td><div class="ou-cell">${ouBar(l.dif, max)}${textoOU(l.dif, R.tol)}</div></td>
+      <td class="n">${textoBal(l.bal)}</td>
+      <td class="n real">${textoAjuste(l)}</td>
+      <td class="n novo"><b>${pct(temOrdens ? l.pn : l.pa, 1)}</b><span class="mini">rec. ${pct(l.pr, 1)} · ${(temOrdens ? l.difN : l.dif) > 0 ? '+' : ''}${pct(temOrdens ? l.difN : l.dif, 1).replace('%', '')} p.p.</span></td>
       <td class="c">${situacao(temOrdens ? l.difN : l.dif, R.tol)}</td>
     </tr>`).join('') || `<tr><td colspan="9" class="note">Sem dados ainda.</td></tr>`;
   $('compMobile').innerHTML = mostrar.map(l => {
-    const d = temOrdens ? l.difN : l.dif;
+    const d = temOrdens ? l.difN : l.dif, aj = l.novo - l.atual;
     return `<div class="cm">
       <div class="t"><b>${l.n}</b>${situacao(d, R.tol)}</div>
-      ${ouBar(d, max)}
+      ${ouBar(l.dif, max)}
       <div class="nums">
         <div>Atual<strong>${pct(l.pa, 1)}</strong>${brl(l.atual)}</div>
-        <div>Recomendado<strong>${pct(l.pr, 1)}</strong>${Math.abs(l.bal) < 0.5 ? 'ok' : `<span class="${l.bal > 0 ? 'good' : 'bad'}">${l.bal > 0 ? 'comprar ' : 'vender '}${brl(Math.abs(l.bal))}</span>`}</div>
-        <div>Depois<strong>${pct(l.pn, 1)}</strong>${brl(l.novo)}</div>
-      </div></div>`;
+        <div>Recomendado<strong>${pct(l.pr, 1)}</strong>${Math.abs(l.bal) < 0.5 ? 'no alvo' : `<span class="${l.bal > 0 ? 'good' : 'bad'}">${l.bal > 0 ? 'comprar ' : 'vender '}${brl(Math.abs(l.bal))}</span>`}</div>
+        <div>Novo<strong>${pct(temOrdens ? l.pn : l.pa, 1)}</strong>${Math.abs(aj) > 0.005 ? `<span class="${aj > 0 ? 'good' : 'bad'}">${aj > 0 ? '+' : '−'}${brl(Math.abs(aj))}</span>` : 'sem ajuste'}</div>
+      </div>${Math.abs(l.bal) >= 0.5 || Math.abs(aj) > 0.005 ? `<div style="margin-top:6px">${cobertura(l.bal, Math.abs(aj) > 0.005 ? aj : 0)}</div>` : ''}</div>`;
   }).join('');
+  const ajLiq = R.totalNovo - R.total, balTot = R.linhas.reduce((s, l) => s + Math.abs(l.bal), 0) / 2;
   $('tComp').querySelector('tfoot').innerHTML = `
     <tr><td>Total</td><td class="n">${brl(R.total)}</td><td class="n">100%</td>
-      <td class="n ${Math.abs(R.somaRec - 100) < 0.05 ? '' : 'bad'}">${pct(R.somaRec, 1)}</td><td></td><td></td>
-      <td class="n">${brl(R.totalNovo)}</td><td class="n">100%</td><td></td></tr>`;
+      <td class="n ${Math.abs(R.somaRec - 100) < 0.05 ? '' : 'bad'}">${pct(R.somaRec, 1)}</td><td class="c"><span class="note">fora: ${pct(R.desvioA, 1)}</span></td>
+      <td class="n"><span class="mini" style="margin:0">a remanejar</span>${brl(balTot)}</td>
+      <td class="n">${Math.abs(ajLiq) > 0.005 ? `<span class="mini" style="margin:0">${ajLiq > 0 ? 'dinheiro novo' : 'sai da carteira'}</span>${ajLiq > 0 ? '+' : '−'}${brl(Math.abs(ajLiq))}` : '<span class="note">remanejamento</span>'}</td>
+      <td class="n">100%<span class="mini">fora: ${pct(temOrdens ? R.desvioN : R.desvioA, 1)}</span></td><td></td></tr>`;
 
   const melhora = R.desvioN < R.desvioA - 0.05, piora = R.desvioN > R.desvioA + 0.05;
   $('kpis').innerHTML = `
@@ -603,14 +630,18 @@ function emailTextoCarteira(nome, ass) {
 function emailHtmlCarteira(nome, ass) {
   const { R, temOrdens, linhas, vendas, compras } = dadosEmail(), h = Email.h;
   const sit = d => Math.abs(d) <= R.tol ? `<span style="color:${h.cor.bom}">● dentro</span>` : d > 0 ? `<span style="color:${h.cor.ruim}">▲ acima</span>` : `<span style="color:#c77800">▼ abaixo</span>`;
-  const cab = temOrdens ? ['Classe', 'Atual', 'Recomendado', 'Proposta', ''] : ['Classe', 'Atual', 'Recomendado', ''];
+  const ou = d => Math.abs(d) < 0.05 ? '—' : `<span style="color:${Math.abs(d) <= R.tol ? '#8a8799' : d > 0 ? h.cor.ruim : h.cor.bom}">${d > 0 ? '+' : '−'}${pct(Math.abs(d), 1).replace('%', '')} p.p.</span>`;
+  const bal = b => Math.abs(b) < 0.5 ? '—' : `<span style="color:${b > 0 ? h.cor.bom : h.cor.ruim}">${b > 0 ? 'Comprar' : 'Vender'} ${brl(Math.abs(b))}</span>`;
+  const aj = l => { const a = l.novo - l.atual; return Math.abs(a) < 0.005 ? '—' : `<b style="color:${a > 0 ? h.cor.bom : h.cor.ruim}">${a > 0 ? '+' : '−'}${brl(Math.abs(a))}</b>`; };
+  const cab = temOrdens ? ['Classe', 'Atual', 'Recomendado', 'Under | Over', 'Necessário', 'Ajuste proposto', 'Novo', ''] : ['Classe', 'Atual', 'Recomendado', 'Under | Over', 'Necessário', ''];
   const rows = linhas.map(l => temOrdens
-    ? [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, `<b style="color:${h.cor.ora}">${pct(l.pn, 1)}</b>`, sit(l.difN)]
-    : [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, sit(l.dif)]);
+    ? [esc(l.n), `${pct(l.pa, 1)}<br><span style="color:#8a8799;font-size:11px">${brl(l.atual)}</span>`, `<b>${pct(l.pr, 1)}</b>`, ou(l.dif), bal(l.bal), aj(l), `<b style="color:${h.cor.ora}">${pct(l.pn, 1)}</b>`, sit(l.difN)]
+    : [esc(l.n), `${pct(l.pa, 1)}<br><span style="color:#8a8799;font-size:11px">${brl(l.atual)}</span>`, `<b>${pct(l.pr, 1)}</b>`, ou(l.dif), bal(l.bal), sit(l.dif)]);
   let html = h.p(h.saudacao(nome)) +
     h.p(`Analisei a sua carteira${S.dataRef ? ` (posição de ${esc(S.dataRef)})` : ''} e comparei com a nossa carteira recomendada para o perfil <b>${PERFIL_ADJ[S.perfil]}</b>. Patrimônio considerado: <b>${brl(R.total)}</b>.`) +
     h.titulo(temOrdens ? 'Alocação atual, recomendada e proposta' : 'Alocação atual × recomendada') +
-    h.tabela(cab, rows, temOrdens ? ['left', 'right', 'right', 'right', 'left'] : ['left', 'right', 'right', 'left']);
+    h.tabela(cab, rows, temOrdens ? ['left', 'right', 'right', 'right', 'right', 'right', 'right', 'left'] : ['left', 'right', 'right', 'right', 'right', 'left']) +
+    h.p(`<span style="font-size:12px;color:#8a8799">Under | Over: quanto cada classe está abaixo ou acima do recomendado. Necessário: quanto comprar ou vender para chegar ao recomendado.${temOrdens ? ' Ajuste proposto: o efeito das movimentações sugeridas.' : ''}</span>`);
   if (temOrdens) {
     html += h.titulo('Proposta de movimentações');
     const ord = [
