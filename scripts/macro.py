@@ -40,7 +40,10 @@ def yahoo(simbolo):
 
 def mensal_sgs(codigo, n=30):  # {"2026-10": 0.79, ...} só meses fechados
     hoje = datetime.now(timezone.utc).strftime("%Y-%m")
-    return {m: v for m, v in ((f"{d[6:10]}-{d[3:5]}", v) for d, v in sgs(codigo, n)) if m < hoje}
+    ini = datetime.now(timezone.utc).replace(day=1, year=datetime.now(timezone.utc).year - 3).strftime("%d/%m/%Y")
+    dados = get_json(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json&dataInicial={ini}")
+    serie = ((f"{d['data'][6:10]}-{d['data'][3:5]}", float(d["valor"])) for d in dados)
+    return {m: v for m, v in serie if m < hoje}
 
 
 def mensal_yahoo(simbolo):  # variação % mensal pelo último fechamento de cada mês
@@ -53,6 +56,7 @@ def mensal_yahoo(simbolo):  # variação % mensal pelo último fechamento de cad
             fech[datetime.fromtimestamp(t + off, timezone.utc).strftime("%Y-%m")] = c
     hoje = datetime.now(timezone.utc).strftime("%Y-%m")
     meses = sorted(fech)
+    print(simbolo, "fechamentos:", [(m, round(fech[m], 2)) for m in meses[-4:]])
     return {m: round((fech[m] / fech[a] - 1) * 100, 4) for a, m in zip(meses, meses[1:]) if m < hoje}
 
 
