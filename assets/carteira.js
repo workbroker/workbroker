@@ -138,7 +138,7 @@ function renderAtivos() {
     html += lista.map(a => `
       <div class="asset" data-id="${a.id}">
         <div class="nm"><input data-k="nome" value="${esc(a.nome)}" placeholder="Nome do ativo">
-          ${a.estrategia ? `<div class="xp">XP: ${esc(a.estrategia)}${a.revisar ? ' · <span class="warn">confira a classe</span>' : ''}</div>` : ''}</div>
+          ${a.estrategia ? `<div class="xp">Estratégia: ${esc(a.estrategia)}${a.revisar ? ' · <span class="warn">confira a classe</span>' : ''}</div>` : ''}</div>
         <div class="cl"><select data-k="classe">${optsClasse(a.classe)}</select></div>
         <div class="vl"><input data-k="saldo" inputmode="decimal" value="${esc(fmtIn(a.saldo))}" style="text-align:right"></div>
         <div class="pc" data-pct>${total ? pct(v(a.saldo) / total * 100) : '—'}</div>
@@ -230,7 +230,7 @@ function renderSummary(R) {
 const FECHADAS = new Set(store.get('rw_carteira_fechadas', []));
 function donut(p, cor) {
   const r = 20, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, p / 100));
-  return `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="${r}" fill="none" stroke="#e6e8eb" stroke-width="5"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${cor}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 26 26)"/><text x="26" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="#1b1b1d">${pct(p, 1).replace('%', '')}%</text></svg>`;
+  return `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="${r}" fill="none" stroke="#e6e8eb" stroke-width="5"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${cor}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 26 26)"/><text x="26" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="#22105a">${pct(p, 1).replace('%', '')}%</text></svg>`;
 }
 function cabecalhoClasse(l, R) {
   const muda = Math.abs(l.novo - l.atual) > 0.005;
@@ -585,7 +585,7 @@ function emailHtmlCarteira(nome, ass) {
     const etq = (txt, cor, fundo) => `<span style="display:inline-block;background:${fundo};color:${cor};font-size:10px;font-weight:bold;border-radius:9px;padding:1px 7px;margin-right:6px">${txt}</span>`;
     const rowsA = [];
     carteiraDepois().forEach(g => {
-      rowsA.push([`<b style="color:#1b1b1d">${esc(g.c.n)}</b>`, '', '', '']);
+      rowsA.push([`<b style="color:#22105a">${esc(g.c.n)}</b>`, '', '', '']);
       g.itens.forEach(i => {
         const tag = i.tipo === 'novo' ? etq('NOVO', '#fff', h.cor.bom) : i.tipo === 'sai' ? etq('SAI', '#fff', h.cor.ruim) : i.tipo === 'reduz' ? etq('RESGATE', h.cor.ruim, '#fde8e7') : i.tipo === 'aumenta' ? etq('APLICAÇÃO', h.cor.bom, '#e3f5ec') : '';
         const nm = i.tipo === 'sai' ? `<span style="text-decoration:line-through;color:#8a8d93">${esc(i.nome)}</span>` : esc(i.nome);

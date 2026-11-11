@@ -182,7 +182,7 @@ function grafico(P) {
   const X = d => pad.l + (dias(x0, d) / span) * (W - pad.l - pad.r);
   const Y = val => pad.t + (1 - (val - yMin) / (yMax - yMin)) * (Hh - pad.t - pad.b);
   const path = pts => pts.map((p, k) => `${k ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
-  const IND = '#1b1b1d', ORA = '#f5b400';
+  const IND = '#22105a', ORA = '#ff5a00';
 
   // rótulos com caixa
   const fs = W < 520 ? 10.5 : 12;
@@ -205,12 +205,12 @@ function grafico(P) {
   // linha "hoje"
   const xh = X(hoje);
   svg += `<line x1="${xh}" x2="${xh}" y1="${pad.t - 10}" y2="${Hh - pad.b}" stroke="#b9b6c9" stroke-dasharray="3 4"/>`;
-  svg += `<text x="${xh + 4}" y="${pad.t - 14}" font-size="${fs}" fill="#6b6e74" font-weight="700">HOJE</text>`;
+  svg += `<text x="${xh + 4}" y="${pad.t - 14}" font-size="${fs}" fill="#6d6a80" font-weight="700">HOJE</text>`;
   // venc. atual
   const xva = X(i.a_venc);
   if (dias(i.a_venc, H) > 0) {
     svg += `<line x1="${xva}" x2="${xva}" y1="${pad.t - 10}" y2="${Hh - pad.b}" stroke="#d9d6e6" stroke-dasharray="2 5"/>`;
-    if (Math.abs(xva - xh) > 80) svg += `<text x="${xva - 4}" y="${pad.t - 14}" font-size="${fs - 1}" fill="#6b6e74" text-anchor="end">venc. atual</text>`;
+    if (Math.abs(xva - xh) > 80) svg += `<text x="${xva - 4}" y="${pad.t - 14}" font-size="${fs - 1}" fill="#6d6a80" text-anchor="end">venc. atual</text>`;
   }
   // séries
   svg += `<path d="${path(s1a)}" fill="none" stroke="${IND}" stroke-width="3" stroke-linejoin="round"/>`;
@@ -237,7 +237,7 @@ function grafico(P) {
   // cruzamento (no modo líquido)
   if (liq && P.cruza && P.cruza !== hoje && dias(P.cruza, H) > 0) {
     const xc = X(P.cruza), yc = Y(P.trocar(P.cruza, true));
-    svg += `<circle cx="${xc}" cy="${yc}" r="9" fill="rgba(245,180,0,.15)" stroke="${ORA}" stroke-width="1.5"/>`;
+    svg += `<circle cx="${xc}" cy="${yc}" r="9" fill="rgba(255,90,0,.15)" stroke="${ORA}" stroke-width="1.5"/>`;
     svg += `<text x="${xc}" y="${Hh - pad.b + 30}" font-size="${fs - 1}" text-anchor="middle" fill="${ORA}" font-weight="800">cruza ${fmtDate(P.cruza).slice(3)}</text>`;
     svg += `<line x1="${xc}" x2="${xc}" y1="${yc + 9}" y2="${Hh - pad.b + 18}" stroke="${ORA}" stroke-width="1" stroke-dasharray="2 3"/>`;
   }
@@ -251,7 +251,7 @@ function grafico(P) {
     if (usados.some(u => Math.abs(u - x) < (W < 520 ? 58 : 70))) return;
     usados.push(x);
     const anc = x < pad.l + 30 ? 'start' : x > W - pad.r - 30 ? 'end' : 'middle';
-    svg += `<text x="${x}" y="${Hh - pad.b + 16}" font-size="${fs - 1}" text-anchor="${anc}" fill="#6b6e74">${W < 520 ? fmtDate(d).slice(3) : fmtDate(d)}</text>`;
+    svg += `<text x="${x}" y="${Hh - pad.b + 16}" font-size="${fs - 1}" text-anchor="${anc}" fill="#6d6a80">${W < 520 ? fmtDate(d).slice(3) : fmtDate(d)}</text>`;
   });
   svg += '</svg>';
   box.innerHTML = svg;
@@ -308,9 +308,9 @@ function render() {
     <div class="verdict ${cls}">${esc(titulo)}<small>${esc(sub)}</small></div>
     <div class="chart-tools">
       <div class="legend" style="margin:0">
-        <span><i style="background:#1b1b1d"></i>Manter o atual</span>
-        ${dias(P.i.a_venc, P.H) > 0 ? '<span><i style="background:repeating-linear-gradient(90deg,#1b1b1d 0 5px,transparent 5px 9px)"></i>Reinvestido após vencimento</span>' : ''}
-        <span><i style="background:#f5b400;height:4px"></i>Trocar</span>
+        <span><i style="background:#22105a"></i>Manter o atual</span>
+        ${dias(P.i.a_venc, P.H) > 0 ? '<span><i style="background:repeating-linear-gradient(90deg,#22105a 0 5px,transparent 5px 9px)"></i>Reinvestido após vencimento</span>' : ''}
+        <span><i style="background:#ff5a00;height:4px"></i>Trocar</span>
       </div>
       <div class="seg no-print" id="segGraf"><button data-v="liquido" class="${modoGrafico === 'liquido' ? 'on' : ''}">Líquido</button><button data-v="bruto" class="${modoGrafico === 'bruto' ? 'on' : ''}">Bruto</button></div>
     </div>
@@ -417,11 +417,11 @@ function emailHtml(P, nome, ass) {
     h.tabela(['', 'Investimento atual', 'Sugestão de troca'], [
       ['Ativo', esc(`${P.i.a_tipo} ${fmtTaxa(P.i.a_idx, P.n.aTaxa)}`), esc(`${P.i.b_tipo} ${fmtTaxa(P.i.b_idx, P.n.bTaxa)}`)],
       ['Vencimento', fmtDate(P.i.a_venc), fmtDate(P.i.b_venc)],
-      ['Valor hoje', `${brl(P.curva)} <span style="color:#6b6e74">(curva)</span>`, `${brl(P.venda)} <span style="color:#6b6e74">(venda)</span>`],
+      ['Valor hoje', `${brl(P.curva)} <span style="color:#6d6a80">(curva)</span>`, `${brl(P.venda)} <span style="color:#6d6a80">(venda)</span>`],
       [`<b>Líquido em ${fmtDate(P.H)}</b>`, `<b>${brl(P.fim1)}</b>`, `<b style="color:${h.cor.ora}">${brl(P.fim2)}</b>`],
     ]) +
     h.destaque(esc(c.txt), c.tipo) +
-    (L.reinvTxt ? h.p(`<span style="color:#6b6e74;font-size:13px">Para comparar no mesmo prazo, considerei, na opção "${L.quemReinv === 'manter' ? 'manter' : 'trocar'}", que após o vencimento o valor segue ${esc(L.reinvTxt)}.</span>`) : '') +
+    (L.reinvTxt ? h.p(`<span style="color:#6d6a80;font-size:13px">Para comparar no mesmo prazo, considerei, na opção "${L.quemReinv === 'manter' ? 'manter' : 'trocar'}", que após o vencimento o valor segue ${esc(L.reinvTxt)}.</span>`) : '') +
     h.p('Fico à disposição para conversarmos.') +
     h.p('Abraço,') + h.assinatura(ass) +
     h.rodape(`Premissas: CDI de ${pct(P.n.cdi)} a.a. e IPCA de ${pct(P.n.ipca)} a.a. Valores líquidos de IR pela tabela regressiva. Simulação com base nas condições de hoje, não constitui garantia de rentabilidade.`)

@@ -69,7 +69,7 @@ const Ordens = (() => {
           h.p(h.saudacao(nome)) +
           h.p('Conforme conversamos, seguem as operações de renda variável propostas para a sua conta:') +
           h.tabela(COLS, ord.map(o => { const l = linha(o, c.codigo).map(esc); l[0] = `<b>${l[0]}</b>`; l[1] = `<b style="color:${o.op === 'V' ? h.cor.ruim : h.cor.bom}">${l[1]}</b>`; return l; }), ['left', 'center', 'right', 'center', 'center']) +
-          h.p('<span style="color:#6b6e74;font-size:12px">C = compra · V = venda</span>') +
+          h.p('<span style="color:#6d6a80;font-size:12px">C = compra · V = venda</span>') +
           h.destaque('Para que eu possa encaminhar as ordens à mesa de operações, peço, por gentileza, que responda a este e-mail com o seu DE ACORDO.', 'neutro') +
           h.p('Abraço,') + h.assinatura(ass) +
           h.rodape('Ordens "a mercado" são executadas pelo preço disponível no momento da execução. Ordens com preço limitado só são executadas se o preço for atingido. Rentabilidade passada não é garantia de rentabilidade futura.')),
