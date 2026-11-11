@@ -151,16 +151,16 @@ const Email = (() => {
   }
 
   // ---------- Ajudantes para montar o HTML do e-mail (estilos inline para funcionar em qualquer cliente) ----------
-  const cor = { ind: '#22105a', ora: '#ff5a00', mut: '#6d6a80', lin: '#e9e8f0', bom: '#129b5a', ruim: '#e2403a' };
+  const cor = { ind: '#1b1b1d', ora: '#b88700', mut: '#6b6e74', lin: '#e1e3e6', bom: '#129b5a', ruim: '#e2403a' };
   const h = {
     cor,
-    wrap: (conteudo) => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#26233a;max-width:640px">${conteudo}</div>`,
+    wrap: (conteudo) => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f1f22;max-width:640px">${conteudo}</div>`,
     p: t => `<p style="margin:0 0 12px">${t}</p>`,
     titulo: t => `<h3 style="margin:18px 0 8px;font-size:15px;color:${cor.ind};border-bottom:2px solid ${cor.ora};padding-bottom:4px">${t}</h3>`,
     destaque: (t, tipo) => `<div style="background:${tipo === 'bom' ? '#e5f6ee' : tipo === 'ruim' ? '#fdeceb' : '#fff4dc'};color:${tipo === 'bom' ? '#0b6e3f' : tipo === 'ruim' ? '#a52521' : '#8a5400'};padding:12px 14px;border-radius:8px;font-weight:bold;margin:0 0 12px">${t}</div>`,
     tabela: (cab, linhas, alinhar = []) => `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;margin:0 0 12px">
       ${cab.some(c => c) ? `<tr>${cab.map((c, i) => `<th style="text-align:${alinhar[i] || 'left'};padding:7px 8px;background:${cor.ind};color:#fff;font-weight:bold">${c}</th>`).join('')}</tr>` : ''}
-      ${linhas.map((l, k) => `<tr>${l.map((c, i) => `<td style="text-align:${alinhar[i] || 'left'};padding:7px 8px;border-bottom:1px solid ${cor.lin};${k % 2 ? 'background:#faf9fd;' : ''}">${c}</td>`).join('')}</tr>`).join('')}
+      ${linhas.map((l, k) => `<tr>${l.map((c, i) => `<td style="text-align:${alinhar[i] || 'left'};padding:7px 8px;border-bottom:1px solid ${cor.lin};${k % 2 ? 'background:#f6f7f8;' : ''}">${c}</td>`).join('')}</tr>`).join('')}
     </table>`,
     rodape: t => `<p style="margin:16px 0 0;font-size:11.5px;color:${cor.mut}">${t}</p>`,
     assinatura: ass => ass ? `<p style="margin:18px 0 0">${esc(ass).replace(/\n/g, '<br>')}</p>` : '',

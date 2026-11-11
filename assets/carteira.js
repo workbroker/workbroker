@@ -115,7 +115,7 @@ function renderImportInfo() {
   if (!S.dataRef && !S.avisos?.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div class="imported">
-      ${S.dataRef ? `<span class="pill good">✓ XPerformance importado</span><span class="pill">Ref. ${esc(S.dataRef)}</span>` : ''}
+      ${S.dataRef ? `<span class="pill">Ref. ${esc(S.dataRef)}</span>` : ''}
       ${S.patrimonioRelatorio ? `<span class="pill">Patrimônio bruto ${brl(S.patrimonioRelatorio)}</span>` : ''}
       <span class="pill">${S.ativos.length} ativos</span>
     </div>
@@ -126,7 +126,7 @@ function renderAtivos() {
   const total = S.ativos.reduce((s, a) => s + v(a.saldo), 0);
   $('qtdAtivos').textContent = S.ativos.length ? `${S.ativos.length} · ${brl(total)}` : 'vazio';
   if (!S.ativos.length) {
-    $('assets').innerHTML = '<p class="note" style="padding:10px 0">Importe o PDF do XPerformance ou adicione os ativos manualmente.</p>';
+    $('assets').innerHTML = '<p class="note" style="padding:10px 0">Adicione os ativos do cliente com o botão abaixo.</p>';
     return;
   }
   let html = '';
@@ -230,7 +230,7 @@ function renderSummary(R) {
 const FECHADAS = new Set(store.get('rw_carteira_fechadas', []));
 function donut(p, cor) {
   const r = 20, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, p / 100));
-  return `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="${r}" fill="none" stroke="#eceaf3" stroke-width="5"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${cor}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 26 26)"/><text x="26" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="#22105a">${pct(p, 1).replace('%', '')}%</text></svg>`;
+  return `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="${r}" fill="none" stroke="#e6e8eb" stroke-width="5"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${cor}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 26 26)"/><text x="26" y="30" text-anchor="middle" font-size="11" font-weight="800" fill="#1b1b1d">${pct(p, 1).replace('%', '')}%</text></svg>`;
 }
 function cabecalhoClasse(l, R) {
   const muda = Math.abs(l.novo - l.atual) > 0.005;
@@ -251,7 +251,7 @@ function renderMov() {
   const R = calcular();
   const total = R.total;
   const grupos = R.linhas.filter(l => S.ativos.some(a => a.classe === l.k) || S.compras.some(o => clsCompra(o) === l.k) || l.pr > 0);
-  if (!S.ativos.length && !S.compras.length) { $('mov').innerHTML = '<p class="note">Importe o XPerformance no passo 1 para ver os ativos do cliente aqui.</p>'; return; }
+  if (!S.ativos.length && !S.compras.length) { $('mov').innerHTML = '<p class="note">Cadastre os ativos do cliente no passo 2 para vê-los aqui.</p>'; return; }
   $('mov').innerHTML = grupos.map(l => {
     const ativos = S.ativos.filter(a => a.classe === l.k);
     const novos = S.compras.filter(o => !o.ativoId && clsCompra(o) === l.k);
@@ -326,37 +326,6 @@ function recalcular() {
 function renderTudo() {
   renderCliente(); renderAtivos(); renderSalvas(); recalcular(); renderMov();
 }
-
-// ================= Importar PDF =================
-async function importarPDF(file) {
-  if (!file) return;
-  $('importInfo').innerHTML = '<p class="note">⏳ Lendo o PDF…</p>';
-  try {
-    const r = await XPParser.parse(await file.arrayBuffer(), file.name);
-    const temDados = S.ativos.length || S.vendas.length || S.compras.length;
-    if (temDados && !confirmar('Substituir a carteira atual pelos ativos deste PDF? As ordens lançadas serão apagadas.')) { renderImportInfo(); return; }
-    const perfil = S.perfil;
-    S = estadoVazio();
-    S.perfil = perfil;
-    S.cliente = r.cliente || '';
-    S.conta = r.conta || '';
-    S.dataRef = r.dataRef || '';
-    S.patrimonioRelatorio = r.patrimonio;
-    S.avisos = r.avisos;
-    S.ativos = r.ativos.map(a => ({ id: uid(), nome: a.nome, estrategia: a.estrategia, classe: a.classe, saldo: a.saldo, qtd: a.qtd, revisar: a.revisar, rentMes: a.rentMes, cdiMes: a.cdiMes, rentAno: a.rentAno, cdiAno: a.cdiAno }));
-    renderTudo();
-    $('cardAtivos').open = false;
-    toast(`${S.ativos.length} ativos importados`);
-  } catch (e) {
-    console.error(e);
-    $('importInfo').innerHTML = `<p class="note bad">❌ ${esc(e.message || 'Não foi possível ler o PDF.')}</p>`;
-  }
-}
-$('drop').onclick = () => $('pdfFile').click();
-$('pdfFile').onchange = e => { importarPDF(e.target.files[0]); e.target.value = ''; };
-['dragover', 'dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
-['dragleave', 'drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => importarPDF(e.dataTransfer.files[0]));
 
 // ================= Eventos =================
 ['cliente', 'conta'].forEach(k => $(k).addEventListener('input', e => { S[k] = e.target.value; salvarAtual(); }));
@@ -524,13 +493,6 @@ $('btnExport').onclick = () => {
   a.download = `carteira-${(S.cliente || S.conta || 'cliente').replace(/[^\w\-]+/g, '_')}.json`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$('btnImport').onclick = () => $('jsonFile').click();
-$('jsonFile').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.ativos)) throw 0; S = Object.assign(estadoVazio(), d); renderTudo(); toast('Carteira importada'); }
-  catch { toast('Arquivo inválido'); }
-  e.target.value = '';
-};
 
 $('btnCopiar').onclick = () => {
   const R = calcular();
@@ -623,10 +585,10 @@ function emailHtmlCarteira(nome, ass) {
     const etq = (txt, cor, fundo) => `<span style="display:inline-block;background:${fundo};color:${cor};font-size:10px;font-weight:bold;border-radius:9px;padding:1px 7px;margin-right:6px">${txt}</span>`;
     const rowsA = [];
     carteiraDepois().forEach(g => {
-      rowsA.push([`<b style="color:#22105a">${esc(g.c.n)}</b>`, '', '', '']);
+      rowsA.push([`<b style="color:#1b1b1d">${esc(g.c.n)}</b>`, '', '', '']);
       g.itens.forEach(i => {
         const tag = i.tipo === 'novo' ? etq('NOVO', '#fff', h.cor.bom) : i.tipo === 'sai' ? etq('SAI', '#fff', h.cor.ruim) : i.tipo === 'reduz' ? etq('RESGATE', h.cor.ruim, '#fde8e7') : i.tipo === 'aumenta' ? etq('APLICAÇÃO', h.cor.bom, '#e3f5ec') : '';
-        const nm = i.tipo === 'sai' ? `<span style="text-decoration:line-through;color:#8a8799">${esc(i.nome)}</span>` : esc(i.nome);
+        const nm = i.tipo === 'sai' ? `<span style="text-decoration:line-through;color:#8a8d93">${esc(i.nome)}</span>` : esc(i.nome);
         const mv = Math.abs(i.mov) > 0.005 ? `<span style="color:${i.mov < 0 ? h.cor.ruim : h.cor.bom};font-weight:bold">${i.mov < 0 ? '−' : '+'}${brl(Math.abs(i.mov))}</span>` : '—';
         rowsA.push([tag + nm, i.hoje ? brl(i.hoje) : '—', mv, `<b>${i.depois > 0.005 ? brl(i.depois) : '—'}</b>`]);
       });
@@ -635,7 +597,7 @@ function emailHtmlCarteira(nome, ass) {
     if (R.desvioN < R.desvioA - 0.05) html += h.destaque(`Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`, 'bom');
   }
   html += h.p('Fico à disposição para conversarmos sobre a proposta.') + h.p('Abraço,') + h.assinatura(ass) +
-    h.rodape('Percentuais calculados sobre a posição informada no relatório. As movimentações dependem de liquidez, prazos e condições de mercado no momento da execução.');
+    h.rodape('Percentuais calculados sobre a posição informada. As movimentações dependem de liquidez, prazos e condições de mercado no momento da execução.');
   return h.wrap(html);
 }
 $('btnEmail').onclick = () => {
@@ -653,4 +615,4 @@ function confirmar(msg) { try { return window.confirm(msg); } catch { return tru
 
 renderRec();
 renderTudo();
-if (S.ativos.length) $('cardAtivos').open = false;
+

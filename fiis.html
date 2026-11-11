@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#22105a">
+<meta name="theme-color" content="#eceef0">
 <title>FIIs em atenção · WorkBroker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611102125">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23f5b400%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22%23111%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css?v=202611102139">
 <style>
   .ed-bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
   .ed-bar .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); }
@@ -19,13 +19,13 @@
   .lv.elevada { background: var(--bad-soft); color: var(--bad); }
   .lv.moderada { background: var(--warn-soft); color: var(--warn); }
   .lv.ok { background: var(--good-soft); color: var(--good); }
-  .lv.cinza { background: #efeef5; color: var(--muted); }
+  .lv.cinza { background: #eceef0; color: var(--muted); }
   .mud { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; background: var(--orange-soft); color: var(--orange); }
   .fgrid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
   .fcard { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; border-left: 5px solid var(--line); }
   .fcard.elevada { border-left-color: var(--bad); } .fcard.moderada { border-left-color: var(--warn); } .fcard.ok { border-left-color: var(--good); }
-  .fonte { font-size: 11px; font-weight: 700; color: var(--muted); background: #efeef5; border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
-  .fonte.man { background: #e8e4fb; color: var(--indigo); }
+  .fonte { font-size: 11px; font-weight: 700; color: var(--muted); background: #eceef0; border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+  .fonte.man { background: #ebecee; color: var(--indigo); }
   .rbar { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin-top: 6px; }
   .rbar div { flex: 1; background: var(--orange); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
   .rbar div.corte { background: var(--bad); }
@@ -37,29 +37,29 @@
   .pontos { display: grid; gap: 6px; font-size: 13.5px; line-height: 1.4; }
   .pontos .p { display: flex; gap: 8px; padding: 8px 10px; border-radius: 12px; }
   .pontos .p.crit { background: var(--bad-soft); } .pontos .p.bom { background: var(--good-soft); }
-  .pontos a.p.aviso { background: #ecebfb; color: var(--indigo); text-decoration: none; } .pontos a.p.aviso:hover { background: #e0defa; } .pontos a.p.aviso b { color: var(--orange); white-space: nowrap; }
+  .pontos a.p.aviso { background: #fff5d1; color: var(--indigo); text-decoration: none; } .pontos a.p.aviso:hover { background: #ffeeb0; } .pontos a.p.aviso b { color: var(--orange); white-space: nowrap; }
   .pontos .p > span:first-child { font-weight: 800; }
   .pontos .p.crit > span:first-child { color: var(--bad); } .pontos .p.bom > span:first-child { color: var(--good); }
   .mm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .mm div { background: #f6f5fa; border-radius: 12px; padding: 7px 9px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .mm div { background: #f2f3f5; border-radius: 12px; padding: 7px 9px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
   .mm b { display: block; font-size: 15px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
   .pos { color: var(--good) !important; } .neg { color: var(--bad) !important; }
   .nx { font-size: 13px; color: var(--muted); }
   .nota { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; font-size: 14px; line-height: 1.45; }
-  .nota.ok { border-left: 5px solid var(--good); } .nota.cinza { border-left: 5px solid #cfcde0; }
+  .nota.ok { border-left: 5px solid var(--good); } .nota.cinza { border-left: 5px solid #cfd2d6; }
   .busca-f { position: relative; }
   .busca-f input { font-size: 16px; padding: 14px 16px; border-radius: 16px; }
-  .sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 40px rgba(34,16,90,.14); z-index: 20; padding: 6px; display: none; max-height: 380px; overflow-y: auto; }
+  .sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 40px rgba(0,0,0,.14); z-index: 20; padding: 6px; display: none; max-height: 380px; overflow-y: auto; }
   .sug.on { display: block; }
   .sug button { display: flex; width: 100%; justify-content: space-between; gap: 10px; background: transparent; color: var(--ink); text-align: left; padding: 10px 12px; border-radius: 10px; font-weight: 500; }
-  .sug button:hover, .sug button.hi { background: #f1f0f6; }
+  .sug button:hover, .sug button.hi { background: #eef0f2; }
   .sug .sn { color: var(--muted); font-size: 12.5px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--indigo); color: #fff; border-radius: 99px; padding: 4px 6px 4px 12px; font-weight: 700; font-size: 13px; }
   .chip button { background: rgba(255,255,255,.18); color: #fff; padding: 0 7px; border-radius: 99px; font-size: 14px; line-height: 20px; }
   .filtros { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 14px 0 6px; }
   .temas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
-  .linkchip { background: #efeef5; color: var(--indigo); border-radius: 99px; padding: 4px 10px; font-weight: 700; font-size: 12.5px; margin: 3px 4px 0 0; }
+  .linkchip { background: #eceef0; color: var(--indigo); border-radius: 99px; padding: 4px 10px; font-weight: 700; font-size: 12.5px; margin: 3px 4px 0 0; }
   .linkchip:hover { background: var(--orange-soft); color: var(--orange); }
   .linkchip.elevada { background: var(--bad-soft); color: var(--bad); } .linkchip.moderada { background: var(--warn-soft); color: var(--warn); }
   /* análise completa */
@@ -68,10 +68,10 @@
   .det p, .det li { font-size: 14.5px; line-height: 1.5; margin: 0; }
   .det ul, .det ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
   .mg { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
-  .mg div { background: #f6f5fa; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .mg div { background: #f2f3f5; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
   .mg b { display: block; color: var(--ink); font-size: 14.5px; margin-top: 2px; }
   .dois { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
-  .caixa { background: #f8f7fc; border-radius: 16px; padding: 12px 14px; }
+  .caixa { background: #f3f4f6; border-radius: 16px; padding: 12px 14px; }
   .caixa.crit { background: var(--bad-soft); } .caixa.crit h4 { color: var(--bad); }
   .caixa.bom { background: var(--good-soft); } .caixa.bom h4 { color: var(--good); }
   .caixa.explica { background: var(--orange-soft); } .caixa.explica h4 { color: var(--orange); }
@@ -101,11 +101,10 @@
 
 <main>
   <h1>FIIs em atenção</h1>
-  <p class="lead">Busque qualquer FII listado ou anexe o XPerformance do cliente e veja os pontos críticos e os pontos bons de cada fundo. Os indicadores e os comunicados de todos os FIIs são atualizados todo dia, de forma automática (CVM, Fundos.NET e B3).</p>
+  <p class="lead">Busque qualquer FII listado ou digite os FIIs do cliente e veja os pontos críticos e os pontos bons de cada fundo. Os indicadores e os comunicados de todos os FIIs são atualizados todo dia, de forma automática (CVM, Fundos.NET e B3).</p>
 
   <div class="card ed-bar">
     <div class="meta" id="edMeta"><span>⏳ Carregando os indicadores dos FIIs…</span></div>
-    <div class="row"><button class="sm secondary" id="btnNova">📘 Importar Manual de FIIs (opcional)</button><input type="file" id="fileMan" accept=".html,.htm,text/html" hidden></div>
   </div>
   <div class="abas" role="tablist" id="abas"></div>
   <section class="painel" id="p-busca"></section>
@@ -123,9 +122,8 @@
   </div>
 </div>
 
-<script src="assets/common.js?v=202611102125"></script>
-<script src="assets/xp-parser.js?v=202611102125"></script>
-<script src="assets/email.js?v=202611102125"></script>
-<script src="assets/fiis.js?v=202611102125"></script>
+<script src="assets/common.js?v=202611102139"></script>
+<script src="assets/email.js?v=202611102139"></script>
+<script src="assets/fiis.js?v=202611102139"></script>
 </body>
 </html>

@@ -67,8 +67,8 @@ const semFgcCredito = g => !soberano(g) && g.total - g.fgc > 0.5;
 // ---------- Renderização ----------
 function render() {
   const carteira = store.get('rw_carteira_atual', null);
-  $('btnUsar').hidden = !(carteira && carteira.ativos?.length);
-  $('info').innerHTML = C.dataRef ? `<span class="pill good">✓ XPerformance importado</span> <span class="pill">Ref. ${esc(C.dataRef)}</span> <span class="pill">${C.ativos.length} ativos de renda fixa</span>` : '';
+  // botão sempre visível
+  $('info').innerHTML = C.dataRef ? `<span class="pill">Ref. ${esc(C.dataRef)}</span> <span class="pill">${C.ativos.length} ativos de renda fixa</span>` : '';
   const G = grupos(), rf = G.reduce((s, g) => s + g.total, 0), base = C.total || rf;
   const sob = G.filter(soberano).reduce((s, g) => s + g.total, 0);
   const fgcCob = G.reduce((s, g) => s + Math.min(g.fgc, LIMITE_FGC), 0);
@@ -97,7 +97,7 @@ function render() {
         <td>${soberano(g) ? '' : `<select class="ag" data-f="agencia">${['', 'S&P', 'Fitch', "Moody's", 'Outra'].map(a => `<option ${a === (r.agencia || '') ? 'selected' : ''}>${a}</option>`).join('')}</select>`}</td>
         <td>${soberano(g) ? '' : `<input class="ob" data-f="obs" value="${esc(r.obs || '')}" placeholder="perspectiva, data…">`}</td>
       </tr>`;
-    }).join('')}</tbody>` : '<tbody><tr><td class="note">Importe o XPerformance para ver os emissores.</td></tr></tbody>';
+    }).join('')}</tbody>` : '<tbody><tr><td class="note">Toque em “Usar carteira cadastrada” para ver os emissores.</td></tr></tbody>';
 
   const al = alertas(G, base);
   $('alertas').innerHTML = al.length ? al.map(([c, t]) => `<li class="${c}">${t}</li>`).join('') : '<li class="info">Nenhum ponto de atenção pelos critérios atuais.</li>';
@@ -131,7 +131,7 @@ function renderVenc(G) {
   $('venc').innerHTML = lista.length ? lista.map(([a, v]) => `
     <div style="display:grid;grid-template-columns:72px 1fr 110px;gap:8px;align-items:center;margin-bottom:8px">
       <b style="color:var(--indigo)">${a}</b>
-      <div style="background:#efeef5;border-radius:6px;height:14px;overflow:hidden"><div style="width:${(v / max * 100).toFixed(1)}%;height:100%;background:var(--orange);border-radius:6px"></div></div>
+      <div style="background:#eceef0;border-radius:6px;height:14px;overflow:hidden"><div style="width:${(v / max * 100).toFixed(1)}%;height:100%;background:var(--orange);border-radius:6px"></div></div>
       <span class="n" style="text-align:right;font-size:13px">${brl(v)}</span></div>`).join('') : '<p class="note">Sem dados.</p>';
 }
 
@@ -143,18 +143,7 @@ function deCarteira(ativos, meta) {
   salvar(); preencher(); render();
   toast(`${C.ativos.length} ativos de renda fixa`);
 }
-async function importar(file) {
-  if (!file) return;
-  $('info').innerHTML = '<p class="note">⏳ Lendo o PDF…</p>';
-  try { const r = await XPParser.parse(await file.arrayBuffer(), file.name); deCarteira(r.ativos, { nome: r.cliente || C.nome, conta: r.conta || C.conta, dataRef: r.dataRef }); }
-  catch (e) { $('info').innerHTML = `<p class="note bad">❌ ${esc(e.message)}</p>`; }
-}
-$('drop').onclick = () => $('pdfFile').click();
-$('pdfFile').onchange = e => { importar(e.target.files[0]); e.target.value = ''; };
-['dragover', 'dragenter'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); }));
-['dragleave', 'drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => importar(e.dataTransfer.files[0]));
-$('btnUsar').onclick = () => { const c = store.get('rw_carteira_atual', null); if (c) deCarteira(c.ativos, { nome: c.cliente || '', conta: c.conta || '', email: c.email || C.email, dataRef: c.dataRef || '' }); };
+$('btnUsar').onclick = () => { const c = store.get('rw_carteira_atual', null); if (!c || !(c.ativos || []).length) { toast('Cadastre a carteira do cliente em Carteira e rebalanceamento'); return; } deCarteira(c.ativos, { nome: c.cliente || '', conta: c.conta || '', email: c.email || C.email, dataRef: c.dataRef || '' }); };
 
 // ---------- Ratings ----------
 document.addEventListener('change', e => {
@@ -168,13 +157,6 @@ $('btnExp').onclick = () => {
   a.href = URL.createObjectURL(new Blob([JSON.stringify(RAT, null, 2)], { type: 'application/json' }));
   a.download = 'ratings-emissores.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$('btnImp').onclick = () => $('fileImp').click();
-$('fileImp').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try { const d = JSON.parse(await f.text()); RAT = { ...RAT, ...d }; salvarRat(); render(); toast('Ratings importados'); } catch { toast('Arquivo inválido'); }
-  e.target.value = '';
-};
-
 function preencher() { $('nome').value = C.nome || ''; $('conta').value = C.conta || ''; $('email').value = C.email || ''; $('coment').value = C.coment || ''; }
 ['nome', 'conta', 'email', 'coment'].forEach(k => $(k).addEventListener('input', e => { C[k] = e.target.value; salvar(); }));
 

@@ -11,7 +11,7 @@ const prem = () => ({ cdi: n('p_cdi') || 0, ipca: n('p_ipca') || 0 });
 
 // ---------- Gráficos SVG simples ----------
 function svgBox(el) { const W = Math.max(300, Math.min(el.clientWidth || 640, 1100)); return { W, H: W < 520 ? 230 : 280 }; }
-function barras(el, dados, cor = '#ff5a00') {
+function barras(el, dados, cor = '#f5b400') {
   const { W, H } = svgBox(el), pad = { l: 8, r: 8, t: 16, b: 26 };
   const max = Math.max(...dados.map(d => d.v), 1), bw = (W - pad.l - pad.r) / dados.length;
   const passo = Math.ceil(dados.length / (W < 520 ? 6 : 10));
@@ -19,7 +19,7 @@ function barras(el, dados, cor = '#ff5a00') {
   dados.forEach((d, i) => {
     const h = d.v / max * (H - pad.t - pad.b), x = pad.l + i * bw, y = H - pad.b - h;
     s += `<rect x="${(x + bw * 0.15).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(bw * 0.7, 1).toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4, bw * 0.2).toFixed(1)}" fill="${d.cor || cor}"><title>${esc(d.l)}: ${brl(d.v)}</title></rect>`;
-    if (i % passo === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 8}" font-size="10.5" text-anchor="middle" fill="#6d6a80">${esc(d.l)}</text>`;
+    if (i % passo === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 8}" font-size="10.5" text-anchor="middle" fill="#6b6e74">${esc(d.l)}</text>`;
   });
   el.innerHTML = s + '</svg>';
 }
@@ -32,8 +32,8 @@ function linhas(el, rotulos, series, opt = {}) {
   const Y = v => pad.t + (1 - (v - min) / (max - min)) * (H - pad.t - pad.b);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   for (let k = 0; k <= 4; k++) {
-    const y = pad.t + k * (H - pad.t - pad.b) / 4; s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="#eeedf4"/>`;
-    if (opt.eixo) { const v = max - k * (max - min) / 4; s += `<text x="${pad.l - 6}" y="${y + 4}" font-size="10.5" text-anchor="end" fill="#6d6a80">${v >= 1e6 ? (v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi' : Math.round(v / 1000).toLocaleString('pt-BR') + ' mil'}</text>`; }
+    const y = pad.t + k * (H - pad.t - pad.b) / 4; s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="#eceef0"/>`;
+    if (opt.eixo) { const v = max - k * (max - min) / 4; s += `<text x="${pad.l - 6}" y="${y + 4}" font-size="10.5" text-anchor="end" fill="#6b6e74">${v >= 1e6 ? (v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi' : Math.round(v / 1000).toLocaleString('pt-BR') + ' mil'}</text>`; }
   }
   series.forEach(se => {
     const d = se.v.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
@@ -44,7 +44,7 @@ function linhas(el, rotulos, series, opt = {}) {
     s += `<text x="${X(se.v.length - 1) + 8}" y="${Y(last) + 4}" font-size="11.5" font-weight="800" fill="${se.cor}">${brl0(last).replace('R$ ', 'R$')}</text>`;
   });
   const passo = Math.ceil(rotulos.length / (W < 520 ? 5 : 10));
-  rotulos.forEach((r, i) => { if (i % passo === 0 || i === rotulos.length - 1) s += `<text x="${X(i)}" y="${H - 8}" font-size="10.5" text-anchor="middle" fill="#6d6a80">${esc(r)}</text>`; });
+  rotulos.forEach((r, i) => { if (i % passo === 0 || i === rotulos.length - 1) s += `<text x="${X(i)}" y="${H - 8}" font-size="10.5" text-anchor="middle" fill="#6b6e74">${esc(r)}</text>`; });
   el.innerHTML = s + '</svg>';
 }
 
@@ -121,7 +121,7 @@ function calcCupons() {
       <div class="kpi"><div class="l">Primeiro pagamento</div><div class="v" style="font-size:17px">${fmtDate(linhasT[0].d)}</div><div class="s">${brl(linhasT[0].liq)} líquido</div></div>
       <div class="kpi"><div class="l">Principal no vencimento</div><div class="v">${brl(princ - irCorr)}</div><div class="s">${real ? `corrigido pelo IPCA${irCorr ? `, após IR de ${brl(irCorr)}` : ''}` : 'valor aplicado'}</div></div>
     </div>
-    <div class="legend" style="margin-top:14px"><span><i style="background:#ff5a00;height:8px;width:12px"></i>Juros líquidos por pagamento</span></div>
+    <div class="legend" style="margin-top:14px"><span><i style="background:#f5b400;height:8px;width:12px"></i>Juros líquidos por pagamento</span></div>
     <div class="chart-box" id="chCupons"></div>
     <div class="table-wrap" style="margin-top:12px"><table>
       <thead><tr><th>#</th><th>Data</th><th class="n">Juros bruto</th><th class="n">IR</th><th class="n">Juros líquido</th>${real ? '<th class="n hide-sm">Principal corrigido</th>' : ''}</tr></thead>
@@ -176,7 +176,7 @@ function calcCompostos() {
       <div class="kpi"><div class="l">Juros ganhos</div><div class="v good">${brl((fim.bruto - fim.inv) / f)}</div><div class="s">IR: ${isento ? 'isento' : brl(fim.ir / f)}</div></div>
       <div class="kpi"><div class="l">Renda mensal no fim</div><div class="v">${brl(fim.bruto * rm * (isento ? 1 : 0.85) / f)}</div><div class="s">juros de 1 mês sobre o saldo${isento ? '' : ', líquido a 15%'}</div></div>
     </div>
-    <div class="legend" style="margin-top:14px"><span><i style="background:#22105a"></i>Total investido</span><span><i style="background:#ff5a00"></i>Saldo bruto</span><span><i style="background:repeating-linear-gradient(90deg,#129b5a 0 5px,transparent 5px 9px)"></i>Saldo líquido</span></div>
+    <div class="legend" style="margin-top:14px"><span><i style="background:#1b1b1d"></i>Total investido</span><span><i style="background:#f5b400"></i>Saldo bruto</span><span><i style="background:repeating-linear-gradient(90deg,#129b5a 0 5px,transparent 5px 9px)"></i>Saldo líquido</span></div>
     <div class="chart-box" id="chComp"></div>
     <div class="table-wrap" style="margin-top:12px"><table>
       <thead><tr><th>Ano</th><th class="n">Investido</th><th class="n">Juros no ano</th><th class="n">Saldo bruto</th><th class="n">Saldo líquido</th></tr></thead>
@@ -184,8 +184,8 @@ function calcCompostos() {
     </table></div>
     <p class="note">Taxa efetiva de ${pct(r * 100)} a.a. (${pct(rm * 100, 3)} a.m.). IR calculado por aporte, conforme o tempo de cada um. Aportes no fim de cada mês.</p>`;
   linhas($('chComp'), rot, [
-    { v: sInv, cor: '#22105a', area: true, w: 2.5 },
-    { v: sBru, cor: '#ff5a00' },
+    { v: sInv, cor: '#1b1b1d', area: true, w: 2.5 },
+    { v: sBru, cor: '#f5b400' },
     { v: sLiq, cor: '#129b5a', dash: true, w: 2.5 },
   ]);
 }

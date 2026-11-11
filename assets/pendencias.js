@@ -158,13 +158,6 @@ $('btnCsv').onclick = () => {
   baixar(`pendencias-${todayISO()}.csv`, '﻿' + linhas.map(l => l.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv;charset=utf-8');
 };
 $('btnJson').onclick = () => baixar(`pendencias-backup-${todayISO()}.json`, JSON.stringify(P, null, 1), 'application/json');
-$('btnImp').onclick = () => $('fileImp').click();
-$('fileImp').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.itens)) throw 0; P = mesclar(P, d); salvar(); render(); toast('Cópia restaurada'); }
-  catch { toast('Arquivo inválido'); }
-  e.target.value = '';
-};
 
 // ---------- Nuvem (repositório privado no GitHub) ----------
 // Junta duas versões: para cada pendência, vale a alteração mais recente (exclusões também contam)

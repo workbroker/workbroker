@@ -145,8 +145,6 @@ const MENU = [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado'], ['Risco de crédito', 'rf-credito.html']] },
     { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
-  { id: 'relatorio', label: 'Relatório mensal', ic: 'slides', grupos: [
-    { t: 'Relatório mensal', itens: [['Apresentação do mês', 'relatorio.html'], ['Disparo de relatórios', 'disparo.html']] }] },
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
 const PAGINAS = [
@@ -160,9 +158,7 @@ const PAGINAS = [
   ['Saldo parado × aplicado', 'rf-calculadoras.html#parado', 'saldo parado conta corrente inflacao perda poder de compra cdi rendimento caixa'],
   ['Risco de crédito', 'rf-credito.html', 'renda fixa rating fgc emissor concentracao vencimentos'],
   ['Visão geral de renda fixa', 'rf.html', 'renda fixa ferramentas'],
-  ['Carteira e rebalanceamento', 'carteira.html', 'xperformance alocacao over under recomendada'],
-  ['Relatório mensal', 'relatorio.html', 'apresentacao cliente xperformance mensal pdf'],
-  ['Disparo de relatórios', 'disparo.html', 'disparo lote email todos clientes xperformance anexo planilha excel'],
+  ['Carteira e rebalanceamento', 'carteira.html', ' alocacao over under recomendada'],
   ['Mercado ao vivo', 'mercado.html', 'noticias infomoney cotacoes'],
 ];
 const favs = () => store.get('rw_favs', []);

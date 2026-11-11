@@ -107,8 +107,6 @@ async function importar(file) {
     toast(`Manual da edição ${data.edicao || ''} importado`);
   } catch (e) { toast('❌ ' + e.message); }
 }
-$('btnNova').onclick = () => $('fileMan').click();
-$('fileMan').onchange = e => { importar(e.target.files[0]); e.target.value = ''; };
 
 function prepararManual(pacote) {
   MAN = pacote; const D = pacote.data; ED = D.edicao || '';
@@ -396,52 +394,18 @@ function montarBusca() {
 let CART = null;   // { cliente, conta, patrimonio, pos: [{ticker, nome, saldo, pct, rentMes, rentAno}], naoListados: [...] }
 function montarCarteira() {
   $('p-carteira').innerHTML = `
-    <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
-      <div class="card" style="margin:0">
-        <h2 style="margin-top:0">📄 XPerformance do cliente</h2>
-        <p class="note" style="margin-top:0">O site encontra os FIIs da carteira, com saldo e rentabilidade, e mostra os pontos críticos e bons de cada um.</p>
-        <div class="drop" id="dropXp"><div class="big">📄</div><div><b>Anexar XPerformance (PDF)</b></div><input type="file" id="fileXp" accept="application/pdf,.pdf" hidden></div>
-        <div id="infoXp" style="margin-top:10px"></div>
-      </div>
-      <div class="card" style="margin:0">
-        <h2 style="margin-top:0">⌨️ Ou digite os tickers</h2>
-        <p class="note" style="margin-top:0">Um por linha, separados por vírgula ou colados de uma planilha.</p>
-        <textarea id="cartTk" rows="5" placeholder="Ex.: HGLG11, KNRI11, MXRF11"></textarea>
-      </div>
+    <div class="card" style="margin:0">
+      <h2 style="margin-top:0">⌨️ FIIs do cliente</h2>
+      <p class="note" style="margin-top:0">Digite ou cole os tickers: um por linha, separados por vírgula ou copiados de uma planilha.</p>
+      <textarea id="cartTk" rows="4" placeholder="Ex.: HGLG11, KNRI11, MXRF11"></textarea>
     </div>
     <div id="cartOut" style="margin-top:16px"></div>`;
-  $('dropXp').onclick = () => $('fileXp').click();
-  $('fileXp').onchange = e => { lerXp(e.target.files[0]); e.target.value = ''; };
-  ['dragover', 'dragenter'].forEach(ev => $('dropXp').addEventListener(ev, e => { e.preventDefault(); $('dropXp').classList.add('over'); }));
-  ['dragleave', 'drop'].forEach(ev => $('dropXp').addEventListener(ev, e => { e.preventDefault(); $('dropXp').classList.remove('over'); }));
-  $('dropXp').addEventListener('drop', e => lerXp(e.dataTransfer.files[0]));
   $('cartTk').addEventListener('input', () => {
     const T = [...new Set($('cartTk').value.toUpperCase().match(/\b[A-Z]{4}\d{2}\b/g) || [])];
     const antigo = CART && CART.cliente ? CART : null;
     CART = T.length ? { cliente: antigo ? antigo.cliente : '', patrimonio: antigo ? antigo.patrimonio : null, naoListados: antigo ? antigo.naoListados : [], pos: T.map(t => (antigo && antigo.pos.find(p => p.ticker === t)) || { ticker: t }) } : null;
     desenharCarteira();
   });
-  desenharCarteira();
-}
-async function lerXp(file) {
-  if (!file) return;
-  $('infoXp').innerHTML = '<p class="note">⏳ Lendo o PDF…</p>';
-  try {
-    const r = await XPParser.parse(await file.arrayBuffer(), file.name);
-    const pos = [], naoListados = [];
-    (r.ativos || []).forEach(a => {
-      if (/collar|fence|booster|call|put|estruturad/i.test(a.nome)) return;
-      const m = String(a.nome).toUpperCase().match(/\b([A-Z]{4}1[1-5])\b/);
-      const fiiNome = /\bFII\b|FIAGRO|IMOBILI/i.test(a.nome);
-      if (m && (conhecido(m[1]) || a.classe === 'fl' || fiiNome)) {
-        const t = m[1], ex = pos.find(p => p.ticker === t);
-        if (ex) { ex.saldo += a.saldo || 0; ex.pct += a.pct || 0; } else pos.push({ ticker: t, nome: a.nome, saldo: a.saldo || 0, pct: a.pct || 0, rentMes: a.rentMes, rentAno: a.rentAno });
-      } else if (fiiNome) naoListados.push({ nome: a.nome, saldo: a.saldo || 0 });
-    });
-    CART = { cliente: r.cliente || '', patrimonio: r.patrimonio, pos, naoListados };
-    $('cartTk').value = pos.map(p => p.ticker).join(', ');
-    $('infoXp').innerHTML = `<span class="pill good">✓ ${esc(r.cliente || file.name)}</span> <span class="note">conta ${esc(r.conta || '—')} · ${pos.length} FII(s) listado(s)${naoListados.length ? ` · ${naoListados.length} fundo(s) não listado(s)` : ''}</span>`;
-  } catch (e) { $('infoXp').innerHTML = `<p class="note bad">❌ Não consegui ler o PDF: ${esc(e.message)}</p>`; CART = null; }
   desenharCarteira();
 }
 function classificar() {
@@ -452,7 +416,7 @@ function classificar() {
 }
 function desenharCarteira() {
   const out = $('cartOut'); if (!out) return;
-  if (!CART || (!CART.pos.length && !CART.naoListados.length)) { out.innerHTML = '<div class="nota cinza">Os FIIs do cliente aparecem aqui assim que você anexar o XPerformance ou digitar os tickers.</div>'; return; }
+  if (!CART || (!CART.pos.length && !CART.naoListados.length)) { out.innerHTML = '<div class="nota cinza">Os FIIs do cliente aparecem aqui assim que você digitar os tickers.</div>'; return; }
   const { att, sem, outros } = classificar();
   const temSaldo = CART.pos.some(p => okn(p.saldo) && p.saldo > 0);
   const tot = CART.pos.reduce((s, p) => s + (p.saldo || 0), 0), soma = L => L.reduce((s, p) => s + (p.saldo || 0), 0);
@@ -571,7 +535,6 @@ function montar() {
   const nAuto = Object.keys(AUTO).length;
   $('edMeta').innerHTML = (nAuto ? `<span>📊 <b>${n0(nAuto)}</b> FIIs · indicadores de <b>${AUTO_META ? new Date(AUTO_META.gerado).toLocaleDateString('pt-BR') : '—'}</b></span>` : '<span class="bad">Indicadores automáticos indisponíveis no momento.</span>')
     + (MAN ? `<span>📘 Manual: edição <b>${esc(ED)}</b> (${FM.length} fundos analisados em detalhe)</span>` : '');
-  $('btnNova').textContent = MAN ? '📘 Importar nova edição do manual' : '📘 Importar Manual de FIIs (opcional)';
   $('rodapeFii').textContent = 'Material informativo de apoio ao assessor. Não constitui recomendação de investimento nem relatório de análise. Os alertas automáticos são sinais objetivos calculados com dados públicos e não explicam o motivo; confira os comunicados do fundo antes de falar com o cliente.';
   escolhidos.length = 0;
   montarBusca(); montarCarteira();
@@ -580,7 +543,7 @@ function montar() {
   mostrar(location.hash.slice(1) || 'busca');
 }
 (async function () {
-  try { const p = JSON.parse(localStorage.getItem(CHAVE) || 'null'); if (p && p.data) prepararManual(p); } catch (e) { console.error(e); }
+  try { localStorage.removeItem(CHAVE); } catch (e) {}   // importação de arquivos desativada (política da empresa)
   try {
     const d = await carregarDados('fiis.json');
     AUTO_META = { gerado: d.gerado }; IFIX = d.ifix || null;
