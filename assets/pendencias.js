@@ -223,7 +223,7 @@ $('nRepo').value = CFG.repo; $('nTok').value = CFG.token ? '••••••�
 $('btnConectar').onclick = async () => {
   const repo = $('nRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
   const tok = $('nTok').value.trim();
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { toast('Informe o repositório como usuario/rico-dados'); return; }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { toast('Informe o repositório como usuario/workbroker-dados'); return; }
   if (tok && !tok.startsWith('••')) CFG.token = tok;
   if (!CFG.token) { toast('Cole o token'); return; }
   CFG.repo = repo; store.set('rw_pend_nuvem', CFG);
@@ -238,7 +238,7 @@ $('btnDesconectar').onclick = () => {
 };
 
 // ---------- Início ----------
-if (!$('nRepo').value) $('nRepo').placeholder = 'workrico/rico-dados';
+if (!$('nRepo').value) $('nRepo').placeholder = 'seu-usuario/workbroker-dados';
 render();
 if (CFG.repo && CFG.token) { sincronizar(); setInterval(sincronizar, 60 * 1000); }
 else { status('', 'Salvo neste navegador · ative a cópia na nuvem'); $('cardNuvem').open = !vivos().length ? false : false; }

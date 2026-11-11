@@ -260,7 +260,7 @@ $('btnAuto').onclick = async () => {
   }
   z.add('lista.txt', '\ufeff' + lista.join('\r\n') + '\r\n');
   try { z.add('EnviarRelatorios.bas', new Uint8Array(await (await fetch('assets/outlook/EnviarRelatorios.bas')).arrayBuffer())); } catch (e) {}
-  z.add('LEIA-ME.txt', ['Rico.Work - envio automatico dos relatorios', '',
+  z.add('LEIA-ME.txt', ['WorkBroker - envio automatico dos relatorios', '',
     '1. Extraia este .zip (botao direito > Extrair tudo).',
     '2. Primeira vez: no Outlook, Alt+F11 > Arquivo > Importar arquivo > EnviarRelatorios.bas > salvar.',
     '3. No Outlook, Alt+F8 > EnviarRelatorios > Executar e escolha esta pasta.',

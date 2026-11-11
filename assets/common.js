@@ -75,7 +75,14 @@ function fmtIdx(idx, x) {
 }
 
 // Dados atualizados pelo GitHub Actions ficam no ramo "dados"; se falhar, usa a cópia local em data/
-const DADOS_URL = 'https://raw.githubusercontent.com/workrico/rico.work/dados/';
+// o endereço do repositório sai do próprio link do site (usuario.github.io/repositorio), para continuar funcionando se o repositório mudar de nome
+const DADOS_URL = (() => {
+  const h = location.hostname, m = h.match(/^([\w-]+)\.github\.io$/i);
+  if (!m) return 'https://raw.githubusercontent.com/workrico/workbroker/dados/';
+  const seg = location.pathname.split('/').filter(Boolean)[0];
+  const repo = seg && !/\.html?$/i.test(seg) ? seg : h;
+  return `https://raw.githubusercontent.com/${m[1]}/${repo}/dados/`;
+})();
 async function carregarDados(nome) {
   const t = Math.floor(Date.now() / 120000);
   for (const base of [DADOS_URL, 'data/']) {
@@ -169,7 +176,7 @@ const semAcentoNav = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 
   const side = document.createElement('aside');
   side.className = 'side no-print';
-  side.innerHTML = `<a class="side-logo" href="index.html" title="Rico.Work">RW</a>
+  side.innerHTML = `<a class="side-logo" href="index.html" title="WorkBroker">WB</a>
     <nav class="side-nav">${MENU.map(m => {
       const ativo = m.id === page || (m.paginas || []).includes(page);
       const inner = `${svgI(m.ic)}<span>${m.label}</span>`;
@@ -187,7 +194,7 @@ const semAcentoNav = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 
   h.innerHTML = `<div class="bar">
       <button class="menu-btn" type="button" aria-label="Menu">${svgI('menu', 22)}</button>
-      <a class="brand" href="index.html"><span class="mark">RW</span><span class="name">Rico<b>.</b>Work</span></a>
+      <a class="brand" href="index.html"><span class="mark">WB</span><span class="name">Work<b>Broker</b></span></a>
       <div class="busca"><input type="search" id="buscaPag" placeholder="Buscar página ou ferramenta" autocomplete="off">${svgI('search', 18)}<div class="busca-res" id="buscaRes"></div></div>
     </div>`;
 

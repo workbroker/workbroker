@@ -1,4 +1,4 @@
-// Leitor do PDF "XPerformance - Relatório de Investimentos" (XP / Rico).
+// Leitor do PDF "XPerformance - Relatório de Investimentos" (XP).
 // Tudo roda no navegador: o arquivo nunca sai do computador do usuário.
 
 const XPParser = (() => {

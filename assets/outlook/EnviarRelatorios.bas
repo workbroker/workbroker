@@ -1,5 +1,5 @@
-Attribute VB_Name = "RicoWorkDisparo"
-' Rico.Work · Envio automático dos relatórios mensais pelo Outlook
+Attribute VB_Name = "WorkBrokerDisparo"
+' WorkBroker · Envio automático dos relatórios mensais pelo Outlook
 ' Uso: Alt+F8 > EnviarRelatorios > Executar. Escolha a pasta do pacote baixado no site (onde está o lista.txt).
 ' Os e-mails saem da sua conta, ficam nos seus Itens Enviados e o envio pode ser retomado se for interrompido.
 Option Explicit
@@ -16,7 +16,7 @@ Public Sub EnviarRelatorios()
     If Right(pasta, 1) <> "\" Then pasta = pasta & "\"
     If Dir(pasta & "lista.txt") = "" Then
         MsgBox "Não encontrei o arquivo lista.txt nesta pasta." & vbCrLf & vbCrLf & _
-               "Extraia o .zip baixado no Rico.Work e escolha a pasta extraída.", vbExclamation, "Rico.Work"
+               "Extraia o .zip baixado no WorkBroker e escolha a pasta extraída.", vbExclamation, "WorkBroker"
         Exit Sub
     End If
 
@@ -24,7 +24,7 @@ Public Sub EnviarRelatorios()
     For i = 1 To UBound(linhas)
         If Trim(linhas(i)) <> "" Then total = total + 1
     Next i
-    If total = 0 Then MsgBox "A lista está vazia.", vbExclamation, "Rico.Work": Exit Sub
+    If total = 0 Then MsgBox "A lista está vazia.", vbExclamation, "WorkBroker": Exit Sub
 
     Set conta = EscolherConta()
     If conta Is Nothing Then
@@ -38,14 +38,14 @@ Public Sub EnviarRelatorios()
     modo = InputBox("Encontrei " & total & " e-mail(s) para enviar de " & meuEmail & "." & vbCrLf & vbCrLf & _
         "1 = TESTE: manda só o primeiro e-mail para você (" & meuEmail & ")" & vbCrLf & _
         "2 = RASCUNHOS: cria todos na pasta Rascunhos, sem enviar" & vbCrLf & _
-        "3 = ENVIAR TODOS para os clientes agora" & vbCrLf & vbCrLf & "Digite 1, 2 ou 3:", "Rico.Work · Envio dos relatórios", "1")
+        "3 = ENVIAR TODOS para os clientes agora" & vbCrLf & vbCrLf & "Digite 1, 2 ou 3:", "WorkBroker · Envio dos relatórios", "1")
     If modo <> "1" And modo <> "2" And modo <> "3" Then Exit Sub
 
     If modo = "3" Then
         If MsgBox("Enviar " & total & " e-mail(s) para os clientes agora?" & vbCrLf & vbCrLf & _
                   "Leva cerca de " & Int(total * PAUSA_SEGUNDOS / 60) + 1 & " minuto(s). Não feche o Outlook durante o envio." & vbCrLf & _
                   "Clientes que já constam no enviados.txt desta pasta são pulados.", _
-                  vbYesNo + vbQuestion, "Rico.Work") <> vbYes Then Exit Sub
+                  vbYesNo + vbQuestion, "WorkBroker") <> vbYes Then Exit Sub
     End If
 
     For i = 1 To UBound(linhas)
@@ -88,18 +88,18 @@ proximo:
 
     If nErros > 0 Then GravarTexto pasta & "erros.txt", erros
     Select Case modo
-        Case "1": MsgBox IIf(feitos = 1, "Teste enviado para " & meuEmail & ". Confira na sua caixa de entrada e rode de novo com a opção 3.", "O teste falhou:" & vbCrLf & erros), vbInformation, "Rico.Work"
-        Case "2": MsgBox feitos & " rascunho(s) criado(s) na pasta Rascunhos." & IIf(nErros > 0, vbCrLf & nErros & " com erro (veja erros.txt na pasta).", ""), vbInformation, "Rico.Work"
+        Case "1": MsgBox IIf(feitos = 1, "Teste enviado para " & meuEmail & ". Confira na sua caixa de entrada e rode de novo com a opção 3.", "O teste falhou:" & vbCrLf & erros), vbInformation, "WorkBroker"
+        Case "2": MsgBox feitos & " rascunho(s) criado(s) na pasta Rascunhos." & IIf(nErros > 0, vbCrLf & nErros & " com erro (veja erros.txt na pasta).", ""), vbInformation, "WorkBroker"
         Case "3": MsgBox "Pronto! " & feitos & " e-mail(s) enviado(s)." & _
                     IIf(pulados > 0, vbCrLf & pulados & " já tinham sido enviados antes e foram pulados.", "") & _
                     IIf(nErros > 0, vbCrLf & nErros & " com erro (veja erros.txt na pasta).", "") & vbCrLf & vbCrLf & _
-                    "A lista do que saiu fica no enviados.txt da pasta.", vbInformation, "Rico.Work"
+                    "A lista do que saiu fica no enviados.txt da pasta.", vbInformation, "WorkBroker"
     End Select
 End Sub
 
 Private Function EscolherPasta() As String
     Dim f As Object
-    Set f = CreateObject("Shell.Application").BrowseForFolder(0, "Escolha a pasta extraída do pacote do Rico.Work (onde está o lista.txt)", 0)
+    Set f = CreateObject("Shell.Application").BrowseForFolder(0, "Escolha a pasta extraída do pacote do WorkBroker (onde está o lista.txt)", 0)
     If Not f Is Nothing Then EscolherPasta = f.Self.Path
 End Function
 
@@ -110,7 +110,7 @@ Private Function EscolherConta() As Object
     For i = 1 To contas.Count
         txt = txt & i & " = " & contas.Item(i).SmtpAddress & vbCrLf
     Next i
-    r = InputBox("De qual conta os e-mails devem sair?" & vbCrLf & vbCrLf & txt, "Rico.Work · Conta de envio", "1")
+    r = InputBox("De qual conta os e-mails devem sair?" & vbCrLf & vbCrLf & txt, "WorkBroker · Conta de envio", "1")
     If IsNumeric(r) Then
         If CLng(r) >= 1 And CLng(r) <= contas.Count Then Set EscolherConta = contas.Item(CLng(r))
     End If

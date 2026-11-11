@@ -1,4 +1,4 @@
-# Rico.Work
+# WorkBroker
 
 Ferramentas de apoio para o dia a dia da assessoria de investimentos, publicadas com GitHub Pages.
 
