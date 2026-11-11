@@ -78,7 +78,7 @@ function fmtIdx(idx, x) {
 // o endereço do repositório sai do próprio link do site (usuario.github.io/repositorio), para continuar funcionando se o repositório mudar de nome
 const DADOS_URL = (() => {
   const h = location.hostname, m = h.match(/^([\w-]+)\.github\.io$/i);
-  if (!m) return 'https://raw.githubusercontent.com/workrico/workbroker/dados/';
+  if (!m) return 'https://raw.githubusercontent.com/workbroker/workbroker/dados/';
   const seg = location.pathname.split('/').filter(Boolean)[0];
   const repo = seg && !/\.html?$/i.test(seg) ? seg : h;
   return `https://raw.githubusercontent.com/${m[1]}/${repo}/dados/`;

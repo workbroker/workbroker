@@ -12,10 +12,11 @@ const CORES = ['#ff7a1a', '#8f7cff', '#3ee08f', '#ffd166', '#4cc9f0', '#f72585',
 const ESTRATEGIAS = ['Pós Fixado', 'Inflação', 'Pré Fixado', 'Multimercado', 'Renda Variável Brasil', 'Fundos Listados', 'Renda Fixa Internacional', 'Renda Variável Internacional', 'Alternativo', 'Previdência', 'Caixa'];
 const REFS = [['CDI', 'CDI'], ['Ibovespa', 'Ibovespa'], ['IPCA', 'IPCA (inflação)'], ['Dolar', 'Dólar']];
 const mVazio = () => ({ mes: '', conta: '', assessor: '', patrimonio: '', rentMes: '', ganhoMes: '', irMes: '', rentAno: '', ganhoAno: '', irAno: '', rent12: '', ganho12: '', ir12: '',
-  aportes: '', resgates: '', proventos: '', custos: '', refs: {}, est: [], atv: [], prov: [], hist: [] });
+  aportes: '', resgates: '', proventos: '', custos: '', est: [], atv: [], prov: [], hist: [] });
 let REL = Object.assign({ m: null, cliente: '', email: '', usd: '', cot: '', news: [], coment: '', off: [] }, store.get('rw_relatorio', {}));
 delete REL.dados;   // versão antiga (lia arquivo); não é mais usada
 REL.m = Object.assign(mVazio(), REL.m || {});
+delete REL.m.refs; // referências agora vêm automáticas
 let MACRO = null, NOT = null, abaNews = 'ultimas';
 const salvar = () => store.set('rw_relatorio', REL);
 
@@ -34,13 +35,23 @@ const rotMes = ym => { const [a, m] = String(ym || '').split('-'); return a && m
 const ultimoDia = ym => { const [a, m] = ym.split('-').map(Number); const d = new Date(a, m, 0); return `${String(d.getDate()).padStart(2, '0')}/${String(m).padStart(2, '0')}/${a}`; };
 const temDados = () => !!(REL.m.mes && (nn(REL.m.patrimonio) > 0 || REL.m.est.some(e => nn(e.saldo) > 0)));
 
+// referências (CDI, Ibovespa, IPCA, dólar) calculadas a partir das séries mensais publicadas pelo site
+function refsDoMes(ym) {
+  const out = {}, S = MACRO?.mensal || {}; if (!ym) return out;
+  const [a, m] = ym.split('-').map(Number);
+  const meses = n => Array.from({ length: n }, (_, i) => { const d = new Date(a, m - 1 - i, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; });
+  const acum = (s, ks) => ks.every(k => Number.isFinite(s[k])) ? (ks.reduce((f, k) => f * (1 + s[k] / 100), 1) - 1) * 100 : NaN;
+  REFS.forEach(([k]) => { const s = S[k]; if (!s || !Number.isFinite(s[ym])) return;
+    out[k] = { mes: s[ym], ano: acum(s, meses(m)), m12: acum(s, meses(12)) }; });
+  return out;
+}
+
 // monta, a partir do formulário, o mesmo formato de dados que as páginas usam
 function dadosDoForm() {
   const M = REL.m; if (!temDados()) return null;
-  const refs = {};
-  REFS.forEach(([k]) => { const r = M.refs[k] || {}; if ([r.mes, r.ano, r.m12].some(v => Number.isFinite(nn(v)))) refs[k] = { mes: nn(r.mes), ano: nn(r.ano), m12: nn(r.m12) }; });
+  const refs = refsDoMes(M.mes);
   refs.Portfolio = { mes: nn(M.rentMes), ano: nn(M.rentAno), m12: nn(M.rent12) };
-  const pc = (v, k) => Number.isFinite(v) && refs.CDI && nn(M.refs.CDI?.[k]) ? v / nn(M.refs.CDI[k]) * 100 : NaN;
+  const pc = (v, k) => Number.isFinite(v) && refs.CDI && refs.CDI[k] ? v / refs.CDI[k] * 100 : NaN;
   const est = M.est.filter(e => e.nome && nn(e.saldo) > 0);
   const totEst = est.reduce((s, e) => s + nn(e.saldo), 0);
   const patrimonio = nn(M.patrimonio) > 0 ? nn(M.patrimonio) : totEst;
@@ -314,7 +325,6 @@ function preencher() {
   const M = REL.m;
   $('mes').value = M.mes || ''; $('conta').value = M.conta || ''; $('assessor').value = M.assessor || '';
   document.querySelectorAll('[data-m]').forEach(el => { el.value = M[el.dataset.m] ?? ''; });
-  $('refs').innerHTML = REFS.map(([k, nome]) => `<tr><td><b>${nome}</b></td>${['mes', 'ano', 'm12'].map(p => `<td><input data-ref="${k}" data-p="${p}" inputmode="decimal" placeholder="%" value="${esc(M.refs[k]?.[p] ?? '')}"></td>`).join('')}</tr>`).join('');
   TABS.forEach(desenharTab);
 }
 // tabelas editáveis (estratégias, ativos, proventos, histórico)
@@ -352,27 +362,20 @@ $('btnMeses').onclick = () => {
   for (let i = 0; i < 12; i++) { const d = new Date(a, m - 1 - i, 1), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; if (!tem.has(k)) REL.m.hist.push({ id: uid(), mes: k }); }
   REL.m.hist.sort((x, y) => y.mes.localeCompare(x.mes));
   if (REL.m.hist[0] && !REL.m.hist[0].rent && REL.m.rentMes) REL.m.hist[0].rent = REL.m.rentMes;
-  if (REL.m.hist[0] && !REL.m.hist[0].cdi && REL.m.refs.CDI?.mes) REL.m.hist[0].cdi = REL.m.refs.CDI.mes;
+  const cdi = refsDoMes(REL.m.mes).CDI?.mes; if (REL.m.hist[0] && !REL.m.hist[0].cdi && cdi) REL.m.hist[0].cdi = n2(cdi);
   salvar(); desenharTab(TABS[3]);
 };
 $('btnLimpar').onclick = () => {
   if (!confirm('Apagar os dados deste relatório para começar outro cliente? (O assessor e o mês ficam.)')) return;
   const { mes, assessor } = REL.m; REL.m = Object.assign(mVazio(), { mes, assessor }); REL.cliente = ''; REL.email = ''; REL.usd = ''; REL.coment = '';
-  preIPCA(); salvar(); preencher(); render();
+  salvar(); preencher(); render();
 };
 let ag; const agendar = () => { clearTimeout(ag); ag = setTimeout(render, 300); };
 document.querySelector('main').addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.m) { REL.m[t.dataset.m] = t.value; salvar(); agendar(); }
-  else if (t.dataset.ref) { (REL.m.refs[t.dataset.ref] ||= {})[t.dataset.p] = t.value; salvar(); agendar(); }
   else if (['mes', 'conta', 'assessor'].includes(t.id)) { REL.m[t.id] = t.value; salvar(); agendar(); }
 });
-// IPCA do último dado disponível, se ainda estiver vazio
-function preIPCA() {
-  const it = id => MACRO?.itens?.find(i => i.id === id);
-  const r = (REL.m.refs.IPCA ||= {});
-  [['mes', 'ipca_mes'], ['ano', 'ipca_ano'], ['m12', 'ipca_12m']].forEach(([p, id]) => { const i = it(id); if (i && !r[p] && Number.isFinite(i.valor)) r[p] = n2(i.valor); });
-}
 let rt;
 ['cliente', 'email', 'usd', 'cot', 'coment'].forEach(k => $(k).addEventListener('input', e => { REL[k] = e.target.value; if (k === 'cot') REL.cotManual = !!e.target.value; salvar(); clearTimeout(rt); rt = setTimeout(render, 250); }));
 $('slidesPick').addEventListener('change', e => { const id = e.target.dataset.s; if (!id) return; REL.off = e.target.checked ? REL.off.filter(x => x !== id) : [...REL.off, id]; salvar(); render(); });
@@ -547,7 +550,7 @@ $('btnEmail').onclick = async () => {
   if (!REL.m.mes) { const d = new Date(); d.setDate(0); REL.m.mes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
   preencher(); renderSlidesPick(); render();
   try { MACRO = await carregarDados('macro.json'); } catch { MACRO = { itens: [] }; }
-  preIPCA(); salvar(); preencher(); render();
+  salvar(); preencher(); render();
   const dol = MACRO.itens?.find(i => i.id === 'dolar');
   if (dol && !REL.cotManual) { $('cotNota').textContent = 'cotação de hoje'; REL.cot = n2(dol.valor, 4); $('cot').value = REL.cot; salvar(); }
   else if (REL.cotManual) $('cotNota').textContent = 'informada por você';

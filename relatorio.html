@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Relatório mensal · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611111306">
+<link rel="stylesheet" href="assets/style.css?v=202611111316">
 <style>
   /* ---------- Painel ---------- */
   .setup { display: grid; gap: 14px; }
@@ -110,7 +110,7 @@
       <label class="f">Assessor <input id="assessor" placeholder="Seu nome"></label>
     </div>
 
-    <h3 class="sec">Resumo da carteira</h3>
+    <h3 class="sec">Resumo da carteira <small class="note">(CDI, Ibovespa, IPCA e dólar entram sozinhos para o mês escolhido)</small></h3>
     <div class="fields">
       <label class="f">Patrimônio no fim do mês (R$) <input data-m="patrimonio" inputmode="decimal" placeholder="0,00"></label>
       <label class="f">Patrimônio internacional (US$) <small>opcional</small><input id="usd" inputmode="decimal" placeholder="0,00"></label>
@@ -123,11 +123,6 @@
         <tr><td><b>No ano</b></td><td><input data-m="rentAno" inputmode="decimal" placeholder="%"></td><td><input data-m="ganhoAno" inputmode="decimal" placeholder="R$"></td><td><input data-m="irAno" inputmode="decimal" placeholder="R$"></td></tr>
         <tr><td><b>12 meses</b></td><td><input data-m="rent12" inputmode="decimal" placeholder="%"></td><td><input data-m="ganho12" inputmode="decimal" placeholder="R$"></td><td><input data-m="ir12" inputmode="decimal" placeholder="R$"></td></tr>
       </tbody></table></div>
-
-    <h3 class="sec">Referências <small class="note">(variação em %; o IPCA já vem preenchido com o último dado, confira)</small></h3>
-    <div class="table-wrap"><table class="grade">
-      <thead><tr><th></th><th>Mês (%)</th><th>Ano (%)</th><th>12 meses (%)</th></tr></thead>
-      <tbody id="refs"></tbody></table></div>
 
     <h3 class="sec">Estratégias <small class="note">(classe, saldo e rentabilidade no mês)</small></h3>
     <div id="tEst"></div>
@@ -182,8 +177,8 @@
 <div id="show"><div class="sw" id="showBox"></div>
   <div class="nav"><button id="prev">◀</button><span id="pos"></span><button id="next">▶</button><button id="sair">Sair</button></div></div>
 
-<script src="assets/common.js?v=202611111306"></script>
-<script src="assets/email.js?v=202611111306"></script>
-<script src="assets/relatorio.js?v=202611111306"></script>
+<script src="assets/common.js?v=202611111316"></script>
+<script src="assets/email.js?v=202611111316"></script>
+<script src="assets/relatorio.js?v=202611111316"></script>
 </body>
 </html>
