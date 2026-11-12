@@ -6,7 +6,7 @@ const n = id => parseNum($(id).value);
 ['i_idx', 't_idx', 'c_idx', 'j_idx'].forEach(id => $(id).innerHTML = IDX_OPTS.map(([k, l]) => `<option value="${k}">${l}</option>`).join(''));
 $('i_idx').value = 'pctcdi'; $('t_idx').value = 'pctcdi'; $('c_idx').value = 'ipcamais'; $('j_idx').value = 'pctcdi';
 
-const CAMPOS = ['p_cdi', 'p_ipca', 'i_idx', 'i_taxa', 't_idx', 't_taxa', 'i_dias', 'i_valor', 'c_valor', 'c_idx', 'c_taxa', 'c_per', 'c_ini', 'c_venc', 'c_isento', 'j_ini', 'j_aporte', 'j_prazo', 'j_un', 'j_idx', 'j_taxa', 'j_isento', 'j_real', 's_valor', 's_prazo', 's_un', 's_pct', 's_isento'];
+const CAMPOS = ['p_cdi', 'p_ipca', 'i_idx', 'i_taxa', 't_idx', 't_taxa', 'i_dias', 'i_valor', 'c_valor', 'c_idx', 'c_taxa', 'c_per', 'c_ini', 'c_venc', 'c_isento', 'j_ini', 'j_aporte', 'j_prazo', 'j_un', 'j_idx', 'j_taxa', 'j_isento', 'j_real', 's_valor', 's_prazo', 's_un', 's_pct', 's_isento', 'cp_valor', 'cp_dias', 'cp_lca', 'cp_cdb', 'cp_fundo'];
 const prem = () => ({ cdi: n('p_cdi') || 0, ipca: n('p_ipca') || 0 });
 
 // ---------- Gráficos SVG simples ----------
@@ -247,6 +247,57 @@ $('s_email').onclick = () => {
   });
 };
 
+// ---------- 4b. Prazo curto (até 30 dias): LCA × CDB × fundo × Tesouro ----------
+// IOF regressivo sobre o rendimento (Decreto 6.306/2007): dia 1 = 96% … dia 29 = 3%, dia 30 em diante = 0
+const IOF = [0, 96, 93, 90, 86, 83, 80, 76, 73, 70, 66, 63, 60, 56, 53, 50, 46, 43, 40, 36, 33, 30, 26, 23, 20, 16, 13, 10, 6, 3, 0];
+function calcCurto() {
+  const out = $('out-curto');
+  const V = n('cp_valor'), d = parseInt($('cp_dias').value, 10);
+  if (Number.isFinite(d)) $('cp_slider').value = Math.min(30, Math.max(1, d));
+  if (!(V > 0) || !(d >= 1)) { out.innerHTML = '<p class="note">Preencha o valor e o prazo.</p>'; return; }
+  if (d > 30) { out.innerHTML = '<p class="note">Este simulador é para até 30 dias. Para prazos maiores use a aba "Isento × tributado".</p>'; return; }
+  const { cdi } = prem();
+  if (!(cdi > 0)) { out.innerHTML = '<p class="note">Preencha o CDI nas premissas acima.</p>'; return; }
+  const du = Math.max(1, Math.round(d * 252 / 365)), fd = Math.pow(1 + cdi / 100, 1 / 252) - 1;
+  const iofP = IOF[d] / 100, IR = 0.225;
+  const bruto = pc => V * (Math.pow(1 + fd * pc / 100, du) - 1);
+  const cdi100 = bruto(100);
+  const ativo = (nome, sub, pc, isento) => {
+    const b = bruto(pc), iof = isento ? 0 : b * iofP, ir = isento ? 0 : (b - iof) * IR, liq = b - iof - ir;
+    return { nome, sub, pc, isento, b, iof, ir, liq, pcLiq: cdi100 ? liq / cdi100 * 100 : 0 };
+  };
+  const pcOu = (id, def) => Number.isFinite(n(id)) ? n(id) : def;
+  const L = [
+    ativo('LCA', `${pct(pcOu('cp_lca', 83), 0)} do CDI · isenta`, pcOu('cp_lca', 83), true),
+    ativo('CDB', `${pct(pcOu('cp_cdb', 100), 0)} do CDI`, pcOu('cp_cdb', 100), false),
+    ativo('Fundo DI', `${pct(pcOu('cp_fundo', 100), 0)} do CDI`, pcOu('cp_fundo', 100), false),
+    ativo('Tesouro Selic', '100% do CDI', 100, false),
+  ];
+  const ord = [...L].sort((a, b) => b.liq - a.liq), win = ord[0], max = Math.max(win.liq, 0.01), lca = L[0];
+  // quanto um CDB precisaria pagar para empatar com a LCA (busca binária)
+  let lo = 0, hi = 2000;
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (ativo('', '', m, false).liq < lca.liq) lo = m; else hi = m; }
+  const empate = hi;
+  const diaTxt = `${d} ${d === 1 ? 'dia' : 'dias'}`;
+  const outros = L.filter(x => x !== lca);
+  const melhorOutro = outros.reduce((a, b) => b.liq > a.liq ? b : a);
+  const verdict = win === lca
+    ? `<div class="verdict good">Em ${diaTxt}, a LCA a ${pct(lca.pc, 0)} do CDI rende <b>${brl(lca.liq)}</b> líquidos, ${brl(lca.liq - melhorOutro.liq)} a mais que a melhor opção tributada (${melhorOutro.nome}).
+        <small>${iofP ? `Resgatando em ${diaTxt}, o IOF fica com ${pct(IOF[d], 0)} do rendimento e o IR com 22,5% do que sobra. ` : 'Com 30 dias o IOF zera, mas o IR de 22,5% continua. '}Para empatar com essa LCA, um CDB teria que pagar <b>${empate > 1000 ? 'mais de 1.000%' : pct(empate, 0)} do CDI</b>.</small></div>`
+    : `<div class="verdict">Em ${diaTxt}, a melhor opção é ${win.nome} (${brl(win.liq)} líquidos). A LCA renderia ${brl(lca.liq)}.
+        <small>Para empatar com a LCA a ${pct(lca.pc, 0)} do CDI, um CDB teria que pagar ${pct(empate, 0)} do CDI.</small></div>`;
+  out.innerHTML = verdict +
+    `<h3 style="font-size:14px;margin:16px 0 4px;color:var(--muted)">Quanto sobra no bolso em ${diaTxt} com ${brl(V)}</h3>` +
+    ord.map(x => `<div class="cp-bar ${x === win ? 'win' : ''}"><div class="nm">${x.nome}<small>${x.sub}</small></div>
+      <div class="tr"><div class="fl" style="width:${Math.max(x.liq / max * 100, 0.5).toFixed(1)}%"></div></div>
+      <div class="vl">${brl(x.liq)}<small>= ${pct(x.pcLiq, 0)} do CDI</small></div></div>`).join('') +
+    `<div class="table-wrap" style="margin-top:12px"><table id="tCurto"><thead><tr><th>Em R$</th><th class="n">Bruto</th><th class="n">IOF</th><th class="n">IR</th><th class="n">Líquido</th></tr></thead><tbody>` +
+    ord.map(x => `<tr class="${x === win ? 'win' : ''}"><td><b>${x.nome}</b></td><td class="n">${NUM2.format(x.b)}</td><td class="n ${x.iof ? 'bad' : ''}">${x.iof ? '−' + NUM2.format(x.iof) : 'isento'}</td><td class="n ${x.ir ? 'bad' : ''}">${x.ir ? '−' + NUM2.format(x.ir) : 'isento'}</td><td class="n"><b>${NUM2.format(x.liq)}</b></td></tr>`).join('') +
+    `</tbody></table></div>
+    <p class="note">CDI de ${pct(cdi)} a.a. (premissa acima), ${du} ${du === 1 ? 'dia útil' : 'dias úteis'} em ${diaTxt} corridos. IOF regressivo sobre o rendimento para resgates antes de 30 dias (${pct(IOF[d], 0)} em ${diaTxt}); IR de 22,5% (até 180 dias) sobre o rendimento após o IOF. LCA isenta de IR e IOF para pessoa física. Tesouro Selic considerado a 100% do CDI, sem taxa de custódia. Simulação, não é garantia de rentabilidade.</p>`;
+}
+$('cp_slider').addEventListener('input', e => { $('cp_dias').value = e.target.value; calcular(); });
+
 // ---------- Abas, premissas e persistência ----------
 function aba() {
   const t = (location.hash || '#isento').slice(1);
@@ -257,7 +308,7 @@ function aba() {
 function calcular() {
   const s = {}; CAMPOS.forEach(c => { const el = $(c); s[c] = el.type === 'checkbox' ? el.checked : el.value; }); store.set('rw_rfcalc', s);
   const t = (location.hash || '#isento').slice(1);
-  if (t === 'isento') calcIsento(); else if (t === 'cupons') calcCupons(); else if (t === 'parado') calcParado(); else calcCompostos();
+  if (t === 'isento') calcIsento(); else if (t === 'cupons') calcCupons(); else if (t === 'parado') { calcParado(); calcCurto(); } else calcCompostos();
 }
 (async function init() {
   const s = store.get('rw_rfcalc', null);

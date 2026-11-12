@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Calculadoras de renda fixa · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611121021">
+<link rel="stylesheet" href="assets/style.css?v=202611121538">
 <style>
   .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
   .tabs::-webkit-scrollbar { display: none; }
@@ -17,6 +17,24 @@
   .prem { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
   .prem label.f { width: 120px; }
   @media (max-width: 520px) { #out-parado .kpi .v { font-size: 18px; } }
+  .cp-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-taxas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+  @media (max-width: 640px) { .cp-taxas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .cp-taxas input:disabled { background: #f3f2f7; color: var(--muted); font-weight: 700; }
+  .cp-bar { display: grid; grid-template-columns: 112px minmax(0, 1fr) 118px; gap: 10px; align-items: center; margin: 9px 0; }
+  .cp-bar .nm { font-weight: 800; color: var(--indigo); line-height: 1.15; }
+  .cp-bar .nm small { display: block; font-weight: 600; color: var(--muted); font-size: 11.5px; }
+  .cp-bar .tr { background: #eceaf2; border-radius: 8px; height: 26px; overflow: hidden; }
+  .cp-bar .fl { height: 100%; border-radius: 8px; background: #b9b5c9; }
+  .cp-bar.win .fl { background: var(--good); }
+  .cp-bar .vl { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .cp-bar .vl small { display: block; font-weight: 600; color: var(--muted); font-size: 11.5px; }
+  .cp-bar.win .vl { color: var(--good); }
+  @media (max-width: 520px) { .cp-bar { grid-template-columns: 86px minmax(0, 1fr) 100px; gap: 7px; } .cp-bar .vl { font-size: 14px; } }
+  #tCurto td, #tCurto th { padding: 7px 6px; white-space: nowrap; }
+  @media (max-width: 520px) { #tCurto td, #tCurto th { padding: 6px 3px; font-size: 12px; } }
+  #tCurto tr.win td { background: var(--good-soft); font-weight: 700; }
+  @media print { #pane-parado > .card:not(#cardCurto) { display: none; } }
 </style>
 </head>
 <body>
@@ -104,11 +122,27 @@
       <p class="note">Compara o saldo aplicado a um percentual do CDI (já descontado o IR) com o mesmo saldo parado, que perde poder de compra para a inflação (IPCA das premissas acima).</p>
     </div>
     <div class="card"><div class="card-head"><h2>Aplicado × parado</h2><button class="sm secondary no-print" id="s_email">✉️ Enviar ao cliente</button></div><div id="out-parado"><p class="note">Preencha o saldo e o prazo.</p></div></div>
+
+    <div class="card" id="cardCurto">
+      <div class="card-head"><h2>⏱️ Prazo curto (até 30 dias): onde deixar o dinheiro?</h2></div>
+      <div class="fields cp-campos">
+        <label class="f">Valor (R$) <input id="cp_valor" inputmode="decimal" placeholder="100.000"></label>
+        <label class="f">Prazo <small>dias corridos</small><input id="cp_dias" inputmode="numeric" placeholder="15"></label>
+      </div>
+      <input id="cp_slider" type="range" min="1" max="30" step="1" class="no-print" style="width:100%;margin:10px 0 4px;accent-color:var(--orange)">
+      <div class="cp-taxas">
+        <label class="f">LCA <small>% do CDI · isenta de IR e IOF</small><input id="cp_lca" inputmode="decimal" placeholder="83"></label>
+        <label class="f">CDB <small>% do CDI</small><input id="cp_cdb" inputmode="decimal" placeholder="100"></label>
+        <label class="f">Fundo DI <small>% do CDI</small><input id="cp_fundo" inputmode="decimal" placeholder="100"></label>
+        <label class="f">Tesouro Selic <small>% do CDI</small><input value="100" disabled></label>
+      </div>
+      <div id="out-curto" style="margin-top:14px"><p class="note">Preencha o valor e o prazo.</p></div>
+    </div>
   </section>
 </main>
 
-<script src="assets/common.js?v=202611121021"></script>
-<script src="assets/email.js?v=202611121021"></script>
-<script src="assets/rfcalc.js?v=202611121021"></script>
+<script src="assets/common.js?v=202611121538"></script>
+<script src="assets/email.js?v=202611121538"></script>
+<script src="assets/rfcalc.js?v=202611121538"></script>
 </body>
 </html>
