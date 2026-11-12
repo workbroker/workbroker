@@ -51,7 +51,7 @@ function classeRating(r) {
 // ---------- Agrupamento ----------
 function grupos() {
   const g = {};
-  C.ativos.forEach(a => {
+  C.ativos.forEach(a => { if (!a.nome || !a.saldo) return;
     const info = analisar(a.nome), k = chave(info.emissor, info.tipo);
     g[k] = g[k] || { k, nomes: {}, tipos: new Set(), itens: [], total: 0, fgc: 0 };
     g[k].nomes[info.emissor] = (g[k].nomes[info.emissor] || 0) + a.saldo;
@@ -66,9 +66,7 @@ const semFgcCredito = g => !soberano(g) && g.total - g.fgc > 0.5;
 
 // ---------- Renderização ----------
 function render() {
-  const carteira = store.get('rw_carteira_atual', null);
-  // botão sempre visível
-  $('info').innerHTML = C.dataRef ? `<span class="pill">Ref. ${esc(C.dataRef)}</span> <span class="pill">${C.ativos.length} ativos de renda fixa</span>` : '';
+  $('info').innerHTML = '';
   const G = grupos(), rf = G.reduce((s, g) => s + g.total, 0), base = C.total || rf;
   const sob = G.filter(soberano).reduce((s, g) => s + g.total, 0);
   const fgcCob = G.reduce((s, g) => s + Math.min(g.fgc, LIMITE_FGC), 0);
@@ -97,7 +95,7 @@ function render() {
         <td>${soberano(g) ? '' : `<select class="ag" data-f="agencia">${['', 'S&P', 'Fitch', "Moody's", 'Outra'].map(a => `<option ${a === (r.agencia || '') ? 'selected' : ''}>${a}</option>`).join('')}</select>`}</td>
         <td>${soberano(g) ? '' : `<input class="ob" data-f="obs" value="${esc(r.obs || '')}" placeholder="perspectiva, data…">`}</td>
       </tr>`;
-    }).join('')}</tbody>` : '<tbody><tr><td class="note">Toque em “Usar carteira cadastrada” para ver os emissores.</td></tr></tbody>';
+    }).join('')}</tbody>` : '<tbody><tr><td class="note">Adicione os ativos de renda fixa no passo 1 para ver os emissores.</td></tr></tbody>';
 
   const al = alertas(G, base);
   $('alertas').innerHTML = al.length ? al.map(([c, t]) => `<li class="${c}">${t}</li>`).join('') : '<li class="info">Nenhum ponto de atenção pelos critérios atuais.</li>';
@@ -118,7 +116,7 @@ function alertas(G, base) {
   const fgcTot = G.reduce((s, g) => s + g.fgc, 0);
   if (fgcTot > 1000000) out.push(['info', `O cliente tem ${brl(fgcTot)} em produtos com FGC: lembre do teto global de R$ 1 milhão a cada 4 anos.`]);
   const ano = new Date().getFullYear();
-  const prox = C.ativos.map(a => ({ a, i: analisar(a.nome) })).filter(x => x.i.venc && x.i.venc.ano <= ano + 1);
+  const prox = C.ativos.filter(a => a.nome && a.saldo).map(a => ({ a, i: analisar(a.nome) })).filter(x => x.i.venc && x.i.venc.ano <= ano + 1);
   if (prox.length) out.push(['info', `${prox.length} ativo(s) vencem até ${ano + 1} (${brl(prox.reduce((s, x) => s + x.a.saldo, 0))}): bom momento para planejar o reinvestimento.`]);
   return out;
 }
@@ -136,6 +134,25 @@ function renderVenc(G) {
 }
 
 // ---------- Importação ----------
+// ---------- Lista de ativos (digitada) ----------
+function desenharLista() {
+  $('lista').innerHTML = C.ativos.map((a, i) => `<div class="lin" data-i="${i}"><input data-f="nome" value="${esc(a.nome)}" placeholder="CDB BANCO X - JAN/2028 - 110% CDI"><input class="vl" data-f="saldo" inputmode="decimal" value="${a.saldo ? esc(NUM2.format(a.saldo)) : ''}" placeholder="R$"><button class="danger sm" data-del type="button" title="Remover">✕</button></div>`).join('')
+    || '<p class="note">Nenhum ativo ainda.</p>';
+}
+let rr; const renderLogo = () => { clearTimeout(rr); rr = setTimeout(render, 350); };
+$('lista').addEventListener('input', e => {
+  const l = e.target.closest('.lin'); if (!l) return; const a = C.ativos[+l.dataset.i];
+  if (e.target.dataset.f === 'nome') a.nome = e.target.value; else a.saldo = parseNum(e.target.value) || 0;
+  salvar(); renderLogo();
+});
+$('lista').addEventListener('click', e => {
+  if (!e.target.closest('[data-del]')) return;
+  C.ativos.splice(+e.target.closest('.lin').dataset.i, 1); salvar(); desenharLista(); render();
+});
+$('btnAdd').onclick = () => { C.ativos.push({ nome: '', saldo: 0 }); salvar(); desenharLista(); const ins = $('lista').querySelectorAll('input[data-f="nome"]'); ins[ins.length - 1].focus(); };
+$('btnLimpar').onclick = () => { if (!C.ativos.length || !confirm('Apagar a lista de ativos?')) return; C.ativos = []; salvar(); desenharLista(); render(); };
+$('total').addEventListener('input', e => { C.total = parseNum(e.target.value) || 0; salvar(); renderLogo(); });
+
 function deCarteira(ativos, meta) {
   const rf = ativos.filter(a => ['pos', 'inflacao', 'pre', 'rfint'].includes(a.classe) && !/caixa|provento/i.test(a.estrategia || '') && !/saldo em conta|proventos/i.test(a.nome));
   const total = ativos.reduce((s, a) => s + (parseNum(a.saldo) || 0), 0);
@@ -143,7 +160,6 @@ function deCarteira(ativos, meta) {
   salvar(); preencher(); render();
   toast(`${C.ativos.length} ativos de renda fixa`);
 }
-$('btnUsar').onclick = () => { const c = store.get('rw_carteira_atual', null); if (!c || !(c.ativos || []).length) { toast('Cadastre a carteira do cliente em Carteira e rebalanceamento'); return; } deCarteira(c.ativos, { nome: c.cliente || '', conta: c.conta || '', email: c.email || C.email, dataRef: c.dataRef || '' }); };
 
 // ---------- Ratings ----------
 document.addEventListener('change', e => {
@@ -157,12 +173,12 @@ $('btnExp').onclick = () => {
   a.href = URL.createObjectURL(new Blob([JSON.stringify(RAT, null, 2)], { type: 'application/json' }));
   a.download = 'ratings-emissores.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-function preencher() { $('nome').value = C.nome || ''; $('conta').value = C.conta || ''; $('email').value = C.email || ''; $('coment').value = C.coment || ''; }
+function preencher() { $('total').value = C.total ? NUM2.format(C.total) : ''; desenharLista(); $('nome').value = C.nome || ''; $('conta').value = C.conta || ''; $('email').value = C.email || ''; $('coment').value = C.coment || ''; }
 ['nome', 'conta', 'email', 'coment'].forEach(k => $(k).addEventListener('input', e => { C[k] = e.target.value; salvar(); }));
 
 // ---------- E-mail ----------
 $('btnEmail').onclick = () => {
-  if (!C.ativos.length) { toast('Importe a carteira primeiro'); return; }
+  if (!C.ativos.some(a => a.nome && a.saldo)) { toast('Adicione os ativos de renda fixa primeiro'); return; }
   const G = grupos(), base = C.total || G.reduce((s, g) => s + g.total, 0), h = Email.h;
   const al = alertas(G, base).map(([c, t]) => t.replace(/<[^>]+>/g, ''));
   const fgcTxt = g => soberano(g) ? 'Soberano' : !g.fgc ? 'Não' : (g.fgc > LIMITE_FGC || g.total - g.fgc > 0.5) ? 'Parcial' : 'Sim';

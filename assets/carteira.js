@@ -25,45 +25,41 @@ const STATUS = ['Pendente', 'Reservado', 'Concluído'];
 let REC = store.get('rw_recomendadas', null) || JSON.parse(JSON.stringify(REC_PADRAO));
 
 function estadoVazio() {
-  return { cliente: '', conta: '', dataRef: '', perfil: 'moderada', tol: '2', ativos: [], vendas: [], compras: [], saldoConta: '', aporte: '', considerar: 'todas', avisos: [] };
+  return { cliente: '', conta: '', perfil: 'moderada', tol: '2', patrimonio: '', pct: {}, vendas: [], compras: [], saldoConta: '', aporte: '', considerar: 'todas' };
 }
-let S = Object.assign(estadoVazio(), store.get('rw_carteira_atual', {}));
-const salvarAtual = () => store.set('rw_carteira_atual', S);
 const v = x => { const n = parseNum(x); return Number.isFinite(n) ? n : 0; };
-
-const ativoDe = id => S.ativos.find(x => x.id === id);
-const clsCompra = o => (o.ativoId && ativoDe(o.ativoId)?.classe) || o.classe || 'pos';
-const nomeCompra = o => (o.ativoId && ativoDe(o.ativoId)?.nome) || o.nome || '';
+// carteiras salvas no formato antigo (ativo por ativo) viram percentuais por classe
+function migrar(x) {
+  x = Object.assign(estadoVazio(), x || {});
+  if ((x.ativos || []).length && !Object.keys(x.pct || {}).length) {
+    const tot = x.ativos.reduce((s, a) => s + v(a.saldo), 0), por = {};
+    x.ativos.forEach(a => { por[a.classe] = (por[a.classe] || 0) + v(a.saldo); });
+    x.patrimonio = tot ? NUM2.format(tot) : '';
+    x.pct = Object.fromEntries(Object.entries(por).map(([k, s]) => [k, tot ? String(Math.round(s / tot * 10000) / 100).replace('.', ',') : '']));
+    const at = id => x.ativos.find(a => a.id === id);
+    x.vendas = (x.vendas || []).map(o => at(o.ativoId) ? { id: o.id, classe: at(o.ativoId).classe, nome: at(o.ativoId).nome, valor: o.valor, status: o.status || 'Pendente' } : null).filter(Boolean);
+    x.compras = (x.compras || []).map(o => ({ id: o.id, classe: (o.ativoId && at(o.ativoId)?.classe) || o.classe || 'pos', nome: (o.ativoId && at(o.ativoId)?.nome) || o.nome || '', valor: o.valor, status: o.status || 'Pendente' }));
+  }
+  delete x.ativos; delete x.avisos; delete x.dataRef; delete x.patrimonioRelatorio;
+  x.pct = x.pct || {};
+  return x;
+}
+let S = migrar(store.get('rw_carteira_atual', {}));
+const salvarAtual = () => store.set('rw_carteira_atual', S);
 
 // ================= Cálculos =================
 function calcular() {
-  const atual = Object.fromEntries(CLASSES.map(c => [c.k, 0]));
-  S.ativos.forEach(a => { atual[a.classe] = (atual[a.classe] || 0) + v(a.saldo); });
-  const total = Object.values(atual).reduce((s, x) => s + x, 0);
-
+  const total = v(S.patrimonio);
+  const somaPct = CLASSES.reduce((t, c) => t + v(S.pct[c.k]), 0);
+  const atual = Object.fromEntries(CLASSES.map(c => [c.k, total * v(S.pct[c.k]) / 100]));
   const conta = o => S.considerar === 'todas' || o.status === 'Concluído';
   const vendasCls = Object.fromEntries(CLASSES.map(c => [c.k, 0]));
   const comprasCls = Object.fromEntries(CLASSES.map(c => [c.k, 0]));
-  const usado = {};
   let totVendas = 0, totCompras = 0, totVendasTodas = 0, totComprasTodas = 0;
   const avisos = [];
-  S.vendas.forEach(o => {
-    const a = S.ativos.find(x => x.id === o.ativoId);
-    let val = v(o.valor);
-    if (!a || val <= 0) return;
-    const disp = v(a.saldo) - (usado[a.id] || 0);
-    if (val > disp + 0.005) { avisos.push(`Venda de "${a.nome}" maior que o saldo disponível.`); val = Math.max(disp, 0); }
-    usado[a.id] = (usado[a.id] || 0) + val;
-    totVendasTodas += val;
-    if (!conta(o)) return;
-    vendasCls[a.classe] += val; totVendas += val;
-  });
-  S.compras.forEach(o => {
-    const val = v(o.valor); if (val <= 0) return;
-    totComprasTodas += val;
-    if (!conta(o)) return;
-    comprasCls[clsCompra(o)] += val; totCompras += val;
-  });
+  S.vendas.forEach(o => { const val = v(o.valor); if (val <= 0) return; totVendasTodas += val; if (!conta(o)) return; vendasCls[o.classe] += val; totVendas += val; });
+  S.compras.forEach(o => { const val = v(o.valor); if (val <= 0) return; totComprasTodas += val; if (!conta(o)) return; comprasCls[o.classe] += val; totCompras += val; });
+  CLASSES.forEach(c => { if (vendasCls[c.k] > atual[c.k] + 0.5) avisos.push(`Vendas em ${c.n} (${brl(vendasCls[c.k])}) maiores que a posição da classe (${brl(atual[c.k])}).`); });
   const saldoConta = v(S.saldoConta), aporte = v(S.aporte);
   const disponivel = totVendas + saldoConta + aporte;
   const diferenca = disponivel - totCompras;
@@ -82,13 +78,14 @@ function calcular() {
     return {
       ...c, atual: atual[c.k], pa, pr, dif: pa - pr, bal: pr / 100 * total - atual[c.k],
       novo: novo[c.k], pn, difN: pn - pr, balN: pr / 100 * totalNovo - novo[c.k],
+      vendas: vendasCls[c.k], compras: comprasCls[c.k],
       foraA: Math.abs(pa - pr) > tol, foraN: Math.abs(pn - pr) > tol,
     };
   });
   const somaRec = CLASSES.reduce((s, c) => s + v(rec[c.k]), 0);
   const desvio = key => linhas.reduce((s, l) => s + Math.abs(l[key]), 0) / 2;
   return {
-    total, totalNovo, linhas, somaRec, tol, totVendas, totCompras, totVendasTodas, totComprasTodas,
+    total, totalNovo, linhas, somaRec, somaPct, tol, totVendas, totCompras, totVendasTodas, totComprasTodas,
     saldoConta, aporte, disponivel, diferenca, avisos,
     desvioA: desvio('dif'), desvioN: desvio('difN'),
     foraA: linhas.filter(l => l.foraA).length, foraN: linhas.filter(l => l.foraN).length,
@@ -107,63 +104,28 @@ function renderCliente() {
   document.querySelectorAll('#segConsiderar button').forEach(b => b.classList.toggle('on', b.dataset.v === S.considerar));
   $('saldoConta').value = S.saldoConta || '';
   $('aporte').value = S.aporte || '';
-  renderImportInfo();
+  $('patrimonio').value = S.patrimonio || '';
 }
 
-function renderImportInfo() {
-  const el = $('importInfo');
-  if (!S.dataRef && !S.avisos?.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <div class="imported">
-      ${S.dataRef ? `<span class="pill">Ref. ${esc(S.dataRef)}</span>` : ''}
-      ${S.patrimonioRelatorio ? `<span class="pill">Patrimônio bruto ${brl(S.patrimonioRelatorio)}</span>` : ''}
-      <span class="pill">${S.ativos.length} ativos</span>
-    </div>
-    ${(S.avisos || []).map(a => `<p class="note" style="background:var(--warn-soft);color:#7a4c00;padding:8px 10px;border-radius:10px;margin:8px 0 0">⚠️ ${esc(a)}</p>`).join('')}`;
+// passo 2: % atual de cada classe
+function renderAlocacao() {
+  const rec = REC[S.perfil] || {};
+  $('aloc').querySelector('tbody').innerHTML = CLASSES.map(c => `<tr data-k="${c.k}">
+    <td class="cls">${c.n}</td>
+    <td class="n"><input data-pct="${c.k}" inputmode="decimal" placeholder="0" value="${esc(S.pct[c.k] ?? '')}"></td>
+    <td class="n" data-rs></td>
+    <td class="n note hide-sm">${pct(v(rec[c.k]), 1)}</td></tr>`).join('');
+  atualizarAlocacao();
 }
-
-function renderAtivos() {
-  const total = S.ativos.reduce((s, a) => s + v(a.saldo), 0);
-  $('qtdAtivos').textContent = S.ativos.length ? `${S.ativos.length} · ${brl(total)}` : 'vazio';
-  if (!S.ativos.length) {
-    $('assets').innerHTML = '<p class="note" style="padding:10px 0">Adicione os ativos do cliente com o botão abaixo.</p>';
-    return;
-  }
-  let html = '';
-  CLASSES.forEach(c => {
-    const lista = S.ativos.filter(a => a.classe === c.k);
-    if (!lista.length) return;
-    const sub = lista.reduce((s, a) => s + v(a.saldo), 0);
-    html += `<div class="asset-group"><span>${c.n}</span><span class="muted" data-sub="${c.k}">${brl(sub)}</span></div>`;
-    html += lista.map(a => `
-      <div class="asset" data-id="${a.id}">
-        <div class="nm"><input data-k="nome" value="${esc(a.nome)}" placeholder="Nome do ativo">
-          ${a.estrategia ? `<div class="xp">Estratégia: ${esc(a.estrategia)}${a.revisar ? ' · <span class="warn">confira a classe</span>' : ''}</div>` : ''}</div>
-        <div class="cl"><select data-k="classe">${optsClasse(a.classe)}</select></div>
-        <div class="vl"><input data-k="saldo" inputmode="decimal" value="${esc(fmtIn(a.saldo))}" style="text-align:right"></div>
-        <div class="pc" data-pct>${total ? pct(v(a.saldo) / total * 100) : '—'}</div>
-        <div class="dl"><button class="danger" data-del title="Remover">✕</button></div>
-      </div>`).join('');
-  });
-  $('assets').innerHTML = html;
-}
-
-function fmtIn(x) {
-  if (typeof x === 'number') return NUM2.format(x);
-  return x ?? '';
-}
-
-function atualizarPctsAtivos() {
-  const total = S.ativos.reduce((s, a) => s + v(a.saldo), 0);
-  document.querySelectorAll('#assets .asset').forEach(el => {
-    const a = S.ativos.find(x => x.id === el.dataset.id);
-    if (a) el.querySelector('[data-pct]').textContent = total ? pct(v(a.saldo) / total * 100) : '—';
-  });
-  CLASSES.forEach(c => {
-    const s = document.querySelector(`[data-sub="${c.k}"]`);
-    if (s) s.textContent = brl(S.ativos.filter(a => a.classe === c.k).reduce((t, a) => t + v(a.saldo), 0));
-  });
-  $('qtdAtivos').textContent = S.ativos.length ? `${S.ativos.length} · ${brl(total)}` : 'vazio';
+function atualizarAlocacao() {
+  const total = v(S.patrimonio);
+  let soma = 0;
+  CLASSES.forEach(c => { const p = v(S.pct[c.k]); soma += p; const td = document.querySelector(`#aloc tr[data-k="${c.k}"] [data-rs]`); if (td) td.textContent = p && total ? brl(total * p / 100) : '—'; });
+  const ok = Math.abs(soma - 100) < 0.05, falta = 100 - soma;
+  $('aloc').querySelector('tfoot').innerHTML = `<tr><td>Total</td><td class="n ${ok ? 'good' : soma ? 'bad' : ''}">${pct(soma, 2)}</td><td class="n">${total ? brl(total * soma / 100) : '—'}</td><td class="n note hide-sm">${pct(CLASSES.reduce((t, c) => t + v((REC[S.perfil] || {})[c.k]), 0), 1)}</td></tr>`;
+  $('alocAviso').innerHTML = !soma ? '' : ok ? '<span class="good">✓ Soma 100%</span>'
+    : `<span class="bad">A soma está em ${pct(soma, 2)} — ${falta > 0 ? `faltam ${pct(falta, 2)}` : `passou ${pct(-falta, 2)}`}.</span>`;
+  $('qtdAloc').textContent = total ? brl(total) : 'vazio';
 }
 
 function ouBar(dif, max) {
@@ -240,67 +202,49 @@ function cabecalhoClasse(l, R) {
     <div class="pos"><small>Posição</small><b>${brl(l.atual)}</b>${muda ? `<div class="dlt ${l.novo > l.atual ? 'good' : 'bad'}">${l.novo > l.atual ? '+' : '−'}${brl(Math.abs(l.novo - l.atual))} → ${brl(l.novo)}</div>` : ''}</div>
     <div class="chev">⌄</div>`;
 }
-function linhaOrdem(tipo, o, a) {
+function linhaOrdem(tipo, o) {
   const st = `<select data-k="status" class="status-sel ${o.status}">${optsStatus(o.status)}</select>`;
-  const del = `<button class="danger sm" data-del type="button" title="Desfazer">✕</button>`;
-  if (tipo === 'v') return `<div class="mord" data-v="${o.id}"><span class="lbl">Resgatar R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"><button class="sm secondary" data-tudo type="button">Tudo</button>${st}${del}</div>`;
-  if (a) return `<div class="mord" data-c="${o.id}"><span class="lbl">Aplicar R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00">${st}${del}</div>`;
-  return `<div class="mord" data-c="${o.id}"><input class="nome" data-k="nome" value="${esc(o.nome)}" placeholder="Nome do ativo novo (ex.: LCD BNDES, CDB IPCA+, fundo…)"><span class="lbl">R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"><select data-k="classe">${optsClasse(o.classe)}</select>${st}${del}</div>`;
+  const del = `<button class="danger sm" data-del type="button" title="Remover">✕</button>`;
+  return `<div class="mrow ${tipo === 'v' ? 'venda' : 'novo'}" data-${tipo}="${o.id}">
+    <span class="tg ${tipo === 'v' ? 'venda' : 'novo'}">${tipo === 'v' ? 'Vender' : 'Comprar'}</span>
+    <input class="nome" data-k="nome" value="${esc(o.nome)}" placeholder="${tipo === 'v' ? 'Ativo que vai vender' : 'Ativo que vai comprar'}">
+    <span class="rs"><span class="lbl">R$</span><input data-k="valor" inputmode="decimal" value="${esc(o.valor)}" placeholder="0,00"></span>
+    ${st}${del}</div>`;
+}
+function sugestao(l) {
+  if (Math.abs(l.balN) < 0.5 || !l.pr && !l.atual) return '';
+  return l.balN > 0
+    ? `<div class="msug">Para chegar ao recomendado: <b class="good">comprar ${brl(l.balN)}</b> <button class="sm ghost" data-sug="c" data-cls="${l.k}" type="button">Lançar compra</button></div>`
+    : `<div class="msug">Para chegar ao recomendado: <b class="bad">vender ${brl(-l.balN)}</b> <button class="sm ghost" data-sug="v" data-cls="${l.k}" type="button">Lançar venda</button></div>`;
+}
+const gruposMov = R => R.total ? R.linhas.filter(l => l.atual > 0.005 || l.pr > 0 || S.vendas.some(o => o.classe === l.k) || S.compras.some(o => o.classe === l.k)) : [];
+// redesenha só se mudou o conjunto de classes; senão só os números (não perde o toque nos botões)
+function atualizarMov() {
+  const k = gruposMov(calcular()).map(l => l.k).join(), atual = [...document.querySelectorAll('#mov .mgrp')].map(g => g.dataset.cls).join();
+  if (k !== atual) renderMov(); else atualizarMovNumeros();
 }
 function renderMov() {
   const R = calcular();
-  const total = R.total;
-  const grupos = R.linhas.filter(l => S.ativos.some(a => a.classe === l.k) || S.compras.some(o => clsCompra(o) === l.k) || l.pr > 0);
-  if (!S.ativos.length && !S.compras.length) { $('mov').innerHTML = '<p class="note">Cadastre os ativos do cliente no passo 2 para vê-los aqui.</p>'; return; }
+  if (!R.total) { $('mov').innerHTML = '<p class="note">Preencha o patrimônio e os percentuais no passo 2 para montar as ordens.</p>'; return; }
+  const grupos = gruposMov(R);
   $('mov').innerHTML = grupos.map(l => {
-    const ativos = S.ativos.filter(a => a.classe === l.k);
-    const novos = S.compras.filter(o => !o.ativoId && clsCompra(o) === l.k);
-    const fechado = FECHADAS.has(l.k) || (!ativos.length && !novos.length && !FECHADAS.has('_' + l.k));
-    const linhas = ativos.map(a => {
-      const vendas = S.vendas.filter(o => o.ativoId === a.id), aplic = S.compras.filter(o => o.ativoId === a.id);
-      const vv = vendas.reduce((s, o) => s + v(o.valor), 0), va = aplic.reduce((s, o) => s + v(o.valor), 0), mv = va - Math.min(vv, v(a.saldo));
-      const cls = vendas.length ? 'venda' + (vv >= v(a.saldo) - 0.005 && vv > 0 ? ' zerou' : '') : aplic.length ? 'aplic' : '';
-      const tag = vendas.length ? `<span class="tg venda">${vv >= v(a.saldo) - 0.005 && vv > 0 ? 'Resgate total' : 'Resgate'}</span>` : aplic.length ? '<span class="tg aplic">Aplicar</span>' : '';
-      const rent = Number.isFinite(a.rentAno) ? `${pct(a.rentAno)}${Number.isFinite(a.cdiAno) && a.rentAno > 0 ? `<br><small class="note">${pct(a.cdiAno, 0)} CDI</small>` : ''}` : '—';
-      return `<div class="mrow ${cls}" data-a="${a.id}">
-        <div class="an">${tag}${esc(a.nome || '(sem nome)')}${a.estrategia ? `<small>${esc(a.estrategia)}</small>` : ''}</div>
-        <div class="n sal">${brl(v(a.saldo))}</div>
-        <div class="n hide-m">${total ? pct(v(a.saldo) / total * 100, 1) : '—'}</div>
-        <div class="n hide-m">${rent}</div>
-        <div class="n mv">${Math.abs(mv) > 0.005 ? `<span class="mov-n ${mv < 0 ? 'neg' : 'posi'}">${mv < 0 ? '−' : '+'}${brl(Math.abs(mv))}</span>` : '<span class="note">—</span>'}</div>
-        <div class="acts"><button class="ib ap ${aplic.length ? 'on' : ''}" data-act="aplic" title="Aplicar mais neste ativo">$↗</button><button class="ib rs ${vendas.length ? 'on' : ''}" data-act="resg" title="Resgatar / vender">↙$</button></div>
-        ${vendas.map(o => linhaOrdem('v', o, a)).join('')}${aplic.map(o => linhaOrdem('c', o, a)).join('')}
-      </div>`;
-    }).join('');
-    const linhasNovas = novos.map(o => `<div class="mrow novo" data-n="${o.id}">
-        <div class="an"><span class="tg novo">Novo</span>${esc(o.nome || 'Ativo novo')}</div>
-        <div class="n sal">—</div><div class="n hide-m"></div><div class="n hide-m"></div>
-        <div class="n mv">${v(o.valor) ? `<span class="mov-n posi">+${brl(v(o.valor))}</span>` : '<span class="note">—</span>'}</div><div class="acts"></div>
-        ${linhaOrdem('c', o, null)}</div>`).join('');
+    const vendas = S.vendas.filter(o => o.classe === l.k), compras = S.compras.filter(o => o.classe === l.k);
+    const fechado = FECHADAS.has(l.k);
     return `<div class="mgrp ${fechado ? 'fechado' : ''}" data-cls="${l.k}">
       <div class="mhead" data-toggle="${l.k}">${cabecalhoClasse(l, R)}</div>
       <div class="mbody">
-        ${ativos.length || novos.length ? `<div class="mrow h"><div>Ativo</div><div class="n">Posição</div><div class="n">% cart.</div><div class="n">Rent. ano</div><div class="n">Movimento</div><div class="n">Aplicar / Resgatar</div></div>` : ''}
-        ${linhas}${linhasNovas}
-        ${!ativos.length && !novos.length ? `<div class="mempty">O cliente não tem ativos nesta classe.${Math.abs(l.bal) > 0.5 && l.bal > 0 ? ` Para chegar ao recomendado faltam ${brl(l.bal)}.` : ''}</div>` : ''}
-        <div class="madd no-print"><button class="sm ghost" data-novo="${l.k}" type="button">+ Novo ativo em ${l.n}</button></div>
+        ${vendas.map(o => linhaOrdem('v', o)).join('')}${compras.map(o => linhaOrdem('c', o)).join('')}
+        <div data-sugbox="${l.k}">${sugestao(l)}</div>
+        <div class="madd no-print"><button class="sm secondary vend" data-add="v" data-cls="${l.k}" type="button">− Ativo para vender</button><button class="sm secondary comp" data-add="c" data-cls="${l.k}" type="button">+ Ativo para comprar</button></div>
       </div></div>`;
   }).join('');
 }
 function atualizarMovNumeros() {
-  // atualiza só cabeçalhos e colunas de movimento sem redesenhar os campos (mantém o foco)
+  // atualiza cabeçalhos e sugestões sem redesenhar os campos (mantém o foco)
   const R = calcular();
-  R.linhas.forEach(l => { const h = document.querySelector(`.mhead[data-toggle="${l.k}"]`); if (h) h.innerHTML = cabecalhoClasse(l, R); });
-  document.querySelectorAll('#mov .mrow[data-a]').forEach(el => {
-    const id = el.dataset.a;
-    const vv = S.vendas.filter(o => o.ativoId === id).reduce((s, o) => s + v(o.valor), 0);
-    const va = S.compras.filter(o => o.ativoId === id).reduce((s, o) => s + v(o.valor), 0), mv = va - Math.min(vv, v(ativoDe(id)?.saldo));
-    el.querySelector('.mv').innerHTML = Math.abs(mv) > 0.005 ? `<span class="mov-n ${mv < 0 ? 'neg' : 'posi'}">${mv < 0 ? '−' : '+'}${brl(Math.abs(mv))}</span>` : '<span class="note">—</span>';
-  });
-  document.querySelectorAll('#mov .mrow[data-n]').forEach(el => {
-    const o = S.compras.find(x => x.id === el.dataset.n); if (!o) return;
-    el.querySelector('.mv').innerHTML = v(o.valor) ? `<span class="mov-n posi">+${brl(v(o.valor))}</span>` : '<span class="note">—</span>';
-    el.querySelector('.an').innerHTML = `<span class="tg novo">Novo</span>${esc(o.nome || 'Ativo novo')}`;
+  R.linhas.forEach(l => {
+    const h = document.querySelector(`.mhead[data-toggle="${l.k}"]`); if (h) h.innerHTML = cabecalhoClasse(l, R);
+    const sb = document.querySelector(`[data-sugbox="${l.k}"]`); if (sb) sb.innerHTML = sugestao(l);
   });
 }
 
@@ -324,125 +268,70 @@ function recalcular() {
 }
 
 function renderTudo() {
-  renderCliente(); renderAtivos(); renderSalvas(); recalcular(); renderMov();
+  renderCliente(); renderAlocacao(); renderSalvas(); recalcular(); renderMov();
 }
 
 // ================= Eventos =================
 ['cliente', 'conta'].forEach(k => $(k).addEventListener('input', e => { S[k] = e.target.value; salvarAtual(); }));
-$('perfil').onchange = e => { S.perfil = e.target.value; recalcular(); };
-$('tol').oninput = e => { S.tol = e.target.value; recalcular(); };
-$('saldoConta').oninput = e => { S.saldoConta = e.target.value; recalcular(); };
-$('aporte').oninput = e => { S.aporte = e.target.value; recalcular(); };
+$('perfil').onchange = e => { S.perfil = e.target.value; renderAlocacao(); recalcular(); renderMov(); };
+$('tol').oninput = e => { S.tol = e.target.value; recalcular(); atualizarMovNumeros(); };
+$('saldoConta').oninput = e => { S.saldoConta = e.target.value; recalcular(); atualizarMovNumeros(); };
+$('aporte').oninput = e => { S.aporte = e.target.value; recalcular(); atualizarMovNumeros(); };
 $('segConsiderar').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
   S.considerar = b.dataset.v;
   document.querySelectorAll('#segConsiderar button').forEach(x => x.classList.toggle('on', x === b));
-  recalcular();
+  recalcular(); atualizarMovNumeros();
 };
 
-// Ativos
-$('assets').addEventListener('input', e => {
-  const el = e.target.closest('.asset'); if (!el || !e.target.dataset.k) return;
-  const a = S.ativos.find(x => x.id === el.dataset.id);
-  const k = e.target.dataset.k;
-  if (k === 'classe') return;
-  a[k] = e.target.value;
-  if (k === 'saldo') atualizarPctsAtivos();
-  recalcular();
+// Alocação atual
+$('patrimonio').addEventListener('input', e => { S.patrimonio = e.target.value; atualizarAlocacao(); recalcular(); atualizarMov(); });
+$('aloc').addEventListener('input', e => {
+  const k = e.target.dataset.pct; if (!k) return;
+  S.pct[k] = e.target.value; atualizarAlocacao(); recalcular(); atualizarMov();
 });
-$('assets').addEventListener('change', e => {
-  if (e.target.dataset.k !== 'classe') return;
-  const a = S.ativos.find(x => x.id === e.target.closest('.asset').dataset.id);
-  a.classe = e.target.value; a.revisar = false;
-  renderAtivos(); recalcular(); renderMov();
-});
-$('assets').addEventListener('focusout', e => {
-  if (e.target.dataset.k === 'nome' || e.target.dataset.k === 'saldo') renderMov();
-});
-$('assets').addEventListener('click', e => {
-  if (!e.target.closest('[data-del]')) return;
-  const id = e.target.closest('.asset').dataset.id;
-  S.ativos = S.ativos.filter(a => a.id !== id);
-  S.vendas = S.vendas.filter(o => o.ativoId !== id);
-  S.compras = S.compras.filter(o => o.ativoId !== id);
-  renderAtivos(); recalcular(); renderMov();
-});
-$('btnAddAtivo').onclick = () => {
-  S.ativos.push({ id: uid(), nome: '', classe: 'pos', saldo: '' });
-  renderAtivos(); recalcular();
-  const inputs = document.querySelectorAll('#assets .asset input[data-k="nome"]');
-  const last = [...inputs].find(i => !i.value); if (last) last.focus();
+$('btnZerarAloc').onclick = () => {
+  if (!confirmar('Apagar os percentuais da alocação atual?')) return;
+  S.pct = {}; renderAlocacao(); recalcular(); renderMov();
 };
 
 // Movimentações
 function focar(sel) { const el = document.querySelector(sel); if (el) { el.focus(); el.select && el.select(); } }
+const ordemDe = el => el.dataset.v ? S.vendas.find(x => x.id === el.dataset.v) : S.compras.find(x => x.id === el.dataset.c);
 $('mov').addEventListener('click', e => {
   const tg = e.target.closest('[data-toggle]');
   if (tg && !e.target.closest('button,input,select')) {
     const k = tg.dataset.toggle, g = tg.parentElement, fechar = !g.classList.contains('fechado');
     g.classList.toggle('fechado', fechar);
-    if (fechar) { FECHADAS.add(k); FECHADAS.delete('_' + k); } else { FECHADAS.delete(k); FECHADAS.add('_' + k); }
+    if (fechar) FECHADAS.add(k); else FECHADAS.delete(k);
     store.set('rw_carteira_fechadas', [...FECHADAS]);
     return;
   }
-  const row = e.target.closest('.mrow');
-  const act = e.target.closest('[data-act]');
-  if (act && row?.dataset.a) {
-    const a = ativoDe(row.dataset.a);
-    if (act.dataset.act === 'resg') {
-      let o = S.vendas.find(x => x.ativoId === a.id);
-      if (!o) { o = { id: uid(), ativoId: a.id, valor: '', status: 'Pendente' }; S.vendas.push(o); }
-      recalcular(); renderMov(); focar(`.mord[data-v="${o.id}"] input[data-k="valor"]`);
-    } else {
-      let o = S.compras.find(x => x.ativoId === a.id);
-      if (!o) { o = { id: uid(), ativoId: a.id, nome: a.nome, classe: a.classe, valor: '', status: 'Pendente' }; S.compras.push(o); }
-      recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="valor"]`);
-    }
+  const add = e.target.closest('[data-add],[data-sug]');
+  if (add) {
+    const tipo = add.dataset.add || add.dataset.sug, k = add.dataset.cls, l = calcular().linhas.find(x => x.k === k);
+    const valor = add.dataset.sug ? NUM2.format(Math.round(Math.abs(l.balN) * 100) / 100) : '';
+    const o = { id: uid(), classe: k, nome: '', valor, status: 'Pendente' };
+    (tipo === 'v' ? S.vendas : S.compras).push(o);
+    recalcular(); renderMov(); focar(`.mrow[data-${tipo}="${o.id}"] input[data-k="nome"]`);
     return;
   }
-  const nv = e.target.closest('[data-novo]');
-  if (nv) { const o = { id: uid(), nome: '', classe: nv.dataset.novo, valor: '', status: 'Pendente' }; S.compras.push(o); recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="nome"]`); return; }
-  const mo = e.target.closest('.mord'); if (!mo) return;
-  if (e.target.closest('[data-del]')) {
-    if (mo.dataset.v) S.vendas = S.vendas.filter(x => x.id !== mo.dataset.v); else S.compras = S.compras.filter(x => x.id !== mo.dataset.c);
-    recalcular(); renderMov(); return;
-  }
-  if (e.target.closest('[data-tudo]')) {
-    const o = S.vendas.find(x => x.id === mo.dataset.v), a = ativoDe(o.ativoId);
-    const outras = S.vendas.filter(x => x !== o && x.ativoId === a.id).reduce((s, x) => s + v(x.valor), 0);
-    o.valor = NUM2.format(Math.max(v(a.saldo) - outras, 0));
+  const row = e.target.closest('.mrow[data-v],.mrow[data-c]');
+  if (row && e.target.closest('[data-del]')) {
+    if (row.dataset.v) S.vendas = S.vendas.filter(x => x.id !== row.dataset.v); else S.compras = S.compras.filter(x => x.id !== row.dataset.c);
     recalcular(); renderMov();
   }
 });
 $('mov').addEventListener('input', e => {
-  const mo = e.target.closest('.mord'), k = e.target.dataset.k; if (!mo || !k || k === 'classe') return;
-  const o = mo.dataset.v ? S.vendas.find(x => x.id === mo.dataset.v) : S.compras.find(x => x.id === mo.dataset.c);
-  o[k] = e.target.value;
+  const row = e.target.closest('.mrow[data-v],.mrow[data-c]'), k = e.target.dataset.k; if (!row || !k) return;
+  const o = ordemDe(row); o[k] = e.target.value;
   if (k === 'status') e.target.className = 'status-sel ' + o.status;
   recalcular(); atualizarMovNumeros();
 });
-$('mov').addEventListener('change', e => {
-  const mo = e.target.closest('.mord'); if (!mo) return;
-  if (e.target.dataset.k === 'classe') { const o = S.compras.find(x => x.id === mo.dataset.c); o.classe = e.target.value; FECHADAS.delete(o.classe); recalcular(); renderMov(); }
-  else if (e.target.dataset.k === 'valor' && mo.dataset.v) renderMov(); // atualiza destaque de resgate total
-});
-$('btnAddCompra').onclick = () => {
-  const o = { id: uid(), nome: '', classe: 'pos', valor: '', status: 'Pendente' }; S.compras.push(o); FECHADAS.delete('pos');
-  recalcular(); renderMov(); focar(`.mord[data-c="${o.id}"] input[data-k="nome"]`);
-};
 $('btnAbrirTudo').onclick = () => {
   const grupos = [...document.querySelectorAll('#mov .mgrp')], abrir = grupos.some(g => g.classList.contains('fechado'));
-  grupos.forEach(g => { const k = g.dataset.cls; g.classList.toggle('fechado', !abrir); if (abrir) { FECHADAS.delete(k); FECHADAS.add('_' + k); } else { FECHADAS.add(k); FECHADAS.delete('_' + k); } });
+  grupos.forEach(g => { const k = g.dataset.cls; g.classList.toggle('fechado', !abrir); if (abrir) FECHADAS.delete(k); else FECHADAS.add(k); });
   store.set('rw_carteira_fechadas', [...FECHADAS]);
-};
-$('btnSugerir').onclick = () => {
-  const R = calcular();
-  // Usa o balanceamento depois das vendas já lançadas
-  const faltas = R.linhas.filter(l => l.balN > 0.5 && !(l.k === 'pos' && false));
-  if (!faltas.length) { toast('Nenhuma classe abaixo do recomendado'); return; }
-  faltas.forEach(l => { S.compras.push({ id: uid(), nome: '', classe: l.k, valor: NUM2.format(Math.round(l.balN * 100) / 100), status: 'Pendente' }); FECHADAS.delete(l.k); });
-  recalcular(); renderMov();
-  toast(`${faltas.length} compra(s) sugerida(s) — preencha os ativos`);
 };
 
 // Carteiras recomendadas
@@ -473,10 +362,10 @@ $('btnSalvar').onclick = () => {
 };
 $('salvas').onchange = e => {
   const l = lista(); const k = e.target.value; if (!k || !l[k]) return;
-  S = Object.assign(estadoVazio(), JSON.parse(JSON.stringify(l[k]))); renderTudo(); toast('Carteira aberta');
+  S = migrar(JSON.parse(JSON.stringify(l[k]))); renderTudo(); toast('Carteira aberta');
 };
 $('btnNovo').onclick = () => {
-  if ((S.ativos.length || S.vendas.length) && !confirmar('Começar uma carteira nova? O que não foi salvo será perdido.')) return;
+  if ((v(S.patrimonio) || S.vendas.length || S.compras.length) && !confirmar('Começar uma carteira nova? O que não foi salvo será perdido.')) return;
   const perfil = S.perfil; S = estadoVazio(); S.perfil = perfil; renderTudo();
 };
 $('btnExcluir').onclick = () => {
@@ -494,21 +383,20 @@ $('btnExport').onclick = () => {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+const ordensValidas = () => ({ vendas: S.vendas.filter(o => v(o.valor)), compras: S.compras.filter(o => v(o.valor)) });
 $('btnCopiar').onclick = () => {
-  const R = calcular();
-  const temOrdens = S.vendas.length || S.compras.length;
-  const L = [`*Carteira ${S.cliente || ''}* — perfil ${PERFIS[S.perfil]}${S.dataRef ? ` (ref. ${S.dataRef})` : ''}`, `Patrimônio: ${brl(R.total)}`, '', '*Alocação atual × recomendada*'];
+  const R = calcular(), { vendas, compras } = ordensValidas();
+  const L = [`*Carteira ${S.cliente || ''}* — perfil ${PERFIS[S.perfil]}`, `Patrimônio: ${brl(R.total)}`, '', '*Alocação atual × recomendada*'];
   R.linhas.filter(l => l.atual || l.pr).forEach(l => {
     const tag = Math.abs(l.dif) <= R.tol ? '✅' : l.dif > 0 ? '🔺' : '🔻';
     L.push(`${tag} ${l.n}: ${pct(l.pa, 1)} (recom. ${pct(l.pr, 1)})`);
   });
-  if (temOrdens) {
-    const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor));
-    const compras = S.compras.filter(o => v(o.valor));
-    if (vendas.length) { L.push('', '*Vendas*'); vendas.forEach(({ o, a }) => L.push(`• ${a.nome}: ${brl(v(o.valor))}`)); }
-    if (compras.length) { L.push('', '*Compras*'); compras.forEach(o => L.push(`• ${nomeCompra(o) || NOME[clsCompra(o)]}${o.ativoId ? '' : ' (novo)'} — ${NOME[clsCompra(o)]}: ${brl(v(o.valor))}`)); }
+  if (vendas.length || compras.length || R.aporte) {
+    if (vendas.length) { L.push('', '*Vendas*'); vendas.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} — ${NOME[o.classe]}: ${brl(v(o.valor))}`)); }
+    if (compras.length) { L.push('', '*Compras*'); compras.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} — ${NOME[o.classe]}: ${brl(v(o.valor))}`)); }
+    if (R.aporte) L.push('', `Aporte: ${brl(R.aporte)}`);
     L.push('', '*Como fica*');
-    R.linhas.filter(l => l.novo || l.pr).forEach(l => {
+    R.linhas.filter(l => l.novo > 0.005 || l.pr).forEach(l => {
       const tag = Math.abs(l.difN) <= R.tol ? '✅' : l.difN > 0 ? '🔺' : '🔻';
       L.push(`${tag} ${l.n}: ${pct(l.pn, 1)} (recom. ${pct(l.pr, 1)})`);
     });
@@ -519,44 +407,24 @@ $('btnCopiar').onclick = () => {
 // ---------- E-mail para o cliente ----------
 const PERFIL_ADJ = { conservadora: 'Conservador', moderada: 'Moderado', sofisticada: 'Sofisticado', personalizada: 'personalizado' };
 function dadosEmail() {
-  const R = calcular();
-  const temOrdens = S.vendas.some(o => v(o.valor)) || S.compras.some(o => v(o.valor));
+  const R = calcular(), { vendas, compras } = ordensValidas();
+  const temOrdens = vendas.length || compras.length || R.aporte > 0;
   const linhas = R.linhas.filter(l => l.atual > 0.005 || l.pr > 0 || l.novo > 0.005);
-  const vendas = S.vendas.map(o => ({ o, a: S.ativos.find(x => x.id === o.ativoId) })).filter(x => x.a && v(x.o.valor))
-    .map(({ o, a }) => ({ a, o: Object.assign({}, o, { valor: Math.min(v(o.valor), v(a.saldo)) }) }));
-  const compras = S.compras.filter(o => v(o.valor));
   return { R, temOrdens, linhas, vendas, compras };
 }
-// carteira ativo a ativo depois das movimentações (para o cliente ver o que entra e o que sai)
-function carteiraDepois() {
-  return CLASSES.map(c => {
-    const itens = [];
-    S.ativos.filter(a => a.classe === c.k).forEach(a => {
-      const vv = S.vendas.filter(o => o.ativoId === a.id).reduce((s, o) => s + v(o.valor), 0);
-      const va = S.compras.filter(o => o.ativoId === a.id).reduce((s, o) => s + v(o.valor), 0);
-      const hoje = v(a.saldo), mov = va - Math.min(vv, hoje);
-      itens.push({ nome: a.nome, hoje, mov, depois: hoje + mov, tipo: vv > 0 && vv >= hoje - 0.005 ? 'sai' : vv > 0 ? 'reduz' : va > 0 ? 'aumenta' : '' });
-    });
-    S.compras.filter(o => !o.ativoId && clsCompra(o) === c.k && v(o.valor)).forEach(o => itens.push({ nome: o.nome || 'Ativo novo', hoje: 0, mov: v(o.valor), depois: v(o.valor), tipo: 'novo' }));
-    return { c, itens };
-  }).filter(g => g.itens.length && g.itens.some(i => i.depois > 0.005 || i.hoje > 0.005));
-}
-const TIPO_TXT = { sai: 'resgate total', reduz: 'resgate parcial', aumenta: 'aplicação', novo: 'novo' };
 function emailTextoCarteira(nome, ass) {
   const { R, temOrdens, linhas, vendas, compras } = dadosEmail();
   const L = [Email.saudacaoTexto(nome), '',
-    `Analisei a sua carteira${S.dataRef ? ` (posição de ${S.dataRef})` : ''} e comparei com a nossa carteira recomendada para o perfil ${PERFIL_ADJ[S.perfil]}.`, '',
+    `Analisei a sua carteira e comparei com a nossa carteira recomendada para o perfil ${PERFIL_ADJ[S.perfil]}.`, '',
     `Patrimônio considerado: ${brl(R.total)}`, '', 'ALOCAÇÃO ATUAL × RECOMENDADA'];
   linhas.forEach(l => L.push(`• ${l.n}: ${pct(l.pa, 1)} (recomendado ${pct(l.pr, 1)})`));
   if (temOrdens) {
     L.push('', 'PROPOSTA DE MOVIMENTAÇÕES');
-    if (vendas.length) { L.push('Resgates/vendas:'); vendas.forEach(({ o, a }) => L.push(`• ${a.nome}: ${brl(v(o.valor))}`)); }
-    if (compras.length) { L.push('Aplicações:'); compras.forEach(o => L.push(`• ${nomeCompra(o) || NOME[clsCompra(o)]}${o.ativoId ? '' : ' (novo)'} — ${NOME[clsCompra(o)]}: ${brl(v(o.valor))}`)); }
+    if (vendas.length) { L.push('Resgates/vendas:'); vendas.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} (${NOME[o.classe]}): ${brl(v(o.valor))}`)); }
+    if (compras.length) { L.push('Aplicações:'); compras.forEach(o => L.push(`• ${o.nome || NOME[o.classe]} (${NOME[o.classe]}): ${brl(v(o.valor))}`)); }
     if (R.aporte) L.push(`Aporte adicional: ${brl(R.aporte)}`);
-    L.push('', 'SUA CARTEIRA ATIVO A ATIVO');
-    carteiraDepois().forEach(g => { L.push(g.c.n + ':'); g.itens.forEach(i => L.push(`  ${i.tipo === 'novo' ? '[NOVO] ' : i.tipo === 'sai' ? '[SAI] ' : ''}${i.nome}: ${brl(i.hoje)} → ${brl(i.depois)}${i.tipo && i.tipo !== 'novo' && i.tipo !== 'sai' ? ` (${TIPO_TXT[i.tipo]})` : ''}`)); });
     L.push('', 'COMO A CARTEIRA FICA');
-    linhas.forEach(l => L.push(`• ${l.n}: ${pct(l.pn, 1)} (recomendado ${pct(l.pr, 1)})`));
+    linhas.forEach(l => L.push(`• ${l.n}: ${brl(l.atual)} → ${brl(l.novo)} · ${pct(l.pn, 1)} (recomendado ${pct(l.pr, 1)})`));
     if (R.desvioN < R.desvioA - 0.05) L.push('', `Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`);
   }
   L.push('', 'Fico à disposição para conversarmos sobre a proposta.', '', 'Abraço,', ass);
@@ -570,30 +438,21 @@ function emailHtmlCarteira(nome, ass) {
     ? [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, `<b style="color:${h.cor.ora}">${pct(l.pn, 1)}</b>`, sit(l.difN)]
     : [esc(l.n), pct(l.pa, 1), `<b>${pct(l.pr, 1)}</b>`, sit(l.dif)]);
   let html = h.p(h.saudacao(nome)) +
-    h.p(`Analisei a sua carteira${S.dataRef ? ` (posição de ${esc(S.dataRef)})` : ''} e comparei com a nossa carteira recomendada para o perfil <b>${PERFIL_ADJ[S.perfil]}</b>. Patrimônio considerado: <b>${brl(R.total)}</b>.`) +
+    h.p(`Analisei a sua carteira e comparei com a nossa carteira recomendada para o perfil <b>${PERFIL_ADJ[S.perfil]}</b>. Patrimônio considerado: <b>${brl(R.total)}</b>.`) +
     h.titulo(temOrdens ? 'Alocação atual, recomendada e proposta' : 'Alocação atual × recomendada') +
     h.tabela(cab, rows, temOrdens ? ['left', 'right', 'right', 'right', 'left'] : ['left', 'right', 'right', 'left']);
   if (temOrdens) {
     html += h.titulo('Proposta de movimentações');
     const ord = [
-      ...vendas.map(({ o, a }) => [`<span style="color:${h.cor.ruim};font-weight:bold">Resgate</span>`, esc(a.nome), esc(NOME[a.classe]), brl(v(o.valor))]),
-      ...compras.map(o => [`<span style="color:${h.cor.bom};font-weight:bold">${o.ativoId ? 'Aplicação' : 'Novo ativo'}</span>`, esc(nomeCompra(o) || NOME[clsCompra(o)]), esc(NOME[clsCompra(o)]), brl(v(o.valor))]),
+      ...vendas.map(o => [`<span style="color:${h.cor.ruim};font-weight:bold">Resgate</span>`, esc(o.nome || NOME[o.classe]), esc(NOME[o.classe]), brl(v(o.valor))]),
+      ...compras.map(o => [`<span style="color:${h.cor.bom};font-weight:bold">Aplicação</span>`, esc(o.nome || NOME[o.classe]), esc(NOME[o.classe]), brl(v(o.valor))]),
     ];
     if (R.aporte) ord.push([`<span style="color:${h.cor.bom};font-weight:bold">Aporte</span>`, 'Dinheiro novo', '', brl(R.aporte)]);
     html += h.tabela(['', 'Ativo', 'Classe', 'Valor'], ord, ['left', 'left', 'left', 'right']);
-    html += h.titulo('Sua carteira ativo a ativo');
-    const etq = (txt, cor, fundo) => `<span style="display:inline-block;background:${fundo};color:${cor};font-size:10px;font-weight:bold;border-radius:9px;padding:1px 7px;margin-right:6px">${txt}</span>`;
-    const rowsA = [];
-    carteiraDepois().forEach(g => {
-      rowsA.push([`<b style="color:#22105a">${esc(g.c.n)}</b>`, '', '', '']);
-      g.itens.forEach(i => {
-        const tag = i.tipo === 'novo' ? etq('NOVO', '#fff', h.cor.bom) : i.tipo === 'sai' ? etq('SAI', '#fff', h.cor.ruim) : i.tipo === 'reduz' ? etq('RESGATE', h.cor.ruim, '#fde8e7') : i.tipo === 'aumenta' ? etq('APLICAÇÃO', h.cor.bom, '#e3f5ec') : '';
-        const nm = i.tipo === 'sai' ? `<span style="text-decoration:line-through;color:#8a8d93">${esc(i.nome)}</span>` : esc(i.nome);
-        const mv = Math.abs(i.mov) > 0.005 ? `<span style="color:${i.mov < 0 ? h.cor.ruim : h.cor.bom};font-weight:bold">${i.mov < 0 ? '−' : '+'}${brl(Math.abs(i.mov))}</span>` : '—';
-        rowsA.push([tag + nm, i.hoje ? brl(i.hoje) : '—', mv, `<b>${i.depois > 0.005 ? brl(i.depois) : '—'}</b>`]);
-      });
-    });
-    html += h.tabela(['Ativo', 'Hoje', 'Movimento', 'Depois'], rowsA, ['left', 'right', 'right', 'right']);
+    html += h.titulo('Como cada classe fica');
+    const rowsA = linhas.map(l => { const mv = l.novo - l.atual;
+      return [`<b style="color:#22105a">${esc(l.n)}</b>`, l.atual > 0.005 ? brl(l.atual) : '—', Math.abs(mv) > 0.005 ? `<span style="color:${mv < 0 ? h.cor.ruim : h.cor.bom};font-weight:bold">${mv < 0 ? '−' : '+'}${brl(Math.abs(mv))}</span>` : '—', `<b>${l.novo > 0.005 ? brl(l.novo) : '—'}</b>`]; });
+    html += h.tabela(['Classe', 'Hoje', 'Movimento', 'Depois'], rowsA, ['left', 'right', 'right', 'right']);
     if (R.desvioN < R.desvioA - 0.05) html += h.destaque(`Com essas movimentações, a parte da carteira fora da alocação recomendada cai de ${pct(R.desvioA, 1)} para ${pct(R.desvioN, 1)}.`, 'bom');
   }
   html += h.p('Fico à disposição para conversarmos sobre a proposta.') + h.p('Abraço,') + h.assinatura(ass) +
@@ -601,8 +460,8 @@ function emailHtmlCarteira(nome, ass) {
   return h.wrap(html);
 }
 $('btnEmail').onclick = () => {
-  if (!S.ativos.length) { toast('Importe ou lance a carteira primeiro'); return; }
-  const temOrdens = S.vendas.length || S.compras.length;
+  if (!v(S.patrimonio)) { toast('Preencha o patrimônio e os percentuais primeiro'); $('patrimonio').focus(); return; }
+  const temOrdens = dadosEmail().temOrdens;
   Email.abrir({
     assunto: temOrdens ? 'Proposta de rebalanceamento da sua carteira' : 'Análise da sua carteira de investimentos',
     nome: S.cliente || '', para: S.email || '',
