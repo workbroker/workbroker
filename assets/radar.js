@@ -100,10 +100,10 @@ $('univ').addEventListener('change', e => { UNIV = e.target.value; if (UNIV === 
 
 // pesquisa de qualquer ação da bolsa
 function pesquisar() {
-  const q = normE($('pesq').value).trim();
+  const q = normE($('pesq').value).trim().replace(/\s+/g, '');
   if (q.length < 2) { $('pesqSug').hidden = true; return; }
   const L = TODAS().map(a => {
-    const tk = a.tk.toLowerCase(), nm = normE(a.nome);
+    const tk = a.tk.toLowerCase(), nm = normE(a.nome).replace(/[^a-z0-9]/g, '');
     const s = tk === q ? 100 : tk.startsWith(q) ? 80 : nm.startsWith(q) ? 60 : nm.includes(q) || tk.includes(q) ? 40 : normE(a.setor).includes(q) ? 10 : 0;
     return [s + (a.peso ? 5 : 0) + Math.min((a.mcap || 0) / 1e11, 4), a];
   }).filter(x => x[0] >= 10).sort((x, y) => y[0] - x[0]).slice(0, 10).map(x => x[1]);
@@ -130,7 +130,7 @@ function detalhe(tk) {
     <div class="ind" style="margin-top:12px">
       <div>Mês<b>${pv(a.mes)}</b></div><div>Ano<b>${pv(a.ano)}</b></div><div>12 meses<b>${pv(a.a12)}</b></div>
       <div>Dividend yield<b>${Number.isFinite(a.dy) ? n2(a.dy, 1) + '%' : '—'}</b></div><div>P/L<b>${x(a.pl)}</b></div><div>P/VP<b>${x(a.pvp, 2)}</b></div>
-      <div>ROE<b>${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</b></div><div>Valor de mercado<b>${bi(a.mcap)}</b></div><div>${fora ? 'Volume do dia' : 'Peso no Ibovespa'}<b>${fora ? (a.vol ? Number(a.vol).toLocaleString('pt-BR') : '—') : a.peso ? n2(a.peso, 2) + '%' : '—'}</b></div>
+      <div>ROE<b>${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</b></div><div>Valor de mercado<b>${bi(a.mcap)}</b></div><div>${fora ? 'Ibovespa' : 'Peso no Ibovespa'}<b>${fora ? 'fora do índice' : a.peso ? n2(a.peso, 2) + '%' : '—'}</b></div>
     </div>
     <div class="faixa"><i style="left:${Math.min(Math.max(pos, 0), 100)}%"></i></div>
     <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)"><span>mín. 12m R$ ${n2(a.min52)}</span><span>máx. 12m R$ ${n2(a.max52)}</span></div>

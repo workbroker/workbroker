@@ -122,7 +122,8 @@ def tickers_cvm():
             if r.get("SIT") == "ATIVO":
                 cn = so_dig(r["CNPJ_CIA"])
                 setor[cn] = r.get("SETOR_ATIV")
-                nome[cn] = (r.get("DENOM_COMERC") or r.get("DENOM_SOCIAL") or "").strip()
+                # razão social (o nome comercial costuma estar desatualizado), sem o "S.A."
+                nome[cn] = re.sub(r"[\s,.-]*\b(S\.?\s?/?\s?A\.?|SA)\s*$", "", (r.get("DENOM_SOCIAL") or r.get("DENOM_COMERC") or "").strip(), flags=re.I)
     except Exception as e:
         log("cadastro", e)
     return tk, setor, nome
