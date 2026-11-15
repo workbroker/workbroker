@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Radar de ações · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611151728">
+<link rel="stylesheet" href="assets/style.css?v=202611151745">
 <style>
   .kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
   .kpi .v.up, .up { color: var(--good); } .kpi .v.dn, .dn { color: var(--bad); }
@@ -45,6 +45,14 @@
   .tv { height: 560px; border-radius: 16px; overflow: hidden; }
   @media (max-width: 520px) { .tv { height: 520px; } }
   .modal.acao { width: min(560px, 100%); }
+  .busca-ac { position: relative; margin-bottom: 14px; }
+  .busca-ac input { width: 100%; font-size: 16px; padding: 13px 16px; border-radius: 16px; }
+  .sug { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 30px rgba(34,16,90,.16); max-height: 400px; overflow-y: auto; }
+  .sug button { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 10px; width: 100%; align-items: center; text-align: left; background: #fff; color: var(--ink); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 14px; font-weight: 600; font-size: 14px; height: auto; white-space: normal; }
+  .sug button:hover, .sug button.on { background: #fff1e8; }
+  .sug .tk { font-weight: 800; color: var(--indigo); }
+  .sug .nm { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sug .vv { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
   .ind { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .ind div { background: #f2f3f5; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
   .ind b { display: block; font-size: 16px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -58,6 +66,11 @@
 <main>
   <h1>Radar de ações</h1>
   <p class="lead">Um resumo de como a bolsa está hoje: Ibovespa, maiores altas e quedas, as maiores empresas, calendário de resultados e os indicadores de cada ação do índice.</p>
+
+  <div class="busca-ac">
+    <input id="pesq" type="search" autocomplete="off" placeholder="🔎 Pesquisar ação pelo ticker ou nome (ex.: PETR4, Weg, Itaú)">
+    <div id="pesqSug" class="sug" hidden></div>
+  </div>
 
   <div class="kpis" id="kpis"></div>
 
@@ -84,7 +97,8 @@
   </div>
 
   <div class="card" style="margin-top:14px">
-    <div class="card-head"><h2>📋 Ações do Ibovespa</h2><input id="busca" type="search" placeholder="Filtrar por ticker, nome ou setor" style="max-width:260px"></div>
+    <div class="card-head"><h2 id="tTit">📋 Ações do Ibovespa</h2>
+      <div class="row"><select id="univ" style="width:auto"><option value="ibov">Ibovespa</option><option value="todas">Todas as ações</option></select><input id="busca" type="search" placeholder="Filtrar por ticker, nome ou setor" style="max-width:240px"></div></div>
     <div class="table-wrap"><table id="tAcoes"><thead></thead><tbody></tbody></table></div>
     <p class="note" style="margin-top:8px">Toque no nome da coluna para ordenar e na ação para ver os detalhes.</p>
   </div>
@@ -99,7 +113,7 @@
   </div>
 </div>
 
-<script src="assets/common.js?v=202611151728"></script>
-<script src="assets/radar.js?v=202611151728"></script>
+<script src="assets/common.js?v=202611151745"></script>
+<script src="assets/radar.js?v=202611151745"></script>
 </body>
 </html>

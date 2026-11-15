@@ -1,7 +1,8 @@
 // Radar de ações: lê radar.json (GitHub Actions: carteira do Ibovespa pela B3, cotações do Yahoo,
 // indicadores calculados com os balanços da CVM e calendário de resultados) + widget ao vivo da TradingView.
 const $ = id => document.getElementById(id);
-let RD = null, ORD = { k: 'peso', asc: false }, ABA_CAL = 'prox';
+let RD = null, ORD = { k: 'peso', asc: false }, ABA_CAL = 'prox', UNIV = 'ibov';
+const TODAS = () => [...(RD?.acoes || []), ...(RD?.outras || [])];
 const n2 = (v, d = 2) => Number.isFinite(v) ? v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
 const pv = v => Number.isFinite(v) ? `<span class="${v > 0 ? 'up' : v < 0 ? 'dn' : ''}">${v > 0 ? '+' : ''}${n2(v)}%</span>` : '—';
 const bi = v => Number.isFinite(v) ? (v >= 1e9 ? 'R$ ' + n2(v / 1e9, 1) + ' bi' : 'R$ ' + n2(v / 1e6, 0) + ' mi') : '—';
@@ -76,7 +77,9 @@ const COLS = [
 ];
 function tabela() {
   const q = normE($('busca').value);
-  let A = RD.acoes.filter(a => !q || normE(`${a.tk} ${a.nome} ${a.setor || ''}`).includes(q));
+  const base = UNIV === 'todas' ? TODAS() : RD.acoes;
+  $('tTit').textContent = UNIV === 'todas' ? `📋 Todas as ações (${base.length})` : `📋 Ações do Ibovespa (${base.length})`;
+  let A = base.filter(a => !q || normE(`${a.tk} ${a.nome} ${a.setor || ''}`).includes(q));
   const k = ORD.k;
   A.sort((a, b) => k === 'tk' ? a.tk.localeCompare(b.tk) * (ORD.asc ? 1 : -1)
     : ((Number.isFinite(a[k]) ? a[k] : -Infinity) - (Number.isFinite(b[k]) ? b[k] : -Infinity)) * (ORD.asc ? 1 : -1));
@@ -93,9 +96,33 @@ $('tAcoes').addEventListener('click', e => {
   if (th) { const k = th.dataset.k; ORD = { k, asc: ORD.k === k ? !ORD.asc : k === 'tk' }; tabela(); return; }
 });
 $('busca').addEventListener('input', tabela);
+$('univ').addEventListener('change', e => { UNIV = e.target.value; if (UNIV === 'todas' && ORD.k === 'peso') ORD = { k: 'mcap', asc: false }; if (UNIV === 'ibov' && ORD.k === 'mcap') ORD = { k: 'peso', asc: false }; tabela(); });
+
+// pesquisa de qualquer ação da bolsa
+function pesquisar() {
+  const q = normE($('pesq').value).trim();
+  if (q.length < 2) { $('pesqSug').hidden = true; return; }
+  const L = TODAS().map(a => {
+    const tk = a.tk.toLowerCase(), nm = normE(a.nome);
+    const s = tk === q ? 100 : tk.startsWith(q) ? 80 : nm.startsWith(q) ? 60 : nm.includes(q) || tk.includes(q) ? 40 : normE(a.setor).includes(q) ? 10 : 0;
+    return [s + (a.peso ? 5 : 0) + Math.min((a.mcap || 0) / 1e11, 4), a];
+  }).filter(x => x[0] >= 10).sort((x, y) => y[0] - x[0]).slice(0, 10).map(x => x[1]);
+  $('pesqSug').innerHTML = L.map(a => `<button type="button" data-tk="${a.tk}"><span class="tk">${a.tk}</span><span class="nm">${esc(a.nome || '')}${a.peso ? ' · Ibovespa' : ''}</span><span class="vv">R$ ${n2(a.preco)}<br>${pv(a.var)}</span></button>`).join('')
+    || '<div class="note" style="padding:10px 14px">Nenhuma ação encontrada.</div>';
+  $('pesqSug').hidden = false;
+}
+$('pesq').addEventListener('input', pesquisar);
+$('pesq').addEventListener('focus', pesquisar);
+$('pesq').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { const b = $('pesqSug').querySelector('[data-tk]'); if (b) { detalhe(b.dataset.tk); $('pesqSug').hidden = true; $('pesq').blur(); } }
+  if (e.key === 'Escape') $('pesqSug').hidden = true;
+});
+document.addEventListener('click', e => { if (!e.target.closest('.busca-ac')) $('pesqSug').hidden = true; });
 
 function detalhe(tk) {
-  const a = RD.acoes.find(b => b.tk === tk); if (!a) return;
+  const a = TODAS().find(b => b.tk === tk); if (!a) return;
+  $('pesqSug').hidden = true;
+  const fora = !a.peso && !RD.acoes.includes(a);
   const pos = a.max52 > a.min52 ? (a.preco - a.min52) / (a.max52 - a.min52) * 100 : 50;
   $('dlgT').innerHTML = `${a.tk} <span style="font-weight:600;color:var(--muted);font-size:14px">${esc(a.nome || '')}</span>`;
   $('dlgB').innerHTML = `
@@ -103,11 +130,12 @@ function detalhe(tk) {
     <div class="ind" style="margin-top:12px">
       <div>Mês<b>${pv(a.mes)}</b></div><div>Ano<b>${pv(a.ano)}</b></div><div>12 meses<b>${pv(a.a12)}</b></div>
       <div>Dividend yield<b>${Number.isFinite(a.dy) ? n2(a.dy, 1) + '%' : '—'}</b></div><div>P/L<b>${x(a.pl)}</b></div><div>P/VP<b>${x(a.pvp, 2)}</b></div>
-      <div>ROE<b>${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</b></div><div>Valor de mercado<b>${bi(a.mcap)}</b></div><div>Peso no Ibovespa<b>${a.peso ? n2(a.peso, 2) + '%' : '—'}</b></div>
+      <div>ROE<b>${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</b></div><div>Valor de mercado<b>${bi(a.mcap)}</b></div><div>${fora ? 'Volume do dia' : 'Peso no Ibovespa'}<b>${fora ? (a.vol ? Number(a.vol).toLocaleString('pt-BR') : '—') : a.peso ? n2(a.peso, 2) + '%' : '—'}</b></div>
     </div>
     <div class="faixa"><i style="left:${Math.min(Math.max(pos, 0), 100)}%"></i></div>
     <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)"><span>mín. 12m R$ ${n2(a.min52)}</span><span>máx. 12m R$ ${n2(a.max52)}</span></div>
     ${a.res ? `<p style="margin:14px 0 0;font-size:14px">${a.res.ult ? `Último resultado: <b>${triRot(a.res.ult.ref)}</b> em ${a.res.ult.d.split('-').reverse().join('/')}` : ''}${a.res.prox ? `<br>Próximo: <b>${triRot(a.res.prox.ref)}</b> por volta de ${a.res.prox.d.split('-').reverse().join('/')} <span class="note">(previsão pelo ano passado)</span>` : ''}</p>` : ''}
+    ${fora ? `<p class="note" style="margin:10px 0 0">Fora do Ibovespa: cotação do fechamento de ${a.t ? new Date(a.t * 1000).toLocaleDateString('pt-BR') : '—'} (atualizada uma vez por dia). O gráfico abaixo mostra o preço ao vivo.</p>` : ''}
     <div style="height:300px;margin-top:14px;border-radius:14px;overflow:hidden" id="tvMini"></div>
     <p class="note" style="margin-top:8px">DY: dividendos e JCP pagos nos últimos 12 meses ÷ preço. P/L e ROE: lucro dos últimos 12 meses dos controladores. P/VP: valor de mercado ÷ patrimônio dos controladores (último balanço na CVM).</p>`;
   $('dlg').hidden = false; $('dlg').querySelector('.modal').scrollTop = 0; document.body.style.overflow = 'hidden';

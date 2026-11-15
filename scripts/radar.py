@@ -301,7 +301,8 @@ def calendario(entregas):
     m += 3
     if m > 12:
         y, m = y + 1, m - 12
-    prox_ref = date(y, m, 30 if m in (6, 9) else 31).isoformat()
+    import calendar as _cal
+    prox_ref = date(y, m, _cal.monthrange(y, m)[1]).isoformat()
     base = f"{y - 1}{prox_ref[4:]}"
     if base in entregas:
         try:
@@ -310,6 +311,14 @@ def calendario(entregas):
         except ValueError:
             pass
     return out
+
+
+def cal_seguro(entregas):
+    try:
+        return calendario(entregas)
+    except Exception as e:
+        log("calendário", e)
+        return {}
 
 
 def main():
@@ -353,7 +362,7 @@ def main():
             tkmap = dict(todas); tkmap.update({c["tk"]: tk2cn.get(c["tk"]) for c in cart})
             fund = {"tk2cn": tkmap, "setor": {cn: setor.get(cn) for cn in cnpjs}, "nome": {cn: nomes.get(cn) for cn in cnpjs},
                     "f": {cn: {k: v for k, v in f.items() if k != "entregas"} for cn, f in F.items()},
-                    "cal": {cn: calendario(f.get("entregas", {})) for cn, f in F.items()},
+                    "cal": {cn: cal_seguro(f.get("entregas", {})) for cn, f in F.items()},
                     "classes": classes}
             fund_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
             novo_dia = True
