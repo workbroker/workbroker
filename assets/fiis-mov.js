@@ -9,7 +9,7 @@
   const pv = v => `<span class="${v > 0 ? 'up' : v < 0 ? 'dn' : ''}">${v > 0 ? '+' : ''}${n2(v)}%</span>`;
   const mx = Math.max(...F.map(a => Math.abs(a.var)), 0.01);
   const item = a => `<button class="mv-it" type="button" data-fii="${a.tk}"><span class="tk">${a.tk}</span>
-    <span><span class="nm">${esc(a.nome || '')}${Number.isFinite(a.dy) && a.dy ? ` · DY ${n2(a.dy)}%` : ''}</span><div class="bar"><i style="width:${Math.abs(a.var) / mx * 100}%;background:${a.var >= 0 ? 'var(--good)' : 'var(--bad)'}"></i></div></span>
+    <span><span class="nm">${esc((a.nome || '').replace(/^Fii\s+/i, ''))}${Number.isFinite(a.dy) && a.dy ? ` · DY ${n2(a.dy)}%` : ''}</span><div class="bar"><i style="width:${Math.abs(a.var) / mx * 100}%;background:${a.var >= 0 ? 'var(--good)' : 'var(--bad)'}"></i></div></span>
     <span class="vv">${pv(a.var)}<small>R$ ${n2(a.preco)}</small></span></button>`;
   el('fAltas').innerHTML = [...F].sort((a, b) => b.var - a.var).slice(0, 6).map(item).join('');
   el('fQuedas').innerHTML = [...F].sort((a, b) => a.var - b.var).slice(0, 6).map(item).join('');
@@ -23,6 +23,8 @@
   el('movFii').hidden = false;
   el('movFii').addEventListener('click', e => {
     const b = e.target.closest('[data-fii]'); if (!b) return;
-    if (typeof abrirFundo === 'function') abrirFundo(b.dataset.fii);
+    const tk = b.dataset.fii;
+    if (typeof info === 'function') { const i = info(tk); if (!i.a && !i.m) { toast(`${tk}: ainda sem ficha (o fundo não aparece nos dados da CVM)`); return; } }
+    if (typeof abrirFundo === 'function') abrirFundo(tk);
   });
 })();
