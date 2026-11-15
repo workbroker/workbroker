@@ -74,7 +74,7 @@ function sinais(e) {
     else if (Number.isFinite(i.lucro) && i.lucro > 0 && Number.isFinite(a.lucro) && a.lucro > 0) bom.push('Lucro no período, como no mesmo período do ano anterior.');
     const vPL = varPct(i.pl, a.pl); if (vPL < -10) crit.push(`Patrimônio líquido caiu ${pct(-vPL, 0)} em 12 meses.`);
     const vCart = varPct(i.carteira, a.carteira); if (vCart > 50) crit.push(`Carteira de crédito cresceu ${pct(vCart, 0)} em 12 meses: crescimento acelerado pede atenção.`);
-    if (Number.isFinite(i.captacoes) && i.pl > 0 && i.captacoes / i.pl > 15) crit.push(`Captações de ${(i.captacoes / i.pl).toFixed(1).replace('.', ',')}× o patrimônio: alavancagem alta.`);
+    if (Number.isFinite(i.captacoes) && i.pl > 0 && i.captacoes / i.pl > 15) crit.push(`Captações de ${(i.captacoes / i.pl).toFixed(1).replace('.', ',')}× o patrimônio: alavancagem acima do comum entre bancos (perto de 10×).`);
     if (e.sr === 'S1') bom.push('Segmento S1 do Banco Central: maiores instituições do sistema, com regulação mais rigorosa.');
     else if (e.sr === 'S2') bom.push('Segmento S2 do Banco Central: instituição de grande porte.');
   }
