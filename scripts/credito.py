@@ -94,10 +94,11 @@ def bancos(debug):
             continue
         cod = c["CodInst"]
         prud = c.get("CodConglomeradoPrudencial") or cod
-        ind = dict(V3.get(cod, {})); ant = dict(A3.get(cod, {}))
-        for k in ("basileia", "imobilizacao"):
-            if V1.get(prud, {}).get(k) is not None: ind[k] = V1[prud][k]
-            if A1.get(prud, {}).get(k) is not None: ant[k] = A1[prud][k]
+        # números do conglomerado prudencial (base do Basileia e do que importa para o risco); senão, da instituição
+        if V1.get(prud):
+            ind, ant, base = dict(V1[prud]), dict(A1.get(prud, {})), "prud"
+        else:
+            ind, ant, base = dict(V3.get(cod, {})), dict(A3.get(cod, {})), "inst"
         if c.get("Situacao") == "I" or (c.get("Situacao") == "A" and not ind):
             continue  # inativa, ou ativa sem dados no trimestre  # ativa mas sem dados no trimestre (sem captação relevante)
         e = {"id": "b" + cod, "t": "b", "n": c.get("NomeInstituicao"), "c": cod,
@@ -106,7 +107,7 @@ def bancos(debug):
         cf = c.get("CodConglomeradoFinanceiro")
         if cf and nomes.get(cf) and nomes[cf] != e["n"]:
             e["grupo"] = nomes[cf]
-        if prud != cod and nomes.get(prud):
+        if prud != cod and nomes.get(prud) and base == "prud":
             e["prud"] = nomes[prud]
         out.append(e)
     return out, am

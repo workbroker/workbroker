@@ -35,7 +35,7 @@ function casar(nome) {
   let best = null, bs = 0;
   CRED.emissores.forEach(e => {
     const hit = t.filter(x => e._tk.has(x)).length; if (!hit) return;
-    const s = hit / t.length + hit / Math.max(e._tk.size, 1) * 0.5 + (e.sit && e.sit !== 'A' ? -0.3 : 0) + (e.rt ? 0.05 : 0) + Math.min(e._peso, 1e13) / 1e15;
+    const s = hit / t.length + hit / Math.max(e._tk.size, 1) * 0.5 + (e.sit && e.sit !== 'A' ? -0.05 : 0) + (e.rt ? 0.05 : 0) + Math.max(0, Math.min(e._peso, 1e13)) / 1e15;
     if (s > bs) { bs = s; best = e; }
   });
   return bs >= 1 ? best : null;
@@ -70,7 +70,7 @@ function sinais(e) {
       else if (bas < 13) crit.push(`Índice de Basileia de ${pct(bas, 1)}: folga de capital pequena.`);
       else if (bas >= 15) bom.push(`Índice de Basileia de ${pct(bas, 1)}: boa folga de capital.`);
     }
-    if (Number.isFinite(i.lucro) && i.lucro < 0) crit.push(`Prejuízo de ${mi(i.lucro)} no período.`);
+    if (Number.isFinite(i.lucro) && i.lucro < 0) crit.push(`Prejuízo de ${mi(-i.lucro)} no período.`);
     else if (Number.isFinite(i.lucro) && i.lucro > 0 && Number.isFinite(a.lucro) && a.lucro > 0) bom.push('Lucro no período, como no mesmo período do ano anterior.');
     const vPL = varPct(i.pl, a.pl); if (vPL < -10) crit.push(`Patrimônio líquido caiu ${pct(-vPL, 0)} em 12 meses.`);
     const vCart = varPct(i.carteira, a.carteira); if (vCart > 50) crit.push(`Carteira de crédito cresceu ${pct(vCart, 0)} em 12 meses: crescimento acelerado pede atenção.`);
@@ -88,7 +88,7 @@ function sinais(e) {
       else if (lev > 3) crit.push(`Dívida líquida de ${lev.toFixed(1).replace('.', ',')}× o EBITDA: endividamento moderado para alto.`);
       else if (lev < 2) bom.push(lev <= 0 ? 'Caixa maior que a dívida (dívida líquida negativa).' : `Dívida líquida de ${lev.toFixed(1).replace('.', ',')}× o EBITDA: endividamento confortável.`);
     } else if (Number.isFinite(f.ebitda) && f.ebitda <= 0) crit.push('EBITDA negativo no último ano.');
-    if (Number.isFinite(f.lucro) && f.lucro < 0) crit.push(`Prejuízo de ${mi(f.lucro)} no último ano.`);
+    if (Number.isFinite(f.lucro) && f.lucro < 0) crit.push(`Prejuízo de ${mi(-f.lucro)} no último ano.`);
     if (f.ac && f.pc && f.ac / f.pc < 1) crit.push(`Liquidez corrente de ${(f.ac / f.pc).toFixed(2).replace('.', ',')}: ativo circulante menor que o passivo circulante.`);
     const vr = varPct(f.receita, fa?.receita); if (vr < -15) crit.push(`Receita caiu ${pct(-vr, 0)} no ano.`); else if (vr > 10) bom.push(`Receita cresceu ${pct(vr, 0)} no ano.`);
   }
@@ -104,8 +104,8 @@ function fichaBanco(e) {
   const i = e.ind || {}, a = e.ant || {};
   if (!Object.keys(i).length) return '<p class="note">Sem números do Banco Central no último trimestre.</p>';
   const p = v => Number.isFinite(v) ? pct(v < 1 ? v * 100 : v, 1) : '—';
-  return `<div class="table-wrap"><table class="emi-t"><thead><tr><th>Banco Central · ${rotTri(CRED.ref_bcb)}</th><th class="n">Valor</th><th class="n">12 meses</th></tr></thead><tbody>
-    ${linhaInd('Índice de Basileia', i.basileia, a.basileia, p, e.prud ? 'do ' + esc(e.prud.toLowerCase()) : 'mínimo regulatório 10,5%')}
+  return `<div class="table-wrap"><table class="emi-t"><thead><tr><th>Banco Central · ${rotTri(CRED.ref_bcb)}${e.prud ? `<div class="sub" style="text-transform:none;letter-spacing:0">${esc(e.prud.replace(/ - PRUDENCIAL$/i, ''))} (conglomerado)</div>` : ''}</th><th class="n">Valor</th><th class="n">12 meses</th></tr></thead><tbody>
+    ${linhaInd('Índice de Basileia', i.basileia, a.basileia, p, 'mínimo regulatório 10,5%')}
     ${linhaInd('Patrimônio líquido', i.pl, a.pl)}
     ${linhaInd('Lucro líquido', i.lucro, a.lucro, mi, 'acumulado no semestre')}
     ${linhaInd('Ativo total', i.ativo, a.ativo)}
