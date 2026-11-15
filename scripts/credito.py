@@ -98,8 +98,8 @@ def bancos(debug):
         for k in ("basileia", "imobilizacao"):
             if V1.get(prud, {}).get(k) is not None: ind[k] = V1[prud][k]
             if A1.get(prud, {}).get(k) is not None: ant[k] = A1[prud][k]
-        if c.get("Situacao") == "A" and not ind:
-            continue  # ativa mas sem dados no trimestre (sem captação relevante)
+        if c.get("Situacao") == "I" or (c.get("Situacao") == "A" and not ind):
+            continue  # inativa, ou ativa sem dados no trimestre  # ativa mas sem dados no trimestre (sem captação relevante)
         e = {"id": "b" + cod, "t": "b", "n": c.get("NomeInstituicao"), "c": cod,
              "s": c.get("SegmentoTb") or TCB[c["Tcb"]], "sr": c.get("Sr"), "sit": c.get("Situacao"),
              "uf": c.get("Uf"), "ind": {k: round(v, 4) for k, v in ind.items()}, "ant": {k: round(v, 4) for k, v in ant.items()}}
@@ -231,6 +231,11 @@ NOTA = [
     ("S&P", re.compile(r"\bbr((?:AAA|AA|A|BBB|BB|B|CCC|CC|C|D)[+-]?)(?![A-Za-z])")),
     ("Moody's", re.compile(r"\b((?:AAA|AA|A|BBB|BB|B|CCC|CC|C|D)[+-]?)\.br\b", re.I)),
 ]
+CURTO = [
+    ("Fitch", re.compile(r"\b(F1\+?|F2|F3)\s?\(bra\)", re.I)),
+    ("S&P", re.compile(r"\bbr(A-1\+?|A-2|A-3)(?![\w])")),
+    ("Moody's", re.compile(r"\b(ML A-1|ML A-2|ML A-3)\.br\b", re.I)),
+]
 AGENCIAS = [("Fitch", r"fitch"), ("S&P", r"s\s?&\s?p|standard\s*&?\s*poor"), ("Moody's", r"moody"),
             ("Austin", r"austin"), ("Liberum", r"liberum"), ("LF Rating", r"lf rating"), ("SR Rating", r"sr rating")]
 PERSP = re.compile(r"(?:perspectiva|outlook)\s*(?:de\s*rating\s*)?(?:é\s*|:)?\s*(est[áa]vel|positiva|negativa|em desenvolvimento|stable|positive|negative|developing)", re.I)
@@ -277,31 +282,38 @@ def _metodo_exibir(link):
     return b if b[:4] == b"%PDF" else None
 
 
+def extrair_nota(txt, ag=None):
+    """Nota de rating mais citada no texto (escala nacional de longo prazo; senão curto prazo)."""
+    for lista, fmt in ((NOTA, {"Fitch": "{}(bra)", "S&P": "br{}", "Moody's": "{}.br"}), (CURTO, {"Fitch": "{}(bra)", "S&P": "br{}", "Moody's": "{}.br"})):
+        notas = {}
+        for nome, rx in lista:
+            for m in rx.finditer(txt):
+                k = m.group(1).upper() if nome != "Moody's" or lista is NOTA else m.group(1)
+                notas[(nome, k)] = notas.get((nome, k), 0) + 1
+        if notas:
+            ordem = sorted(notas.items(), key=lambda kv: -kv[1])
+            if ag in ("Fitch", "S&P", "Moody's"):
+                ordem = [o for o in ordem if o[0][0] == ag] or ordem
+            (agn, nota), _ = ordem[0]
+            return fmt[agn].format(nota), agn
+    return None, None
+
+
 def ler_rating(item):
     try:
         b = baixar_pdf(item["l"])
         if not b:
             return item
-        item["lido"] = 1
+        item["lido"] = 2
         from pypdf import PdfReader
         rd = PdfReader(io.BytesIO(b))
         txt = " ".join((p.extract_text() or "") for p in rd.pages[:6])
         txt = re.sub(r"\s+", " ", txt)
         ag = next((n for n, rx in AGENCIAS if re.search(rx, item["a"], re.I)), None) or \
              next((n for n, rx in AGENCIAS if re.search(rx, txt[:3000], re.I)), None)
-        notas = {}
-        for nome, rx in NOTA:
-            for m in rx.finditer(txt):
-                k = m.group(1).upper(); k = {"FITCH": None}.get(k, k)
-                if k:
-                    notas[(nome, k)] = notas.get((nome, k), 0) + 1
-        if notas:
-            ordem = sorted(notas.items(), key=lambda kv: -kv[1])
-            if ag in ("Fitch", "S&P", "Moody's"):
-                ordem = [o for o in ordem if o[0][0] == ag] or ordem
-            (agn, nota), _ = ordem[0]
-            item["r"] = {"fitch": f"{nota}(bra)", "s&p": f"br{nota}", "moody's": f"{nota}.br"}[agn.lower()]
-            ag = ag or agn
+        nota, agn = extrair_nota(item["a"] + " " + txt, ag)
+        if nota:
+            item["r"] = nota; ag = ag or agn
         p = PERSP.search(txt)
         if p:
             item["p"] = PT.get(unicodedata.normalize("NFKD", p.group(1).lower()).encode("ascii", "ignore").decode(), p.group(1).lower())
@@ -361,7 +373,7 @@ def main():
     lidos = {}
     for e in (ant or {}).get("emissores", []):
         for it in e.get("rt", []):
-            if it.get("lido"):
+            if it.get("lido") == 2:
                 lidos[it["l"]] = {k: it[k] for k in ("r", "ag", "p", "lido") if k in it}
     for v in R.values():
         for it in v:
@@ -372,8 +384,11 @@ def main():
             list(ex.map(ler_rating, itens))
         debug["ratings_lidos"] = sum(1 for it in itens if it.get("r"))
         log("ratings lidos:", debug["ratings_lidos"], "de", len(itens), f"{time.time() - t0:.0f}s")
-    for v in R.values():  # agência pelo assunto, quando não leu o PDF
+    for v in R.values():  # agência (e nota, se estiver no título) pelo assunto, quando não leu o PDF
         for it in v:
+            if not it.get("r"):
+                nt, agn = extrair_nota(it["a"])
+                if nt: it["r"] = nt; it.setdefault("ag", agn)
             it.setdefault("ag", next((n for n, rx in AGENCIAS if re.search(rx, it["a"], re.I)), None))
             if not it["ag"]: it.pop("ag")
 

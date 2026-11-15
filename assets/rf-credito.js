@@ -42,6 +42,10 @@ function chave(emissor, tipo) {
 function classeRating(r) {
   const s = String(r || '').toUpperCase().replace(/\(.*\)|BR|\.BR/g, '').trim();
   if (!s) return '';
+  const c = s.replace(/^ML\s*/, '');
+  if (/^F1|^A-1/.test(c)) return 'r-good';   // curto prazo
+  if (/^F2|^A-2/.test(c)) return 'r-ok';
+  if (/^F3|^A-3/.test(c)) return 'r-warn';
   if (/^AAA|^AA[+-]?$|^AA\d/.test(s)) return 'r-good';
   if (/^A[+-]?$|^A\d$/.test(s)) return 'r-ok';
   if (/^BBB|^BAA/.test(s)) return 'r-warn';
