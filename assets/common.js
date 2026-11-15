@@ -135,6 +135,7 @@ const ICON = {
   news: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 18 6"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
 };
 const svgI = (k, sz = 20) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
 // Carteira recomendada (parte Brasil, 85% do patrimônio; os outros 15% ficam no exterior, em dólar)
@@ -161,24 +162,26 @@ function carteiraRecomendada() { return store.get('rw_recomendadas', null) || JS
 const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
+  { id: 'radar', label: 'Radar', ic: 'radar', paginas: ['radar'], grupos: [
+    { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html']] }] },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
-    { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado'], ['Risco de crédito', 'rf-credito.html']] },
-    { t: 'Renda variável', itens: [['Radar de ações', 'rv-radar.html'], ['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
+    { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] },
+    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html']] },
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
   { id: 'relatorio', label: 'Relatório mensal', href: 'relatorio.html', ic: 'slides' },
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], 
-  ['Radar de ações', 'rv-radar.html', 'acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
-  ['FIIs em atenção', 'fiis.html', 'fii fiis fundos imobiliarios fiagro manual atencao pontos criticos dividendos pvp dy'],
+  ['Radar de ações', 'rv-radar.html', 'radar acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
+  ['Radar de FIIs', 'fiis.html', 'radar fii fiis fundos imobiliarios fiagro atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
   ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],
   ['Isento × tributado', 'rf-calculadoras.html#isento', 'lci lca gross-up equivalencia'],
   ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons', 'cupom cupons fluxo ntn-b juros semestrais pagamento'],
   ['Juros compostos', 'rf-calculadoras.html#compostos', 'aportes simulacao patrimonio'],
   ['Saldo parado × aplicado', 'rf-calculadoras.html#parado', 'saldo parado conta corrente inflacao perda poder de compra cdi rendimento caixa'],
-  ['Risco de crédito · emissores em atenção', 'rf-credito.html', 'renda fixa rating emissor banco debenture basileia atencao'],
+  ['Radar de renda fixa · emissores em atenção', 'rf-credito.html', 'radar renda fixa risco de credito rating emissor banco debenture basileia atencao cdb lca'],
   ['Visão geral de renda fixa', 'rf.html', 'renda fixa ferramentas'],
   ['Relatório mensal', 'relatorio.html', 'apresentacao cliente mensal rentabilidade slides pdf email'],
   ['Carteira e rebalanceamento', 'carteira.html', ' alocacao over under recomendada'],
