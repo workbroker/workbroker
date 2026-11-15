@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Risco de crédito · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611151355">
+<link rel="stylesheet" href="assets/style.css?v=202611151432">
 <style>
   .em { font-weight: 800; color: var(--indigo); }
   .sub { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
@@ -26,6 +26,33 @@
   .lin { display: grid; grid-template-columns: minmax(0, 1fr) 140px 34px; gap: 8px; align-items: center; margin-top: 6px; }
   .lin .vl { text-align: right; }
   .ativos-em { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .busca-emi { position: relative; }
+  .busca-emi input { width: 100%; font-size: 16px; padding: 12px 14px; }
+  .emi-sug { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 30px rgba(34,16,90,.16); overflow: hidden; max-height: 380px; overflow-y: auto; }
+  .emi-sug button { display: flex; width: 100%; justify-content: space-between; gap: 10px; align-items: center; text-align: left; background: #fff; color: var(--ink); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 14px; font-weight: 700; font-size: 14px; }
+  .emi-sug button:hover { background: #fff1e8; }
+  .emi-sug small { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+  .emi-sug button span small { display: block; white-space: normal; }
+  .emi-card { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .emi-hd { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .emi-n { font-size: 20px; font-weight: 800; color: var(--indigo); line-height: 1.2; }
+  .emi-h { font-size: 15px; margin: 18px 0 6px; color: var(--indigo); }
+  .emi-t td, .emi-t th { padding: 7px 8px; }
+  .emi-docs { display: grid; gap: 6px; }
+  .emi-doc { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 12px; background: #f6f5fa; color: var(--ink); text-decoration: none; font-size: 13.5px; line-height: 1.35; }
+  .emi-doc:hover { background: #fff1e8; }
+  .emi-doc .d { color: var(--muted); font-weight: 700; font-size: 12.5px; }
+  .emi-doc .ab { color: var(--orange); white-space: nowrap; font-size: 12.5px; }
+  @media (max-width: 520px) { .emi-doc { grid-template-columns: minmax(0, 1fr) auto; } .emi-doc .d { grid-column: 1 / -1; } }
+  .rt-pill { display: inline-block; font-weight: 800; font-size: 12.5px; padding: 3px 9px; border-radius: 99px; background: var(--indigo-soft); color: var(--indigo-2); }
+  .rt-pill.r-good { background: var(--good-soft); color: var(--good); } .rt-pill.r-warn { background: var(--warn-soft); color: var(--warn); } .rt-pill.r-bad { background: var(--bad-soft); color: var(--bad); }
+  .pontos { display: grid; gap: 6px; font-size: 13.5px; line-height: 1.4; }
+  .pontos .p { display: flex; gap: 8px; padding: 8px 10px; border-radius: 12px; }
+  .pontos .p.crit { background: var(--bad-soft); } .pontos .p.bom { background: var(--good-soft); }
+  .pontos .p > span:first-child { font-weight: 800; }
+  .pontos .p.crit > span:first-child { color: var(--bad); } .pontos .p.bom > span:first-child { color: var(--good); }
+  .link-emi { display: inline-block; margin-top: 4px; background: none; border: 0; padding: 0; color: var(--orange); font-weight: 700; font-size: 12px; text-align: left; cursor: pointer; }
+  .link-emi:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -34,6 +61,16 @@
 <main>
   <h1>Risco de crédito da renda fixa</h1>
   <p class="lead">Digite os ativos de renda fixa do cliente e veja, por emissor: quanto o cliente tem, cobertura do FGC, concentração e vencimentos. Os ratings você preenche uma vez e o site lembra para todos os clientes.</p>
+
+  <div class="card" id="cardEmi">
+    <div class="card-head"><h2>🔎 Pesquisar emissor</h2><span class="note" id="emiStatus">Carregando dados…</span></div>
+    <div class="busca-emi">
+      <input id="emiBusca" type="search" autocomplete="off" placeholder="Nome do banco ou da empresa, ou CNPJ (ex.: C6, Daycoval, Vale, Sabesp)">
+      <div id="emiSug" class="emi-sug" hidden></div>
+    </div>
+    <p class="note" style="margin:8px 0 0">Bancos e financeiras (CDB, LCA, LCI, LC) com números do Banco Central; empresas abertas (debêntures) com balanço, comunicados e relatórios de rating publicados na CVM.</p>
+    <div id="emiFicha"></div>
+  </div>
 
   <div class="card">
     <div class="card-head"><h2><span class="step">1</span>Cliente e carteira</h2>
@@ -78,11 +115,12 @@
     </div>
   </div>
 
-  <p class="note">FGC: até R$ 250 mil por CPF por conglomerado financeiro, somando CDB, LCI, LCA, LC, RDB, LIG e poupança; teto de R$ 1 milhão a cada 4 anos. Debêntures, CRI, CRA, LF e fundos não têm FGC. Títulos públicos têm risco soberano. Os ratings são preenchidos pelo assessor com base nas agências de classificação.</p>
+  <p class="note">FGC: até R$ 250 mil por CPF por conglomerado financeiro, somando CDB, LCI, LCA, LC, RDB, LIG e poupança; teto de R$ 1 milhão a cada 4 anos. Debêntures, CRI, CRA, LF e fundos não têm FGC. Títulos públicos têm risco soberano. Os ratings podem ser preenchidos pelo assessor ou trazidos dos relatórios de agências publicados na CVM (pesquisa de emissor).</p>
 </main>
 
-<script src="assets/common.js?v=202611151355"></script>
-<script src="assets/email.js?v=202611151355"></script>
-<script src="assets/rf-credito.js?v=202611151355"></script>
+<script src="assets/common.js?v=202611151432"></script>
+<script src="assets/email.js?v=202611151432"></script>
+<script src="assets/rf-credito.js?v=202611151432"></script>
+<script src="assets/emissores.js?v=202611151432"></script>
 </body>
 </html>

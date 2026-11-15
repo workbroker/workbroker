@@ -86,7 +86,7 @@ function render() {
         : g.fgc ? (exc > 0 ? `<span class="pill bad">Excede ${brl(exc)}</span>` : `<span class="pill good">Coberto</span>`) + (g.total - g.fgc > 0.5 ? `<div class="sub">${brl(g.total - g.fgc)} sem FGC</div>` : '')
         : '<span class="pill warn">Sem FGC</span>';
       return `<tr data-k="${esc(g.k)}">
-        <td><div class="em">${esc(g.nome)}</div><div class="ativos-em">${g.itens.map(i => `${esc(i.tipo)}${i.venc ? ' ' + (i.venc.mes ? String(i.venc.mes).padStart(2, '0') + '/' : '') + i.venc.ano : ''}${i.taxa ? ' · ' + esc(i.taxa) : ''} · ${brl(i.saldo)}`).join('<br>')}</div></td>
+        <td><div class="em">${esc(g.nome)}</div>${!soberano(g) && window.sugestaoRating ? sugestaoRating(g) : ''}<div class="ativos-em">${g.itens.map(i => `${esc(i.tipo)}${i.venc ? ' ' + (i.venc.mes ? String(i.venc.mes).padStart(2, '0') + '/' : '') + i.venc.ano : ''}${i.taxa ? ' · ' + esc(i.taxa) : ''} · ${brl(i.saldo)}`).join('<br>')}</div></td>
         <td>${g.tipos.map(t => `<span class="pill">${esc(t)}</span>`).join(' ')}</td>
         <td class="n"><b>${brl(g.total)}</b></td>
         <td class="n ${!soberano(g) && base && g.total / base > 0.2 ? 'bad' : !soberano(g) && base && g.total / base > 0.1 ? 'warn' : ''}">${base ? pct(g.total / base * 100, 1) : '—'}</td>

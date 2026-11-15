@@ -35,7 +35,7 @@ jobs:
           else
             cp -r data/. out/ 2>/dev/null || true
           fi
-          rm -f out/rv.json out/rv_cache.json out/docs_debug.json
+          rm -f out/rv.json out/rv_cache.json out/docs_debug.json out/sonda_credito.json
           ls -la out
       - name: Manchetes do InfoMoney
         run: python scripts/noticias.py || true
@@ -48,9 +48,11 @@ jobs:
         timeout-minutes: 15
         env:
           FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
-      - name: Sonda crédito (temporário)
-        run: python scripts/sonda_credito.py || true
-        timeout-minutes: 10
+      - name: Crédito de emissores (uma vez por dia)
+        run: python scripts/credito.py || true
+        timeout-minutes: 20
+        env:
+          FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
       - name: Publicar no ramo dados (sem histórico)
         run: |
           cd out

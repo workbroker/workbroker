@@ -260,11 +260,29 @@ def _metodo_post(link):
     return b if b[:4] == b"%PDF" else None
 
 
+def _metodo_exibir(link):
+    """Mesmo pedido que o visualizador de documentos da CVM faz (frmExibirArquivoIPEExterno)."""
+    m = re.search(r"numProtocolo=(\d+)", link or "")
+    if not m:
+        return None
+    pag = f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={m.group(1)}"
+    corpo = json.dumps({"codigoInstituicao": "1", "numeroProtocolo": m.group(1), "token": "", "versaoCaptcha": ""}).encode()
+    r = json.loads(get("https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx/ExibirPDF", 90, data=corpo,
+                       headers={"Content-Type": "application/json; charset=utf-8", "X-Requested-With": "XMLHttpRequest", "Referer": pag}))
+    d = r.get("d") or ""
+    if not d or d.startswith(":ERRO:"):
+        return None
+    import base64
+    b = base64.b64decode(d.split(",")[-1])
+    return b if b[:4] == b"%PDF" else None
+
+
 def ler_rating(item):
     try:
         b = baixar_pdf(item["l"])
         if not b:
             return item
+        item["lido"] = 1
         from pypdf import PdfReader
         rd = PdfReader(io.BytesIO(b))
         txt = " ".join((p.extract_text() or "") for p in rd.pages[:6])
@@ -332,16 +350,25 @@ def main():
     # método de download do PDF: testa no primeiro relatório
     global _baixar
     amostra = next((v[0]["l"] for v in R.values() if v), None)
-    for nome, fn in (("get", _metodo_get), ("post", _metodo_post)):
+    for nome, fn in (("exibir", _metodo_exibir), ("get", _metodo_get)):
         try:
             if amostra and fn(amostra):
                 _baixar = fn; debug["pdf"] = nome; break
         except Exception as e:
             log("pdf", nome, e)
     log("download de PDF:", debug.get("pdf"))
+    # reaproveita o que já foi lido nos dias anteriores (só baixa relatórios novos)
+    lidos = {}
+    for e in (ant or {}).get("emissores", []):
+        for it in e.get("rt", []):
+            if it.get("lido"):
+                lidos[it["l"]] = {k: it[k] for k in ("r", "ag", "p", "lido") if k in it}
+    for v in R.values():
+        for it in v:
+            it.update(lidos.get(it["l"], {}))
     if _baixar:
-        itens = [it for v in R.values() for it in v[:2]]
-        with ThreadPoolExecutor(6) as ex:
+        itens = [v[0] for v in R.values() if v and not v[0].get("lido")][:400]
+        with ThreadPoolExecutor(3) as ex:
             list(ex.map(ler_rating, itens))
         debug["ratings_lidos"] = sum(1 for it in itens if it.get("r"))
         log("ratings lidos:", debug["ratings_lidos"], "de", len(itens), f"{time.time() - t0:.0f}s")
