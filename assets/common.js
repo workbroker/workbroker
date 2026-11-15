@@ -161,7 +161,6 @@ function carteiraRecomendada() { return store.get('rw_recomendadas', null) || JS
 const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
-  { id: 'pendencias', label: 'Pendências', href: 'pendencias.html', ic: 'check' },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado'], ['Risco de crédito', 'rf-credito.html']] },
     { t: 'Renda variável', itens: [['Radar de ações', 'rv-radar.html'], ['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
@@ -170,7 +169,7 @@ const MENU = [
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
 const PAGINAS = [
-  ['Início', 'index.html', 'home inicio painel'], ['Pendências', 'pendencias.html', 'tarefas pendencias to-do urgente'],
+  ['Início', 'index.html', 'home inicio painel'], 
   ['Radar de ações', 'rv-radar.html', 'acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
   ['FIIs em atenção', 'fiis.html', 'fii fiis fundos imobiliarios fiagro manual atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],

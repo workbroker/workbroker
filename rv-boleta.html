@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Boleta de ações · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611151753">
+<link rel="stylesheet" href="assets/style.css?v=202611151803">
 <style>
   .cart { display: grid; grid-template-columns: minmax(110px,1.2fr) minmax(120px,1fr) 130px minmax(110px,1fr) 110px minmax(120px,1fr) 40px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .cart.h { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding-top: 0; }
@@ -24,6 +24,9 @@
     .cart .lbl { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
     .cart .calc { text-align: left; }
   }
+  .cart input.auto { background: #f2fbf6; }
+  .cart .cot { display: block; font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.3; min-height: 1em; }
+  .cart .cot a { color: var(--orange); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -86,9 +89,9 @@
   </div>
 </main>
 
-<script src="assets/common.js?v=202611151753"></script>
-<script src="assets/email.js?v=202611151753"></script>
-<script src="assets/ordens.js?v=202611151753"></script>
+<script src="assets/common.js?v=202611151803"></script>
+<script src="assets/email.js?v=202611151803"></script>
+<script src="assets/ordens.js?v=202611151803"></script>
 <script>
 const $ = id => document.getElementById(id);
 const B = Object.assign({ nome: '', codigo: '', email: '' }, store.get('rw_boleta_cliente', {}));
@@ -96,6 +99,7 @@ const B = Object.assign({ nome: '', codigo: '', email: '' }, store.get('rw_bolet
 const ordens = Ordens.criar({
   el: $('ordens'), chave: 'rw_boleta_ordens',
   cliente: () => B,
+  cotacao: tk => COT[tk]?.p,
   salvarCliente: (nome, para) => { B.nome = nome || B.nome; B.email = para; $('nome').value = B.nome; $('email').value = B.email; store.set('rw_boleta_cliente', B); },
 });
 if (!ordens.lista().length) ordens.adicionar({ op: 'C' });
@@ -107,7 +111,35 @@ $('btnEmail').onclick = () => ordens.email();
 // ---------- Carteira por percentual ----------
 const C = Object.assign({ total: '', lote: '1', arred: 'baixo', modo: 'pct', itens: [] }, store.get('rw_boleta_cart', {}));
 const salvarC = () => store.set('rw_boleta_cart', C);
-const novoItem = (o = {}) => ({ id: uid(), ticker: '', op: 'C', pct: '', valor: '', preco: '', ...o });
+const novoItem = (o = {}) => ({ id: uid(), ticker: '', op: 'C', pct: '', valor: '', preco: '', auto: false, ...o });
+
+// ---------- Cotações automáticas: ações (Radar de ações) e FIIs, atualizadas pelo site ----------
+const COT = {};
+const fmtCot = c => c ? `cotação de ${new Date(c.t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '';
+function precoAuto(it, forcar) {
+  const c = COT[it.ticker];
+  if (c && (forcar || it.auto || !parseNum(it.preco))) { it.preco = NUM2.format(c.p); it.auto = true; return true; }
+  return false;
+}
+function dicaCot(it) {
+  const c = COT[it.ticker];
+  if (!it.ticker) return '';
+  if (it.auto && c) return fmtCot(c);
+  if (!c && it.ticker.length >= 5 && Object.keys(COT).length) return 'sem cotação: digite o preço';
+  return c && !it.auto ? `<a href="#" data-usar>usar ${fmtCot(c)}: R$ ${NUM2.format(c.p)}</a>` : '';
+}
+(async () => {
+  try {
+    const r = await carregarDados('radar.json');
+    [...(r.acoes || []), ...(r.outras || [])].forEach(a => { if (a.preco) COT[a.tk] = { p: a.preco, t: (a.t || 0) * 1000 }; });
+  } catch {}
+  try {
+    const f = await carregarDados('fiis.json'), t = Date.parse(f.gerado);
+    Object.entries(f.f || {}).forEach(([k, v]) => { if (v.p && !COT[k]) COT[k] = { p: v.p, t }; });
+  } catch {}
+  if (!Object.keys(COT).length) return;
+  C.itens.forEach(it => precoAuto(it)); salvarC(); renderC();
+})();
 const porValor = () => C.modo === 'valor';
 if (!C.itens.length) C.itens.push(novoItem());
 function calcItem(it) {
@@ -123,15 +155,15 @@ function renderC() {
   const pv = porValor(), rotAlvo = pv ? 'Valor desejado (R$)' : '% do total';
   $('cModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === C.modo));
   $('cTotalLbl').textContent = pv ? 'Orçamento total (R$) · opcional' : 'Valor total da operação (R$)';
-  $('cAjuda').innerHTML = pv ? 'Para cada ativo, informe o <b>preço de hoje</b> e o <b>valor que quer comprar</b> (preço × quantidade). O site calcula a quantidade e mostra quanto sobra do orçamento. As ordens saem <b>a mercado</b>.'
-    : 'Informe o valor total da operação e o <b>%</b> de cada ativo. O preço de hoje serve só para calcular a quantidade: as ordens saem <b>a mercado</b>.';
+  $('cAjuda').innerHTML = pv ? 'Para cada ativo, digite o ticker e o <b>valor que quer comprar</b>: o <b>preço</b> vem sozinho com a cotação do site (dá para trocar). O site calcula a quantidade e mostra quanto sobra do orçamento. As ordens saem <b>a mercado</b>.'
+    : 'Informe o valor total da operação e o <b>%</b> de cada ativo. O <b>preço</b> vem sozinho pelo ticker com a cotação do site (dá para trocar) e serve só para calcular a quantidade: as ordens saem <b>a mercado</b>.';
   $('cLinhas').innerHTML = `<div class="cart h"><div>Ativo</div><div>Operação</div><div>${rotAlvo}</div><div>Preço hoje (R$)</div><div style="text-align:right">Quantidade</div><div style="text-align:right">Valor estimado</div><div></div></div>` +
     C.itens.map(it => `<div class="cart" data-id="${it.id}">
       <label><span class="lbl">Ativo</span><input data-k="ticker" value="${esc(it.ticker)}" placeholder="PETR4" autocapitalize="characters" maxlength="12"></label>
       <label><span class="lbl">Operação</span><select data-k="op" class="opsel ${it.op}"><option value="C" ${it.op === 'C' ? 'selected' : ''}>C · Compra</option><option value="V" ${it.op === 'V' ? 'selected' : ''}>V · Venda</option></select></label>
       ${pv ? `<label><span class="lbl">${rotAlvo}</span><input data-k="valor" inputmode="decimal" value="${esc(it.valor)}" placeholder="R$"></label>`
         : `<label><span class="lbl">${rotAlvo}</span><input data-k="pct" inputmode="decimal" value="${esc(it.pct)}" placeholder="%"></label>`}
-      <label><span class="lbl">Preço hoje (R$)</span><input data-k="preco" inputmode="decimal" value="${esc(it.preco)}" placeholder="R$"></label>
+      <label><span class="lbl">Preço hoje (R$)</span><input data-k="preco" inputmode="decimal" value="${esc(it.preco)}" placeholder="R$" class="${it.auto ? 'auto' : ''}"><small class="cot" data-cot>${dicaCot(it)}</small></label>
       <div class="calc" data-q><span class="lbl">Quantidade</span></div>
       <div class="calc" data-v><span class="lbl">Valor estimado</span></div>
       <div><button class="danger" data-del title="Remover">✕</button></div></div>`).join('');
@@ -170,7 +202,12 @@ $('cLinhas').addEventListener('input', e => {
   const row = e.target.closest('.cart'), k = e.target.dataset.k; if (!row || !k) return;
   const it = C.itens.find(x => x.id === row.dataset.id);
   it[k] = k === 'ticker' ? e.target.value.toUpperCase().replace(/\s/g, '') : e.target.value;
-  if (k === 'ticker') e.target.value = it.ticker;
+  if (k === 'ticker') {
+    e.target.value = it.ticker;
+    if (precoAuto(it)) { const pi = row.querySelector('[data-k="preco"]'); pi.value = it.preco; pi.classList.add('auto'); }
+  }
+  if (k === 'preco') { it.auto = false; e.target.classList.remove('auto'); }
+  if (k === 'ticker' || k === 'preco') row.querySelector('[data-cot]').innerHTML = dicaCot(it);
   if (k === 'op') e.target.className = 'opsel ' + it.op;
   salvarC(); atualizarC();
 });
@@ -180,6 +217,11 @@ $('cLinhas').addEventListener('focusout', e => {
   if (v > 0) { it[k] = NUM2.format(v); e.target.value = it[k]; salvarC(); }
 });
 $('cLinhas').addEventListener('click', e => {
+  if (e.target.closest('[data-usar]')) {
+    e.preventDefault();
+    const it = C.itens.find(x => x.id === e.target.closest('.cart').dataset.id);
+    precoAuto(it, true); salvarC(); renderC(); return;
+  }
   if (!e.target.closest('[data-del]')) return;
   C.itens = C.itens.filter(x => x.id !== e.target.closest('.cart').dataset.id);
   if (!C.itens.length) C.itens.push(novoItem());

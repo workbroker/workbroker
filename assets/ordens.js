@@ -31,7 +31,11 @@ const Ordens = (() => {
       o[k] = k === 'ticker' ? e.target.value.toUpperCase().replace(/\s/g, '') : e.target.value;
       if (k === 'ticker') e.target.value = o.ticker;
       if (k === 'op') e.target.className = 'opsel ' + o.op;
-      if (k === 'tipoPreco') { render(); if (o.tipoPreco === 'limite') cfg.el.querySelector(`.ord[data-id="${o.id}"] [data-k="preco"]`).focus(); }
+      if (k === 'tipoPreco') {
+        // preço limite começa com a cotação do site, se houver
+        if (o.tipoPreco === 'limite' && !(parseNum(o.preco) > 0) && cfg.cotacao?.(o.ticker)) o.preco = NUM2.format(cfg.cotacao(o.ticker));
+        render(); if (o.tipoPreco === 'limite') cfg.el.querySelector(`.ord[data-id="${o.id}"] [data-k="preco"]`).focus();
+      }
       salvar();
     });
     cfg.el.addEventListener('click', e => {
