@@ -164,13 +164,14 @@ const MENU = [
   { id: 'pendencias', label: 'Pendências', href: 'pendencias.html', ic: 'check' },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado'], ['Risco de crédito', 'rf-credito.html']] },
-    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
+    { t: 'Renda variável', itens: [['Radar de ações', 'rv-radar.html'], ['Boleta de ações', 'rv-boleta.html'], ['FIIs em atenção', 'fiis.html']] },
     { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
   { id: 'relatorio', label: 'Relatório mensal', href: 'relatorio.html', ic: 'slides' },
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], ['Pendências', 'pendencias.html', 'tarefas pendencias to-do urgente'],
+  ['Radar de ações', 'rv-radar.html', 'acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
   ['FIIs em atenção', 'fiis.html', 'fii fiis fundos imobiliarios fiagro manual atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
   ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],

@@ -52,7 +52,7 @@ def carteira_ibov():
     q = base64.b64encode(json.dumps({"language": "pt-br", "pageNumber": 1, "pageSize": 150, "index": "IBOV", "segment": "1"}).encode()).decode()
     j = json.loads(get("https://sistemaswebb3-listados.b3.com.br/indexProxy/indexCall/GetPortfolioDay/" + q))
     out = [{"tk": r["cod"].strip(), "nome": (r.get("asset") or "").strip().title(), "tipo": (r.get("type") or "").split()[0] if r.get("type") else "",
-            "peso": num(r.get("part"))} for r in j.get("results", []) if r.get("cod")]
+            "peso": num(r.get("part")), "qt": int(so_dig(r.get("theoricalQty")) or 0)} for r in j.get("results", []) if r.get("cod")]
     if len(out) < 50:
         raise ValueError(f"carteira curta: {len(out)}")
     return out
@@ -143,15 +143,26 @@ def contas(linhas, cnpjs):
     return V
 
 
-def lucro_contr(C):
+DBG = {}
+
+
+def lucro_contr(C, chave=None):
     """Lucro do período atribuído aos controladores (ou o lucro consolidado)."""
     if not C:
         return None
-    a = [(cod, v) for cod, (d, v) in C.items() if cod.startswith("3.") and re.search(r"atribu[ií]d[oa].*controlador", d, re.I)]
-    if a:
-        return sorted(a, key=lambda x: len(x[0]))[0][1]
-    b = [(cod, v) for cod, (d, v) in C.items() if cod.count(".") == 1 and cod.startswith("3.") and re.search(r"lucro.*per[ií]odo|resultado l[ií]quido", d, re.I)]
-    return sorted(b, key=lambda x: x[0])[-1][1] if b else None
+    a = [(cod, d, v) for cod, (d, v) in C.items() if cod.startswith("3.") and re.search(r"atribu\w*.*controlador", d, re.I)
+         and not re.search(r"n[aã]o.controlador", d, re.I)]
+    if not a:
+        a = [(cod, d, v) for cod, (d, v) in C.items() if cod.count(".") == 1 and cod.startswith("3.")
+             and re.search(r"lucro.*per[ií]odo|resultado l[ií]quido|lucro l[ií]quido|preju[ií]zo", d, re.I)]
+        a = sorted(a, key=lambda x: [int(p) for p in x[0].split(".")])[-1:]
+    else:
+        a = sorted(a, key=lambda x: (x[0].count("."), [int(p) for p in x[0].split(".")]))[:1]
+    if not a:
+        return None
+    if chave:
+        DBG[chave] = f"{a[0][0]} {a[0][1][:50]}"
+    return a[0][2]
 
 
 def pl_contr(C):
@@ -236,7 +247,7 @@ def fundamentos(cnpjs, debug):
             ytd = [C for (dr, ordem, ini), C in D.items() if dr == ref and ordem == "ÚLTIMO" and ini.endswith("-01-01")]
             ytd_a = [C for (dr, ordem, ini), C in D.items() if dr == ref and ordem == "PENÚLTIMO" and ini.endswith("-01-01")]
             f["ref"] = ref
-            f["lucro_ytd"] = lucro_contr(ytd[0]) if ytd else None
+            f["lucro_ytd"] = lucro_contr(ytd[0], cn + ":ytd") if ytd else None
             f["lucro_ytd_ant"] = lucro_contr(ytd_a[0]) if ytd_a else None
             f["pl"] = pl_contr(B.get(max(B)))
             c = cap.get(cn)
@@ -257,13 +268,14 @@ def fundamentos(cnpjs, debug):
                 continue
             x = anual.get((cn, "_con_")) or anual.get((cn, "_ind_"))
             if x:
-                f["ano_ref"], f["lucro_ano"] = x[0], lucro_contr(x[1])
+                f["ano_ref"], f["lucro_ano"] = x[0], lucro_contr(x[1], cn + ":ano")
     for cn, f in out.items():
         la, ly, lya = f.get("lucro_ano"), f.get("lucro_ytd"), f.get("lucro_ytd_ant")
         if la is not None and f.get("ref") and f.get("ano_ref") and f["ref"] > f["ano_ref"] and ly is not None and lya is not None:
             f["lucro12"] = la + ly - lya
         elif la is not None:
             f["lucro12"] = la
+        f["conta"] = DBG.get(cn + ":ytd") or DBG.get(cn + ":ano")
     return out
 
 
@@ -283,7 +295,7 @@ def calendario(entregas):
     base = f"{y - 1}{prox_ref[4:]}"
     if base in entregas:
         try:
-            d = date.fromisoformat(entregas[base]).replace(year=int(entregas[base][:4]) + 1)
+            d = date.fromisoformat(entregas[base]) + timedelta(days=364)
             out["prox"] = {"ref": prox_ref, "d": d.isoformat(), "est": 1}
         except ValueError:
             pass
@@ -383,9 +395,15 @@ def main():
             on, pn = f.get("on") or 0, f.get("pn") or 0
             if on or pn:
                 p_on = p_on or p_pn or q["preco"]; p_pn = p_pn or p_on
-                mcap = on * p_on + pn * p_pn
-                while mcap and mcap < 3e8:  # quantidade informada em milhares
-                    mcap *= 1000
+                # algumas empresas informam a quantidade de ações em milhares: compara com a quantidade teórica do índice (B3)
+                fator = 1
+                classe = on if c["tk"][4:] == "3" else pn if c["tk"][4:] in ("4", "5", "6") else on + pn
+                qt = c.get("qt") or 0
+                if qt and classe and classe * 1000 <= qt * 50 and classe < qt * 0.5:
+                    fator = 1000
+                elif not qt and (on * p_on + pn * p_pn) < 1e9:
+                    fator = 1000
+                mcap = (on * p_on + pn * p_pn) * fator
                 a["mcap"] = round(mcap)
                 if f.get("lucro12") and mcap:
                     a["pl"] = round(mcap / f["lucro12"], 1)
