@@ -104,6 +104,8 @@ def bancos(debug):
         e = {"id": "b" + cod, "t": "b", "n": c.get("NomeInstituicao"), "c": cod,
              "s": c.get("SegmentoTb") or TCB[c["Tcb"]], "sr": c.get("Sr"), "sit": c.get("Situacao"),
              "uf": c.get("Uf"), "ind": {k: round(v, 4) for k, v in ind.items()}, "ant": {k: round(v, 4) for k, v in ant.items()}}
+        if c.get("CnpjInstituicaoLider") == cod:
+            e["lider"] = 1
         cf = c.get("CodConglomeradoFinanceiro")
         if cf and nomes.get(cf) and nomes[cf] != e["n"]:
             e["grupo"] = nomes[cf]
@@ -374,7 +376,7 @@ def main():
     lidos = {}
     for e in (ant or {}).get("emissores", []):
         for it in e.get("rt", []):
-            if it.get("lido") == 2:
+            if it.get("lido") == 2 or it.get("r"):
                 lidos[it["l"]] = {k: it[k] for k in ("r", "ag", "p", "lido") if k in it}
     for v in R.values():
         for it in v:

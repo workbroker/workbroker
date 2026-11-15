@@ -14,7 +14,7 @@ function indexar() {
   CRED.emissores.forEach(e => {
     e._tx = normE([e.n, e.a, e.grupo, e.prud].filter(Boolean).join(' '));
     e._tk = new Set(tokens([e.n, e.a, e.grupo].filter(Boolean).join(' ')));
-    e._peso = (e.ind?.ativo || e.fin?.ind?.ativo || 0) + (e.rt ? 1e15 : 0) + (e.sit && e.sit !== 'A' ? -1e16 : 0);
+    e._peso = (e.ind?.ativo || e.fin?.ind?.ativo || 0) + (e.lider ? 5e14 : 0) + (e.rt ? 1e15 : 0) + (e.sit && e.sit !== 'A' ? -1e16 : 0) - e.n.length;
   });
 }
 function buscar(q, n = 8) {
@@ -35,7 +35,7 @@ function casar(nome) {
   let best = null, bs = 0;
   CRED.emissores.forEach(e => {
     const hit = t.filter(x => e._tk.has(x)).length; if (!hit) return;
-    const s = hit / t.length + hit / Math.max(e._tk.size, 1) * 0.5 + (e.sit && e.sit !== 'A' ? -0.05 : 0) + (e.rt ? 0.05 : 0) + Math.max(0, Math.min(e._peso, 1e13)) / 1e15;
+    const s = hit / t.length + hit / Math.max(e._tk.size, 1) * 0.5 + (e.sit && e.sit !== 'A' ? -0.05 : 0) + (e.rt ? 0.05 : 0) + (e.lider ? 0.04 : 0) + Math.max(0, Math.min(e._peso, 1e13)) / 1e15;
     if (s > bs) { bs = s; best = e; }
   });
   return bs >= 1 ? best : null;
