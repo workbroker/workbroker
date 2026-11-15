@@ -12,7 +12,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta, date
 
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data"))
-SAIDA = os.path.join(DATA_DIR, "radar.json")
+SAIDA = os.path.join(DATA_DIR, "radar.json")          # o que a página lê
+BASE = os.path.join(DATA_DIR, "radar_base.json")      # estado do pipeline (fundamentos, cotações diárias)
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", "Accept": "*/*"}
 BRT = timezone(timedelta(hours=-3))
 HOJE = datetime.now(BRT)
@@ -115,14 +116,16 @@ def tickers_cvm():
             log("FCA", a, e)
     for t, cn in TK_EXTRA.items():
         tk.setdefault(t, cn)
-    setor = {}
+    setor, nome = {}, {}
     try:
         for r in csv.DictReader(io.TextIOWrapper(io.BytesIO(get(CVM + "CAD/DADOS/cad_cia_aberta.csv")), encoding="latin-1"), delimiter=";"):
             if r.get("SIT") == "ATIVO":
-                setor[so_dig(r["CNPJ_CIA"])] = r.get("SETOR_ATIV")
+                cn = so_dig(r["CNPJ_CIA"])
+                setor[cn] = r.get("SETOR_ATIV")
+                nome[cn] = (r.get("DENOM_COMERC") or r.get("DENOM_SOCIAL") or "").strip()
     except Exception as e:
         log("cadastro", e)
-    return tk, setor
+    return tk, setor, nome
 
 
 def contas(linhas, cnpjs):
@@ -311,11 +314,13 @@ def calendario(entregas):
 
 def main():
     debug = {}
-    try:
-        with open(SAIDA, encoding="utf-8") as f:
-            ant = json.load(f)
-    except Exception:
-        ant = {}
+    ant = {}
+    for arq in (SAIDA, BASE):
+        try:
+            with open(arq, encoding="utf-8") as f:
+                ant.update(json.load(f))
+        except Exception:
+            pass
     t0 = time.time()
     try:
         cart = carteira_ibov(); debug["carteira"] = "B3"
@@ -334,31 +339,39 @@ def main():
         pass
     if idade > 20 or os.environ.get("FORCAR") or not fund:
         try:
-            tk2cn, setor = tickers_cvm()
+            tk2cn, setor, nomes = tickers_cvm()
             debug["tickers_cvm"] = len(tk2cn)
-            cnpjs = {tk2cn[c["tk"]] for c in cart if c["tk"] in tk2cn}
+            # todas as ações da bolsa (empresas ativas na CVM): ON, PN e units
+            todas = {t: cn for t, cn in tk2cn.items() if cn in setor and re.fullmatch(r"[A-Z]{4}(3|4|5|6|11)", t)}
+            cnpjs = {tk2cn[c["tk"]] for c in cart if c["tk"] in tk2cn} | set(todas.values())
             F = fundamentos(cnpjs, debug)
             # todas as classes negociadas de cada empresa (para o valor de mercado)
             classes = {}
             for t, cn in tk2cn.items():
                 if cn in cnpjs and re.fullmatch(r"[A-Z]{4}(3|4|5|6)", t):
                     classes.setdefault(cn, []).append(t)
-            fund = {"tk2cn": {c["tk"]: tk2cn.get(c["tk"]) for c in cart}, "setor": {cn: setor.get(cn) for cn in cnpjs},
+            tkmap = dict(todas); tkmap.update({c["tk"]: tk2cn.get(c["tk"]) for c in cart})
+            fund = {"tk2cn": tkmap, "setor": {cn: setor.get(cn) for cn in cnpjs}, "nome": {cn: nomes.get(cn) for cn in cnpjs},
                     "f": {cn: {k: v for k, v in f.items() if k != "entregas"} for cn, f in F.items()},
                     "cal": {cn: calendario(f.get("entregas", {})) for cn, f in F.items()},
                     "classes": classes}
             fund_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            novo_dia = True
         except Exception as e:
             log("fundamentos", e)
-            fund_at = ant.get("fund_at")
+            fund_at = ant.get("fund_at"); novo_dia = False
     else:
-        fund_at = ant.get("fund_at")
+        fund_at = ant.get("fund_at"); novo_dia = False
     log("fundamentos ok", f"{time.time() - t0:.0f}s")
 
     # cotações: ações do Ibovespa + outras classes das mesmas empresas (valor de mercado) + índice
-    alvo = {c["tk"] for c in cart}
-    for lst in (fund.get("classes") or {}).values():
-        alvo.update(lst)
+    ibov_tk = {c["tk"] for c in cart}
+    alvo = set(ibov_tk)
+    for cn in {fund.get("tk2cn", {}).get(t) for t in ibov_tk}:
+        alvo.update((fund.get("classes") or {}).get(cn, []))
+    outras_q = ant.get("outras_q") or {}
+    if novo_dia or not outras_q:  # o resto da bolsa: uma vez por dia
+        alvo.update(fund.get("tk2cn", {}).keys())
     Q = {}
     def busca(t):
         try:
@@ -369,6 +382,10 @@ def main():
         list(ex.map(busca, sorted(alvo)))
     ok = sum(1 for v in Q.values() if v)
     log("cotações:", ok, "de", len(Q), f"{time.time() - t0:.0f}s")
+    if novo_dia or not outras_q:
+        outras_q = {t: q for t, q in Q.items() if q and t not in ibov_tk and q.get("t", 0) > time.time() - 15 * 86400}
+    for t, q in outras_q.items():
+        Q.setdefault(t, q)
     if ok < 30:
         log("Poucas cotações; mantendo o arquivo anterior."); return
     ibov = None
@@ -384,46 +401,62 @@ def main():
     except Exception as e:
         log("ibov", e)
 
+    tk2cn, FF, CAL, CLS, SET, NOM = (fund.get(k, {}) for k in ("tk2cn", "f", "cal", "classes", "setor", "nome"))
+
+    def indicadores(a, tk, q, qt=0):
+        cn = tk2cn.get(tk)
+        f = FF.get(cn) or {}
+        if not cn:
+            return a
+        a["setor"] = SET.get(cn)
+        if CAL.get(cn): a["res"] = CAL[cn]
+        # valor de mercado: preço de cada classe × ações em circulação da classe
+        p_on = next((Q[t]["preco"] for t in CLS.get(cn, []) if t[4] == "3" and Q.get(t)), None)
+        p_pn = next((Q[t]["preco"] for t in sorted(CLS.get(cn, [])) if t[4] in "456" and Q.get(t)), None)
+        on, pn = f.get("on") or 0, f.get("pn") or 0
+        if not (on or pn):
+            return a
+        p_on = p_on or p_pn or q["preco"]; p_pn = p_pn or p_on
+        base = on * p_on + pn * p_pn
+        # algumas empresas informam a quantidade de ações em milhares: compara com a quantidade teórica do
+        # índice (B3) ou, fora do índice, com o patrimônio (P/VP absurdo de tão baixo)
+        classe = on if tk[4:] == "3" else pn if tk[4:] in ("4", "5", "6") else on + pn
+        fator = 1
+        if qt and classe:
+            fator = 1000 if classe * 1000 <= qt * 50 and classe < qt * 0.5 else 1
+        elif f.get("pl") and f["pl"] > 0:
+            fator = 1000 if base / f["pl"] < 0.03 else 1
+        elif base < 5e7:
+            fator = 1000
+        mcap = base * fator
+        if not mcap:
+            return a
+        a["mcap"] = round(mcap)
+        if f.get("lucro12"):
+            a["pl"] = round(mcap / f["lucro12"], 1)
+        if f.get("pl") and f["pl"] > 0:
+            a["pvp"] = round(mcap / f["pl"], 2)
+            if f.get("lucro12") is not None:
+                a["roe"] = round(f["lucro12"] / f["pl"] * 100, 1)
+        return a
+
     acoes = []
-    tk2cn, FF, CAL, CLS, SET = fund.get("tk2cn", {}), fund.get("f", {}), fund.get("cal", {}), fund.get("classes", {}), fund.get("setor", {})
     for c in cart:
         q = Q.get(c["tk"])
-        if not q:
-            continue
-        a = {"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **q}
-        cn = tk2cn.get(c["tk"])
-        f = FF.get(cn) or {}
-        if cn:
-            a["setor"] = SET.get(cn)
-            if CAL.get(cn): a["res"] = CAL[cn]
-            # valor de mercado: preço de cada classe × ações em circulação da classe
-            p_on = next((Q[t]["preco"] for t in CLS.get(cn, []) if t[4] == "3" and Q.get(t)), None)
-            p_pn = next((Q[t]["preco"] for t in sorted(CLS.get(cn, [])) if t[4] in "456" and Q.get(t)), None)
-            on, pn = f.get("on") or 0, f.get("pn") or 0
-            if on or pn:
-                p_on = p_on or p_pn or q["preco"]; p_pn = p_pn or p_on
-                # algumas empresas informam a quantidade de ações em milhares: compara com a quantidade teórica do índice (B3)
-                fator = 1
-                classe = on if c["tk"][4:] == "3" else pn if c["tk"][4:] in ("4", "5", "6") else on + pn
-                qt = c.get("qt") or 0
-                if qt and classe and classe * 1000 <= qt * 50 and classe < qt * 0.5:
-                    fator = 1000
-                elif not qt and (on * p_on + pn * p_pn) < 1e9:
-                    fator = 1000
-                mcap = (on * p_on + pn * p_pn) * fator
-                a["mcap"] = round(mcap)
-                if f.get("lucro12") and mcap:
-                    a["pl"] = round(mcap / f["lucro12"], 1)
-                if f.get("pl") and f["pl"] > 0 and mcap:
-                    a["pvp"] = round(mcap / f["pl"], 2)
-                if f.get("lucro12") is not None and f.get("pl") and f["pl"] > 0:
-                    a["roe"] = round(f["lucro12"] / f["pl"] * 100, 1)
-        acoes.append(a)
+        if q:
+            acoes.append(indicadores({"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **q}, c["tk"], q, c.get("qt") or 0))
+    outras = []
+    for t, q in sorted(outras_q.items()):
+        cn = tk2cn.get(t)
+        outras.append(indicadores({"tk": t, "nome": (NOM.get(cn) or "").title(), **q}, t, q))
+    log("outras ações:", len(outras))
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
-        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "ibov": ibov, "acoes": acoes,
-                   "carteira": cart, "fund_at": fund_at, "fund": fund, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
-    log("radar.json:", len(acoes), "ações", os.path.getsize(SAIDA) // 1024, "KB", f"{time.time() - t0:.0f}s")
+        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "ibov": ibov, "acoes": acoes, "outras": outras,
+                   "fund_at": fund_at, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
+    with open(BASE, "w", encoding="utf-8") as fh:
+        json.dump({"outras_q": outras_q, "carteira": cart, "fund_at": fund_at, "fund": fund}, fh, ensure_ascii=False, separators=(",", ":"))
+    log("radar.json:", len(acoes), "+", len(outras), "ações", os.path.getsize(SAIDA) // 1024, "KB; base", os.path.getsize(BASE) // 1024, "KB", f"{time.time() - t0:.0f}s")
 
 
 if __name__ == "__main__":
