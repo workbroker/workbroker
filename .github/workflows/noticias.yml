@@ -48,6 +48,9 @@ jobs:
         timeout-minutes: 15
         env:
           FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
+      - name: Sonda crédito (temporário)
+        run: python scripts/sonda_credito.py || true
+        timeout-minutes: 10
       - name: Publicar no ramo dados (sem histórico)
         run: |
           cd out
