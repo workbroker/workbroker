@@ -54,12 +54,12 @@ def so_dig(s):
 
 
 # ---------------- Ibovespa (B3) ----------------
-def carteira_ibov():
-    q = base64.b64encode(json.dumps({"language": "pt-br", "pageNumber": 1, "pageSize": 150, "index": "IBOV", "segment": "1"}).encode()).decode()
+def carteira_ibov(indice="IBOV"):
+    q = base64.b64encode(json.dumps({"language": "pt-br", "pageNumber": 1, "pageSize": 150, "index": indice, "segment": "1"}).encode()).decode()
     j = json.loads(get("https://sistemaswebb3-listados.b3.com.br/indexProxy/indexCall/GetPortfolioDay/" + q))
     out = [{"tk": r["cod"].strip(), "nome": (r.get("asset") or "").strip().title(), "tipo": (r.get("type") or "").split()[0] if r.get("type") else "",
             "peso": num(r.get("part")), "qt": int(so_dig(r.get("theoricalQty")) or 0)} for r in j.get("results", []) if r.get("cod")]
-    if len(out) < 50:
+    if len(out) < 40:
         raise ValueError(f"carteira curta: {len(out)}")
     return out
 
@@ -339,6 +339,13 @@ def main():
         cart = ant.get("carteira") or [{"tk": t, "nome": "", "tipo": "", "peso": None} for t in IBOV_RESERVA]
         debug["carteira"] = "anterior" if ant.get("carteira") else "reserva"
     log("carteira:", len(cart), debug["carteira"])
+    # IFIX: carteira da B3 para as maiores altas e quedas dos FIIs
+    try:
+        cart_fii = carteira_ibov("IFIX"); debug["carteira_ifix"] = "B3"
+    except Exception as e:
+        log("B3 IFIX", e)
+        cart_fii = ant.get("carteira_fii") or []; debug["carteira_ifix"] = "anterior"
+    log("carteira IFIX:", len(cart_fii))
 
     # fundamentos: uma vez por dia (ou quando forçado)
     fund = ant.get("fund") or {}
@@ -376,7 +383,7 @@ def main():
 
     # cotações: ações do Ibovespa + outras classes das mesmas empresas (valor de mercado) + índice
     ibov_tk = {c["tk"] for c in cart}
-    alvo = set(ibov_tk)
+    alvo = set(ibov_tk) | {c["tk"] for c in cart_fii}
     for cn in {fund.get("tk2cn", {}).get(t) for t in ibov_tk}:
         alvo.update((fund.get("classes") or {}).get(cn, []))
     outras_q = ant.get("outras_q") or {}
@@ -393,7 +400,8 @@ def main():
     ok = sum(1 for v in Q.values() if v)
     log("cotações:", ok, "de", len(Q), f"{time.time() - t0:.0f}s")
     if novo_dia or not outras_q:
-        outras_q = {t: q for t, q in Q.items() if q and t not in ibov_tk and q.get("t", 0) > time.time() - 15 * 86400}
+        fii_tk = {c["tk"] for c in cart_fii}
+        outras_q = {t: q for t, q in Q.items() if q and t not in ibov_tk and t not in fii_tk and q.get("t", 0) > time.time() - 15 * 86400}
     for t, q in outras_q.items():
         Q.setdefault(t, q)
     if ok < 30:
@@ -455,6 +463,19 @@ def main():
         q = Q.get(c["tk"])
         if q:
             acoes.append(indicadores({"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **q}, c["tk"], q, c.get("qt") or 0))
+    fiis = [{"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **Q[c["tk"]]} for c in cart_fii if Q.get(c["tk"])]
+    ifix = None
+    for simb in ("IFIX.SA", "XFIX11.SA"):
+        try:
+            j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{simb}?range=5d&interval=1d"))
+            r0 = j["chart"]["result"][0]; m = r0["meta"]
+            cl = [c for c in r0["indicators"]["quote"][0]["close"] if c]
+            if m.get("regularMarketPrice") and len(cl) >= 2:
+                ifix = {"fonte": simb, "pts": m["regularMarketPrice"], "var": round((m["regularMarketPrice"] / cl[-2] - 1) * 100, 2), "t": m.get("regularMarketTime")}
+                break
+        except Exception as e:
+            log("ifix", simb, e)
+    log("FIIs do IFIX com cotação:", len(fiis))
     outras = []
     for t, q in sorted(outras_q.items()):
         cn = tk2cn.get(t)
@@ -462,10 +483,10 @@ def main():
     log("outras ações:", len(outras))
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
-        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "ibov": ibov, "acoes": acoes, "outras": outras,
+        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "ibov": ibov, "acoes": acoes, "outras": outras, "ifix": ifix, "fiis": fiis,
                    "fund_at": fund_at, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
     with open(BASE, "w", encoding="utf-8") as fh:
-        json.dump({"outras_q": outras_q, "carteira": cart, "fund_at": fund_at, "fund": fund}, fh, ensure_ascii=False, separators=(",", ":"))
+        json.dump({"outras_q": outras_q, "carteira": cart, "carteira_fii": cart_fii, "fund_at": fund_at, "fund": fund}, fh, ensure_ascii=False, separators=(",", ":"))
     log("radar.json:", len(acoes), "+", len(outras), "ações", os.path.getsize(SAIDA) // 1024, "KB; base", os.path.getsize(BASE) // 1024, "KB", f"{time.time() - t0:.0f}s")
 
 

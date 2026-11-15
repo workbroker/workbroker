@@ -94,6 +94,19 @@
   .tbl-fii td, .tbl-fii th { font-size: 13.5px; }
   @media (max-width: 700px) { .dois { grid-template-columns: 1fr; } .mm { grid-template-columns: repeat(2, 1fr); } .fgrid, .temas { grid-template-columns: 1fr; } .fator dl { grid-template-columns: 1fr; } }
   @media print { .abas, .ed-bar button, .busca-f, .filtros { display: none !important; } .painel { display: block !important; } }
+  .mov-duo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 14px; }
+  .mov-duo .card { margin: 0; }
+  .mv-h { font-size: 17px; margin: 0 0 10px; } .mv-h small { font-weight: 600; color: var(--muted); font-size: 13px; }
+  .mv-lst { display: grid; gap: 6px; }
+  .mv-it { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: #f6f5fa; font-size: 14px; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; height: auto; white-space: normal; }
+  .mv-it:hover { background: #fff1e8; }
+  .mv-it .tk { font-weight: 800; color: var(--indigo); }
+  .mv-it .nm { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .mv-it .vv { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .mv-it .vv small { display: block; color: var(--muted); font-weight: 600; font-size: 11.5px; }
+  .mv-it .bar { height: 6px; border-radius: 99px; background: #eceaf2; overflow: hidden; margin-top: 4px; }
+  .mv-it .bar i { display: block; height: 100%; border-radius: 99px; }
+  .mv-it .up { color: var(--good); } .mv-it .dn { color: var(--bad); }
 </style>
 </head>
 <body>
@@ -105,6 +118,11 @@
 
   <div class="card ed-bar">
     <div class="meta" id="edMeta"><span>⏳ Carregando os indicadores dos FIIs…</span></div>
+  </div>
+  <div class="mov-duo" id="movFii" hidden>
+    <div class="card"><h2 class="mv-h">📈 Maiores altas <small>IFIX · <span class="qd">hoje</span></small></h2><div class="mv-lst" id="fAltas"></div></div>
+    <div class="card"><h2 class="mv-h">📉 Maiores quedas <small>IFIX · <span class="qd">hoje</span></small></h2><div class="mv-lst" id="fQuedas"></div></div>
+    <p class="note" id="movNota" style="grid-column:1/-1;margin:-4px 0 0"></p>
   </div>
   <div class="abas" role="tablist" id="abas"></div>
   <section class="painel" id="p-busca"></section>
@@ -124,6 +142,7 @@
 
 <script src="assets/common.js?v=202611151813"></script>
 <script src="assets/email.js?v=202611151813"></script>
+<script src="assets/fiis-mov.js?v=202611151803"></script>
 <script src="assets/fiis.js?v=202611151813"></script>
 </body>
 </html>

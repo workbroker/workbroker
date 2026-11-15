@@ -131,7 +131,7 @@ function dicaCot(it) {
 (async () => {
   try {
     const r = await carregarDados('radar.json');
-    [...(r.acoes || []), ...(r.outras || [])].forEach(a => { if (a.preco) COT[a.tk] = { p: a.preco, t: (a.t || 0) * 1000 }; });
+    [...(r.acoes || []), ...(r.outras || []), ...(r.fiis || [])].forEach(a => { if (a.preco) COT[a.tk] = { p: a.preco, t: (a.t || 0) * 1000 }; });
   } catch {}
   try {
     const f = await carregarDados('fiis.json'), t = Date.parse(f.gerado);
