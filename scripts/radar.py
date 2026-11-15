@@ -26,6 +26,11 @@ PSSA3 RADL3 RAIZ4 RDOR3 RAIL3 SBSP3 SANB11 STBP3 SMTO3 CSNA3 SLCE3 SUZB3 TAEE11 
 VBBR3 VIVA3 WEGE3 YDUQ3""".split()
 
 
+# tickers que o FCA da CVM às vezes não traz (CNPJ da companhia)
+TK_EXTRA = {"CSNA3": "33042730000104", "CMIN3": "08902291000115", "MBRF3": "03853896000140",
+            "BPAC11": "30306294000145", "BPAC3": "30306294000145", "BPAC5": "30306294000145"}
+
+
 def log(*a):
     print(*a, file=sys.stderr, flush=True)
 
@@ -108,6 +113,8 @@ def tickers_cvm():
                         tk[c] = so_dig(r.get("CNPJ_Companhia"))
         except Exception as e:
             log("FCA", a, e)
+    for t, cn in TK_EXTRA.items():
+        tk.setdefault(t, cn)
     setor = {}
     try:
         for r in csv.DictReader(io.TextIOWrapper(io.BytesIO(get(CVM + "CAD/DADOS/cad_cia_aberta.csv")), encoding="latin-1"), delimiter=";"):
