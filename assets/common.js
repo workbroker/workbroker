@@ -137,6 +137,27 @@ const ICON = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 };
 const svgI = (k, sz = 20) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+// Carteira recomendada (parte Brasil, 85% do patrimônio; os outros 15% ficam no exterior, em dólar)
+const CARTEIRA_CLASSES = [
+  { k: 'pos', n: 'RF Pós-fixado' }, { k: 'inflacao', n: 'RF Inflação' }, { k: 'pre', n: 'RF Prefixado' }, { k: 'rfint', n: 'RF Internacional' },
+  { k: 'rvbr', n: 'Renda Variável Brasil' }, { k: 'rvint', n: 'Renda Variável Internacional' }, { k: 'mm', n: 'Multimercado' },
+  { k: 'fl', n: 'Fundos Listados' }, { k: 'alt', n: 'Alternativos' },
+];
+const CARTEIRA_PERFIS = { conservadora: 'Conservadora', moderada: 'Moderada', sofisticada: 'Sofisticada', personalizada: 'Personalizada' };
+const CARTEIRA_REC_PADRAO = {
+  conservadora: { pos: 63, inflacao: 12.5, pre: 12, rfint: 2.5, rvbr: 0, rvint: 2.5, mm: 2.5, fl: 5, alt: 0 },
+  moderada: { pos: 26, inflacao: 22.5, pre: 15, rfint: 2.5, rvbr: 8.5, rvint: 4.5, mm: 13, fl: 5, alt: 3 },
+  sofisticada: { pos: 10, inflacao: 27.5, pre: 15, rfint: 2.5, rvbr: 20, rvint: 7, mm: 8, fl: 5, alt: 5 },
+  personalizada: { pos: 45, inflacao: 27.5, pre: 13.5, rfint: 0, rvbr: 0, rvint: 2.5, mm: 11.5, fl: 0, alt: 0 },
+};
+const CARTEIRA_EXTRA = { // caixa mínimo dentro do pós-fixado, retorno esperado e volatilidade alvo
+  conservadora: { caixa: 20, ipca: 'IPCA + 6%', cdi: 'CDI + 1%', vol: '1,25%' },
+  moderada: { caixa: 15, ipca: 'IPCA + 7%', cdi: 'CDI + 2%', vol: '4,0%' },
+  sofisticada: { caixa: 10, ipca: 'IPCA + 8%', cdi: 'CDI + 3%', vol: '8,0%' },
+};
+const CARTEIRA_GLOBAL = 15; // % do patrimônio total no exterior (US$)
+function carteiraRecomendada() { return store.get('rw_recomendadas', null) || JSON.parse(JSON.stringify(CARTEIRA_REC_PADRAO)); }
+
 const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },

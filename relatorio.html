@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Relatório mensal · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611121538">
+<link rel="stylesheet" href="assets/style.css?v=202611151355">
 <style>
   /* ---------- Painel ---------- */
   .setup { display: grid; gap: 14px; }
@@ -54,6 +54,25 @@
   .slide .tile .n { font-size: 15px; color: rgba(255,255,255,.7); font-weight: 700; }
   .slide .tile .v { font-size: 29px; font-weight: 800; margin-top: 2px; white-space: nowrap; }
   .slide .tile .s { font-size: 13.5px; color: rgba(255,255,255,.55); margin-top: 2px; }
+  .slide .mtiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .slide .mtile { background: rgba(255,255,255,.07); border-radius: 16px; padding: 10px 16px 6px; border: 1px solid rgba(255,255,255,.12); height: 160px; display: flex; flex-direction: column; }
+  .slide .mtile .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .slide .mtile .n { font-size: 14.5px; color: rgba(255,255,255,.7); font-weight: 700; white-space: nowrap; }
+  .slide .mtile .v { font-size: 24px; font-weight: 800; white-space: nowrap; }
+  .slide .mtile .s { font-size: 12.5px; color: rgba(255,255,255,.55); }
+  .slide .mtile svg { flex: 1; width: 100%; margin-top: 4px; }
+  .slide table.rec { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .slide table.rec td, .slide table.rec th { padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,.1); text-align: right; white-space: nowrap; }
+  .slide table.rec th { font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.6); }
+  .slide table.rec td:first-child, .slide table.rec th:first-child { text-align: left; }
+  .slide table.rec .sub td { font-size: 13.5px; color: rgba(255,255,255,.6); padding-top: 1px; }
+  .slide table.rec .sub td:first-child { padding-left: 26px; }
+  .slide table.rec .cli { background: rgba(255,90,0,.22); color: #fff; font-weight: 800; }
+  .slide table.rec th.cli { color: #fff; background: #ff5a00; }
+  .slide table.rec tr.tot td { font-weight: 800; border-bottom: 0; }
+  .slide table.rec tr.ret td { font-size: 14px; color: rgba(255,255,255,.75); border-bottom: 0; }
+  .slide .passo { display: flex; gap: 22px; align-items: flex-start; font-size: 27px; line-height: 1.35; margin: 0 0 22px; }
+  .slide .passo .num { flex: none; width: 50px; height: 50px; border-radius: 50%; background: #ff5a00; color: #fff; font-weight: 800; font-size: 24px; display: grid; place-items: center; }
   .slide .row-l { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.1); font-size: 21px; }
   .slide .row-l:last-child { border-bottom: 0; }
   .slide .row-l b { font-weight: 800; }
@@ -108,6 +127,7 @@
       <label class="f">Conta <input id="conta" inputmode="numeric"></label>
       <label class="f">Mês de referência <input id="mes" type="month"></label>
       <label class="f">Assessor <input id="assessor" placeholder="Seu nome"></label>
+      <label class="f">Perfil do cliente <small>carteira recomendada</small><select id="perfil"></select></label>
     </div>
 
     <h3 class="sec">Resumo da carteira <small class="note">(CDI, Ibovespa, IPCA e dólar entram sozinhos para o mês escolhido)</small></h3>
@@ -159,7 +179,12 @@
     </div>
 
     <div class="card">
-      <h2><span class="step">4</span>Páginas da apresentação</h2>
+      <h2><span class="step">4</span>Próximos passos <small class="muted" style="font-weight:600;font-size:13px">um por linha · último slide</small></h2>
+      <textarea id="passos" rows="5" placeholder="Ex.: Reforçar a parte de inflação com o vencimento do CDB"></textarea>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">5</span>Páginas da apresentação</h2>
       <div class="slides-pick" id="slidesPick"></div>
     </div>
   </div>
@@ -177,8 +202,8 @@
 <div id="show"><div class="sw" id="showBox"></div>
   <div class="nav"><button id="prev">◀</button><span id="pos"></span><button id="next">▶</button><button id="sair">Sair</button></div></div>
 
-<script src="assets/common.js?v=202611121538"></script>
-<script src="assets/email.js?v=202611121538"></script>
-<script src="assets/relatorio.js?v=202611121538"></script>
+<script src="assets/common.js?v=202611151355"></script>
+<script src="assets/email.js?v=202611151355"></script>
+<script src="assets/relatorio.js?v=202611151355"></script>
 </body>
 </html>

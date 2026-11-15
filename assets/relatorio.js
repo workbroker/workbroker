@@ -3,17 +3,18 @@ const $ = id => document.getElementById(id);
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const SLIDES = [
   ['capa', 'Capa'], ['macro', 'Cenário macro'], ['noticias', 'Notícias'], ['rentab', 'Rentabilidade da carteira'],
-  ['desempenho', 'Carteira × referências'], ['fluxo', 'Fluxo de caixa'], ['evolucao', 'Últimos 12 meses'], ['destaques', 'Destaques do mês'],
-  ['alocacao', 'Alocação'], ['recado', 'Recado do assessor'], ['fim', 'Encerramento'],
+  ['fluxo', 'Fluxo de caixa'], ['evolucao', 'Últimos 12 meses'], ['destaques', 'Destaques do mês'],
+  ['alocacao', 'Alocação'], ['recomendada', 'Carteira recomendada'], ['recado', 'Recado do assessor'], ['proximos', 'Próximos passos'], ['fim', 'Encerramento'],
 ];
 const CURTO = { 'Pós Fixado': 'Pós', 'Pré Fixado': 'Pré', 'Renda Variável Brasil': 'RV Brasil', 'Renda Variável Internacional': 'RV global', 'Renda Variável Global': 'RV global', 'Renda Fixa Internacional': 'RF global', 'Renda Fixa Global': 'RF global', 'Alternativo': 'Alternativos', 'Carteira Administrada': 'Carteira administrada', 'Fundos Listados': 'Fundos listados', 'Multimercado': 'Multimercado', 'Inflação': 'Inflação' };
 const CORES = ['#ff7a1a', '#8f7cff', '#3ee08f', '#ffd166', '#4cc9f0', '#f72585', '#b8b3cc', '#ff9f68', '#7bdff2', '#c77dff'];
 
 const ESTRATEGIAS = ['Pós Fixado', 'Inflação', 'Pré Fixado', 'Multimercado', 'Renda Variável Brasil', 'Fundos Listados', 'Renda Fixa Internacional', 'Renda Variável Internacional', 'Alternativo', 'Previdência', 'Caixa'];
 const REFS = [['CDI', 'CDI'], ['Ibovespa', 'Ibovespa'], ['IPCA', 'IPCA (inflação)'], ['Dolar', 'Dólar']];
-const mVazio = () => ({ mes: '', conta: '', assessor: '', patrimonio: '', rentMes: '', ganhoMes: '', irMes: '', rentAno: '', ganhoAno: '', irAno: '', rent12: '', ganho12: '', ir12: '',
+const mVazio = () => ({ mes: '', conta: '', assessor: '', perfil: 'moderada', patrimonio: '', rentMes: '', ganhoMes: '', irMes: '', rentAno: '', ganhoAno: '', irAno: '', rent12: '', ganho12: '', ir12: '',
   aportes: '', resgates: '', proventos: '', custos: '', est: [], atv: [], prov: [], hist: [] });
-let REL = Object.assign({ m: null, cliente: '', email: '', usd: '', cot: '', news: [], coment: '', off: [] }, store.get('rw_relatorio', {}));
+const PASSOS_PADRAO = 'Revisar a carteira em relação à carteira recomendada para o seu perfil\nAvaliar a parcela internacional (15% do patrimônio em dólar)\nAgendar nossa próxima conversa';
+let REL = Object.assign({ m: null, cliente: '', email: '', usd: '', cot: '', news: [], coment: '', passos: PASSOS_PADRAO, off: [] }, store.get('rw_relatorio', {}));
 delete REL.dados;   // versão antiga (lia arquivo); não é mais usada
 REL.m = Object.assign(mVazio(), REL.m || {});
 delete REL.m.refs; // referências agora vêm automáticas
@@ -114,22 +115,42 @@ function sCapa(C) {
   </div>`;
 }
 
+// últimos 12 fechamentos mensais de um indicador até o mês do relatório
+function hist12(id, ym) {
+  const h = MACRO?.hist?.[id]; if (!h) return [];
+  return Object.keys(h).sort().filter(k => !ym || k <= ym).slice(-12).map(k => [k, h[k]]);
+}
+function miniLinha(P, fmt) {
+  if (P.length < 2) return '';
+  const W = 360, H = 82, pl = 4, pr = 4, pt = 16, pb = 16, vs = P.map(p => p[1]);
+  let lo = Math.min(...vs), hi = Math.max(...vs); if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+  const X = i => pl + i * (W - pl - pr) / (P.length - 1), Y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+  const pts = P.map((p, i) => `${X(i).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+  const ult = P.length - 1, sobe = vs[ult] >= vs[0];
+  const rot = k => rotMes(k);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <polygon points="${X(0)},${H - pb} ${pts} ${X(ult)},${H - pb}" fill="rgba(255,122,26,.16)"/>
+    <polyline points="${pts}" fill="none" stroke="#ff7a1a" stroke-width="2.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <circle cx="${X(ult)}" cy="${Y(vs[ult])}" r="3.6" fill="#fff"/>
+    <text x="${pl}" y="11" font-size="11" fill="rgba(255,255,255,.6)">${fmt(vs[0])}</text>
+    <text x="${W - pr}" y="11" font-size="11" font-weight="700" fill="${sobe ? '#3ee08f' : '#ff8a80'}" text-anchor="end">${fmt(vs[ult])}</text>
+    <text x="${pl}" y="${H - 2}" font-size="10.5" fill="rgba(255,255,255,.45)">${rot(P[0][0])}</text>
+    <text x="${W - pr}" y="${H - 2}" font-size="10.5" fill="rgba(255,255,255,.45)" text-anchor="end">${rot(P[ult][0])}</text></svg>`;
+}
 function sMacro(C) {
   const it = id => MACRO?.itens?.find(i => i.id === id);
+  const fP = v => n2(v) + '%', fN = (d, pre = '') => v => pre + n2(v, d);
+  const FMT = { selic: fP, cdi: fP, ipca_12m: fP, ipca_mes: fP, incc: fP, dolar: fN(2, 'R$ '), ibov: v => n2(v / 1000, 1) + ' mil', brent: fN(1, 'US$ '), ouro: fN(0, 'US$ ') };
+  const ym = REL.m.mes;
   const tile = (id, nome) => {
     const i = it(id); if (!i) return '';
-    const v = i.var != null ? `<span class="${cls(i.var)}" style="font-weight:800">${i.var >= 0 ? '▲' : '▼'} ${n2(Math.abs(i.var))}% no dia</span>` : '';
-    return `<div class="tile"><div class="n">${nome || esc(i.nome)}</div><div class="v">${fmtMacro(i)}</div><div class="s">${v}${v && i.sub ? ' · ' : ''}${esc(i.sub || '')}</div></div>`;
+    const v = i.var != null ? `<span class="${cls(i.var)}" style="font-weight:800">${i.var >= 0 ? '▲' : '▼'} ${n2(Math.abs(i.var))}% no dia</span>` : esc(i.sub || '');
+    return `<div class="mtile"><div class="hd"><div class="n">${nome || esc(i.nome)}</div><div class="v">${fmtMacro(i)}</div></div><div class="s">${v}</div>${miniLinha(hist12(id, ym), FMT[id] || fP)}</div>`;
   };
-  const refs = C.r.refs || {};
-  const ref = (k, nome) => refs[k] ? `<div class="row-l" style="font-size:19px"><span>${nome}</span><b class="${cls(refs[k].mes)}">${ps(refs[k].mes)}</b></div>` : '';
-  return `<div class="st">Cenário macro Brasil</div><div class="ss">Indicadores atualizados em ${new Date(MACRO?.atualizado || Date.now()).toLocaleDateString('pt-BR')}</div>
-    <div style="display:grid;grid-template-columns:2.1fr 1fr;gap:26px">
-      <div class="tiles">${tile('selic', 'Selic (meta)')}${tile('cdi', 'CDI')}${tile('ipca_12m', 'IPCA 12 meses')}${tile('ipca_mes', 'IPCA do mês')}${tile('dolar', 'Dólar')}${tile('ibov', 'Ibovespa')}${tile('incc', 'INCC-M')}${tile('brent', 'Petróleo Brent')}${tile('ouro', 'Ouro')}</div>
-      <div class="box"><div class="lbl">Como foi ${esc(MESES[+(C.D.dataRef || '0/1/0').split('/')[1] - 1] || 'o mês').toLowerCase()}</div>
-        ${ref('CDI', 'CDI')}${ref('Ibovespa', 'Ibovespa')}${ref('IPCA', 'IPCA')}${ref('Dolar', 'Dólar')}
-        <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:12px">Variação no mês de referência do relatório</div></div>
-    </div>${foot(C)}`;
+  const P = hist12('selic', ym);
+  return `<div class="st">Cenário macro Brasil</div><div class="ss">Valores de hoje (${new Date(MACRO?.atualizado || Date.now()).toLocaleDateString('pt-BR')}) e evolução nos últimos 12 meses${P.length ? ` (${rotMes(P[0][0])} a ${rotMes(P[P.length - 1][0])}, fechamento de cada mês)` : ''}</div>
+    <div class="mtiles">${tile('selic', 'Selic (meta)')}${tile('cdi', 'CDI')}${tile('ipca_12m', 'IPCA 12 meses')}${tile('ipca_mes', 'IPCA do mês')}${tile('dolar', 'Dólar')}${tile('ibov', 'Ibovespa')}${tile('incc', 'INCC-M')}${tile('brent', 'Petróleo Brent')}${tile('ouro', 'Ouro')}</div>
+    <div class="foot"><span>Fontes: Banco Central e Yahoo Finance</span><span>${esc(REL.cliente || '')} · ${esc(mesRef(C.D.dataRef))}</span></div>`;
 }
 
 function sNoticias(C) {
@@ -157,19 +178,6 @@ function sRentab(C) {
         ${C.est.map(e => `<div class="row-l" style="font-size:20px;padding:6px 0"><span><span style="color:rgba(255,255,255,.6);display:inline-block;width:82px">${p2(e.pct)}</span>${esc(e.curto)}</span><b class="${cls(e.rentMes)}">${ps(e.rentMes)} <span style="font-size:15px;font-weight:700;opacity:.85">(${p2(e.cdi, 0)} CDI)</span></b></div>`).join('')}
       </div></div>
     </div>${foot(C)}`;
-}
-
-function sDesempenho(C) {
-  const P = C.r.periodos || {}, R = C.r.refs || {};
-  const LQ = { 'MÊS': C.liq.mes, 'ANO': C.liq.ano, '12M': C.liq.m12 };
-  const card = (k, nome) => { const x = P[k]; if (!x || !Number.isFinite(x.rent)) return ''; const l = LQ[k];
-    return `<div class="tile" style="text-align:center"><div class="n">${nome}</div><div class="v ${cls(x.rent)}" style="font-size:44px">${ps(x.rent)}</div><div class="s" style="font-size:16px">${p2(x.cdi)} do CDI</div>
-      <div style="font-size:16px;margin-top:8px">Ganho bruto <b>${brl0(x.ganho)}</b></div>${l ? `<div style="font-size:16px">Ganho líquido <b class="or">${brl0(l.liquido)}</b></div>` : ''}</div>`; };
-  const linha = (k, nome, hl) => R[k] ? `<tr class="${hl ? 'hl' : ''}"><td>${nome}</td><td class="${cls(R[k].mes)}">${ps(R[k].mes)}</td><td class="${cls(R[k].ano)}">${ps(R[k].ano)}</td><td class="${cls(R[k].m12)}">${ps(R[k].m12)}</td></tr>` : '';
-  return `<div class="st">Carteira × referências</div><div class="ss">Rentabilidade e resultado financeiro por período · ganho líquido = ganho bruto menos IR e IOF pagos</div>
-    <div class="tiles" style="margin-bottom:18px">${card('MÊS', 'No mês')}${card('ANO', 'No ano')}${card('12M', 'Em 12 meses')}</div>
-    <div class="box" style="padding:6px 22px"><table style="font-size:17px" class="compacta"><tr><th></th><th>Mês</th><th>Ano</th><th>12 meses</th></tr>
-      ${linha('Portfolio', 'Sua carteira', true)}${linha('CDI', 'CDI')}${linha('Ibovespa', 'Ibovespa')}${linha('IPCA', 'IPCA (inflação)')}${linha('Dolar', 'Dólar')}</table></div>${foot(C)}`;
 }
 
 function sFluxo(C) {
@@ -263,9 +271,49 @@ function sAlocacao(C) {
     </div>${foot(C)}`;
 }
 
+function sRecomendada(C) {
+  const REC = carteiraRecomendada(), perfil = REL.m.perfil || 'moderada';
+  const cols = ['conservadora', 'moderada', 'sofisticada'].concat(perfil === 'personalizada' ? ['personalizada'] : []);
+  const th = cols.map(p => `<th class="${p === perfil ? 'cli' : ''}">${CARTEIRA_PERFIS[p]}</th>`).join('');
+  const cel = (p, txt) => `<td class="${p === perfil ? 'cli' : ''}">${txt}</td>`;
+  const pv = (p, k) => p2(+(REC[p]?.[k] || 0), 1);
+  const linha = c => `<tr><td>${c.n}</td>${cols.map(p => cel(p, pv(p, c.k))).join('')}</tr>` +
+    (c.k === 'pos' ? `<tr class="sub"><td>caixa mínimo</td>${cols.map(p => cel(p, CARTEIRA_EXTRA[p] ? p2(CARTEIRA_EXTRA[p].caixa, 1) : '—')).join('')}</tr>` : '');
+  const tot = p => CARTEIRA_CLASSES.reduce((s, c) => s + (+(REC[p]?.[c.k]) || 0), 0);
+  const ret = (rot, k) => `<tr class="ret"><td>${rot}</td>${cols.map(p => cel(p, CARTEIRA_EXTRA[p]?.[k] || '—')).join('')}</tr>`;
+  const G = CARTEIRA_GLOBAL, br = C.total * (100 - G) / 100, gl = C.total * G / 100, atualGl = C.total ? C.internacional / C.total * 100 : 0;
+  const falta = gl - C.internacional;
+  return `<div class="st">Carteira recomendada</div><div class="ss">Perfil ${esc(CARTEIRA_PERFIS[perfil].toLowerCase())} · ${100 - G}% Brasil (R$) e ${G}% global (US$, conta no exterior)</div>
+    <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:26px">
+      <div class="box" style="padding:10px 16px"><table class="rec"><tr><th>Parte Brasil · ${100 - G}%</th>${th}</tr>
+        ${CARTEIRA_CLASSES.map(linha).join('')}
+        <tr class="tot"><td>Total</td>${cols.map(p => cel(p, p2(tot(p), 0))).join('')}</tr>
+        ${ret('Retorno esperado', 'ipca')}${ret('', 'cdi')}${ret('Volatilidade alvo', 'vol')}</table></div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="box"><div class="lbl">Divisão do patrimônio</div>
+          <div style="display:flex;height:34px;border-radius:10px;overflow:hidden;margin:10px 0 14px"><div style="flex:${100 - G};background:#ff5a00;display:grid;place-items:center;font-weight:800">${100 - G}% Brasil</div><div style="flex:${G};background:#8f7cff;display:grid;place-items:center;font-weight:800">${G}%</div></div>
+          <div class="row-l" style="font-size:18px"><span>Brasil (R$)</span><b>${brl0(br)}</b></div>
+          <div class="row-l" style="font-size:18px"><span>Global (US$)</span><b>${brl0(gl)}${C.cot ? `<div style="font-size:14px;color:rgba(255,255,255,.6);text-align:right">≈ US$ ${n2(gl / C.cot, 0)}</div>` : ''}</b></div>
+          <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:8px">Sobre o patrimônio total de ${brl0(C.total)}</div></div>
+        <div class="box"><div class="lbl">Sua parte internacional hoje</div>
+          <div class="big ${atualGl >= G - 0.5 ? 'up' : 'or'}" style="font-size:44px">${p2(atualGl, 1)}</div>
+          <div style="font-size:16px;color:rgba(255,255,255,.75)">${C.internacional ? `US$ ${n2(C.usd)} · ${brl0(C.internacional)}` : 'Sem investimentos no exterior'}</div>
+          <div style="font-size:16px;margin-top:8px">${falta > 1 ? `Para chegar a ${G}%: <b class="or">+${brl0(falta)}</b>${C.cot ? ` (≈ US$ ${n2(falta / C.cot, 0)})` : ''}` : `Dentro da meta de ${G}%`}</div></div>
+      </div>
+    </div>${foot(C)}`;
+}
+
+function sProximos(C) {
+  const L = (REL.passos || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 6);
+  if (!L.length) return null;
+  const fs = L.length > 4 ? 25 : 32, gap = L.length > 4 ? 22 : 38;
+  return `<div class="st">Próximos passos</div><div class="ss">O que vamos fazer a partir de agora</div>
+    <div style="margin-top:44px">${L.map((x, i) => `<div class="passo" style="font-size:${fs}px;margin-bottom:${gap}px"><div class="num">${i + 1}</div><div style="padding-top:6px">${esc(x)}</div></div>`).join('')}</div>${foot(C)}`;
+}
+
 function sRecado(C) {
   if (!REL.coment.trim()) return null;
-  return `<div class="st">Recado do assessor</div><div class="ss">Próximos passos</div>
+  return `<div class="st">Recado do assessor</div><div class="ss">Mensagem do mês</div>
     <div class="box" style="font-size:26px;line-height:1.5;white-space:pre-wrap;max-height:470px;overflow:hidden">${esc(REL.coment)}</div>${foot(C)}`;
 }
 function sFim(C) {
@@ -275,7 +323,7 @@ function sFim(C) {
     <div style="font-size:24px;color:rgba(255,255,255,.75);white-space:pre-wrap;margin-top:18px">${esc(ass)}</div></div>
     <div class="foot"><span>Rentabilidade passada não é garantia de rentabilidade futura. Dados da carteira em ${esc(C.D.dataRef || '')}.</span><span></span></div>`;
 }
-const GERA = { capa: sCapa, macro: sMacro, noticias: sNoticias, rentab: sRentab, desempenho: sDesempenho, fluxo: sFluxo, evolucao: sEvolucao, destaques: sDestaques, alocacao: sAlocacao, recado: sRecado, fim: sFim };
+const GERA = { capa: sCapa, macro: sMacro, noticias: sNoticias, rentab: sRentab, fluxo: sFluxo, evolucao: sEvolucao, destaques: sDestaques, alocacao: sAlocacao, recomendada: sRecomendada, recado: sRecado, proximos: sProximos, fim: sFim };
 
 function slidesHtml() {
   const C = calc(); if (!C) return [];
@@ -321,9 +369,9 @@ $('newsPick').addEventListener('change', e => {
 
 // ---------- Campos ----------
 function preencher() {
-  $('cliente').value = REL.cliente || ''; $('email').value = REL.email || ''; $('usd').value = REL.usd || ''; $('cot').value = REL.cot || ''; $('coment').value = REL.coment || '';
+  $('cliente').value = REL.cliente || ''; $('email').value = REL.email || ''; $('usd').value = REL.usd || ''; $('cot').value = REL.cot || ''; $('coment').value = REL.coment || ''; $('passos').value = REL.passos || '';
   const M = REL.m;
-  $('mes').value = M.mes || ''; $('conta').value = M.conta || ''; $('assessor').value = M.assessor || '';
+  $('mes').value = M.mes || ''; $('conta').value = M.conta || ''; $('assessor').value = M.assessor || ''; $('perfil').value = M.perfil || 'moderada';
   document.querySelectorAll('[data-m]').forEach(el => { el.value = M[el.dataset.m] ?? ''; });
   TABS.forEach(desenharTab);
 }
@@ -367,17 +415,19 @@ $('btnMeses').onclick = () => {
 };
 $('btnLimpar').onclick = () => {
   if (!confirm('Apagar os dados deste relatório para começar outro cliente? (O assessor e o mês ficam.)')) return;
-  const { mes, assessor } = REL.m; REL.m = Object.assign(mVazio(), { mes, assessor }); REL.cliente = ''; REL.email = ''; REL.usd = ''; REL.coment = '';
+  const { mes, assessor } = REL.m; REL.m = Object.assign(mVazio(), { mes, assessor }); REL.cliente = ''; REL.email = ''; REL.usd = ''; REL.coment = ''; REL.passos = PASSOS_PADRAO;
   salvar(); preencher(); render();
 };
 let ag; const agendar = () => { clearTimeout(ag); ag = setTimeout(render, 300); };
 document.querySelector('main').addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.m) { REL.m[t.dataset.m] = t.value; salvar(); agendar(); }
-  else if (['mes', 'conta', 'assessor'].includes(t.id)) { REL.m[t.id] = t.value; salvar(); agendar(); }
+  else if (['mes', 'conta', 'assessor', 'perfil'].includes(t.id)) { REL.m[t.id] = t.value; salvar(); agendar(); }
 });
 let rt;
-['cliente', 'email', 'usd', 'cot', 'coment'].forEach(k => $(k).addEventListener('input', e => { REL[k] = e.target.value; if (k === 'cot') REL.cotManual = !!e.target.value; salvar(); clearTimeout(rt); rt = setTimeout(render, 250); }));
+$('perfil').innerHTML = Object.entries(CARTEIRA_PERFIS).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+$('perfil').addEventListener('change', e => { REL.m.perfil = e.target.value; salvar(); render(); });
+['cliente', 'email', 'usd', 'cot', 'coment', 'passos'].forEach(k => $(k).addEventListener('input', e => { REL[k] = e.target.value; if (k === 'cot') REL.cotManual = !!e.target.value; salvar(); clearTimeout(rt); rt = setTimeout(render, 250); }));
 $('slidesPick').addEventListener('change', e => { const id = e.target.dataset.s; if (!id) return; REL.off = e.target.checked ? REL.off.filter(x => x !== id) : [...REL.off, id]; salvar(); render(); });
 window.addEventListener('resize', () => { escala(); if ($('show').classList.contains('on')) mostrar(); });
 
@@ -495,6 +545,7 @@ $('btnEmail').onclick = async () => {
   const cor = v => `color:${v > 0 ? h.cor.bom : v < 0 ? h.cor.ruim : '#26233a'}`;
   const pc = v => `<span style="${cor(v)}">${ps(v)}</span>`;
   const LQ = { 'MÊS': C.liq.mes, 'ANO': C.liq.ano, '12M': C.liq.m12 };
+  const passos = (REL.passos || '').split('\n').map(x => x.trim()).filter(Boolean);
   Email.abrir({
     assunto: `Relatório de investimentos · ${mes}`,
     nome: REL.cliente, para: REL.email, preferirCopiar: true,
@@ -508,6 +559,7 @@ $('btnEmail').onclick = async () => {
       `• Aportes no mês: ${brl(C.fluxo.aportes)} · Resgates: ${brl(Math.abs(C.fluxo.resgates))} · Proventos recebidos: ${brl(C.fluxo.proventos)}`, '',
       ...(C.melhoresCat.length ? [`Destaques do mês: ${C.melhoresCat.map(e => `${e.curto} (${ps(e.rentMes)})`).join(', ')}.`, ''] : []),
       ...(REL.coment ? [REL.coment, ''] : []),
+      ...(passos.length ? ['Próximos passos:', ...passos.map((x, i) => `${i + 1}. ${x}`), ''] : []),
       'Fico à disposição para conversarmos.', '', 'Abraço,', ass,
     ].join('\n'),
     html: (nome, ass) => h.wrap(
@@ -523,8 +575,7 @@ $('btnEmail').onclick = async () => {
       ], ['left', 'right']) +
       h.titulo('Rentabilidade por estratégia') +
       h.tabela(['Estratégia', '% da carteira', 'No mês', '% do CDI'], C.est.map(e => [esc(e.curto), p2(e.pct), pc(e.rentMes), p2(e.cdi, 0)]), ['left', 'right', 'right', 'right']) +
-      h.titulo('Carteira × referências') +
-      h.tabela(['', 'Mês', 'Ano', '12 meses'], [['Portfolio', '<b>Sua carteira</b>'], ['CDI', 'CDI'], ['Ibovespa', 'Ibovespa'], ['IPCA', 'IPCA'], ['Dolar', 'Dólar']].filter(([k]) => R[k]).map(([k, n]) => [n, pc(R[k].mes), pc(R[k].ano), pc(R[k].m12)]), ['left', 'right', 'right', 'right']) +
+      h.titulo('Resultado por período') +
       h.tabela(['', 'Mês', 'Ano', '12 meses'], [
         ['Ganho bruto', ...['MÊS', 'ANO', '12M'].map(k => P[k] && Number.isFinite(P[k].ganho) ? brl(P[k].ganho) : '—')],
         ['Ganho líquido (após IR/IOF)', ...['MÊS', 'ANO', '12M'].map(k => LQ[k] ? `<b>${brl(LQ[k].liquido)}</b>` : '—')],
@@ -538,6 +589,7 @@ $('btnEmail').onclick = async () => {
       imgTag(iFlu, 'Aportes e resgates nos últimos 12 meses') +
       (iAlo ? h.titulo('Alocação da carteira') + imgTag(iAlo, 'Alocação por estratégia') : '') +
       (REL.coment ? h.titulo('Recado') + h.p(esc(REL.coment).replace(/\n/g, '<br>')) : '') +
+      (passos.length ? h.titulo('Próximos passos') + h.p(passos.map((x, i) => `<b style="color:${h.cor.ora}">${i + 1}.</b> ${esc(x)}`).join('<br>')) : '') +
       h.p('Fico à disposição para conversarmos.') + h.p('Abraço,') + h.assinatura(ass) +
       h.rodape(`Rentabilidade passada não é garantia de rentabilidade futura. Dados da carteira em ${C.D.dataRef}; ganho líquido = ganho bruto menos IR e IOF pagos no período.`)),
     aoSalvarCliente: (nome, para) => { REL.cliente = nome || REL.cliente; REL.email = para; preencher(); salvar(); },

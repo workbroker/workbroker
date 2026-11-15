@@ -1,28 +1,13 @@
 // Carteira e rebalanceamento
 const $ = id => document.getElementById(id);
 
-const CLASSES = [
-  { k: 'pos', n: 'RF Pós-fixado' },
-  { k: 'inflacao', n: 'RF Inflação' },
-  { k: 'pre', n: 'RF Prefixado' },
-  { k: 'rfint', n: 'RF Internacional' },
-  { k: 'rvbr', n: 'Renda Variável Brasil' },
-  { k: 'rvint', n: 'Renda Variável Internacional' },
-  { k: 'mm', n: 'Multimercado' },
-  { k: 'fl', n: 'Fundos Listados' },
-  { k: 'alt', n: 'Alternativos' },
-];
+const CLASSES = CARTEIRA_CLASSES;
 const NOME = Object.fromEntries(CLASSES.map(c => [c.k, c.n]));
-const PERFIS = { conservadora: 'Conservadora', moderada: 'Moderada', sofisticada: 'Sofisticada', personalizada: 'Personalizada' };
-const REC_PADRAO = {
-  conservadora: { pos: 63, inflacao: 12.5, pre: 12, rfint: 2.5, rvbr: 0, rvint: 2.5, mm: 2.5, fl: 5, alt: 0 },
-  moderada: { pos: 26, inflacao: 22.5, pre: 15, rfint: 2.5, rvbr: 8.5, rvint: 4.5, mm: 13, fl: 5, alt: 3 },
-  sofisticada: { pos: 10, inflacao: 27.5, pre: 15, rfint: 2.5, rvbr: 20, rvint: 7, mm: 8, fl: 5, alt: 5 },
-  personalizada: { pos: 45, inflacao: 27.5, pre: 13.5, rfint: 0, rvbr: 0, rvint: 2.5, mm: 11.5, fl: 0, alt: 0 },
-};
+const PERFIS = CARTEIRA_PERFIS;
+const REC_PADRAO = CARTEIRA_REC_PADRAO;
 const STATUS = ['Pendente', 'Reservado', 'Concluído'];
 
-let REC = store.get('rw_recomendadas', null) || JSON.parse(JSON.stringify(REC_PADRAO));
+let REC = carteiraRecomendada();
 
 function estadoVazio() {
   return { cliente: '', conta: '', perfil: 'moderada', tol: '2', patrimonio: '', pct: {}, vendas: [], compras: [], saldoConta: '', aporte: '', considerar: 'todas' };

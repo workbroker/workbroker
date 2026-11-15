@@ -38,26 +38,45 @@ def yahoo(simbolo):
     return preco, var
 
 
-def mensal_sgs(codigo, n=30):  # {"2026-10": 0.79, ...} só meses fechados
-    hoje = datetime.now(timezone.utc).strftime("%Y-%m")
+def serie_sgs(codigo):  # [(ym, valor), ...] dos últimos 3 anos
     ini = datetime.now(timezone.utc).replace(day=1, year=datetime.now(timezone.utc).year - 3).strftime("%d/%m/%Y")
     dados = get_json(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json&dataInicial={ini}")
-    serie = ((f"{d['data'][6:10]}-{d['data'][3:5]}", float(d["valor"])) for d in dados)
-    return {m: v for m, v in serie if m < hoje}
+    return [(f"{d['data'][6:10]}-{d['data'][3:5]}", float(d["valor"])) for d in dados]
+
+
+def mensal_sgs(codigo):  # {"2026-10": 0.79, ...} só meses fechados
+    hoje = datetime.now(timezone.utc).strftime("%Y-%m")
+    return {m: v for m, v in serie_sgs(codigo) if m < hoje}
+
+
+def fim_mes_sgs(codigo):  # último valor de cada mês (séries diárias como Selic e CDI)
+    return dict(serie_sgs(codigo))
+
+
+_FECH = {}
+def fech_yahoo(simbolo):  # último fechamento de cada mês (o mês atual fica parcial)
+    if simbolo not in _FECH:
+        j = get_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(simbolo)}?range=3y&interval=1d")
+        r = j["chart"]["result"][0]
+        off = r["meta"].get("gmtoffset", -10800)
+        fech = {}
+        for t, c in zip(r["timestamp"], r["indicators"]["quote"][0]["close"]):
+            if c:
+                fech[datetime.fromtimestamp(t + off, timezone.utc).strftime("%Y-%m")] = c
+        _FECH[simbolo] = fech
+    return _FECH[simbolo]
 
 
 def mensal_yahoo(simbolo):  # variação % mensal pelo último fechamento de cada mês
-    j = get_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(simbolo)}?range=3y&interval=1d")
-    r = j["chart"]["result"][0]
-    off = r["meta"].get("gmtoffset", -10800)
-    fech = {}
-    for t, c in zip(r["timestamp"], r["indicators"]["quote"][0]["close"]):
-        if c:
-            fech[datetime.fromtimestamp(t + off, timezone.utc).strftime("%Y-%m")] = c
+    fech = fech_yahoo(simbolo)
     hoje = datetime.now(timezone.utc).strftime("%Y-%m")
     meses = sorted(fech)
     print(simbolo, "fechamentos:", [(m, round(fech[m], 2)) for m in meses[-4:]])
     return {m: round((fech[m] / fech[a] - 1) * 100, 4) for a, m in zip(meses, meses[1:]) if m < hoje}
+
+
+def ultimos(d, n=25):
+    return {k: round(d[k], 4) for k in sorted(d)[-n:]}
 
 
 def main():
@@ -69,6 +88,16 @@ def main():
             mensal[k] = fn()
         except Exception as e:
             print("ERRO mensal", k, e, file=sys.stderr)
+
+    # histórico mensal (fim de mês) para os gráficos de 12 meses do relatório
+    hist = {}
+    for k, fn in (("selic", lambda: fim_mes_sgs(432)), ("cdi", lambda: fim_mes_sgs(4389)), ("ipca_12m", lambda: dict(serie_sgs(13522))),
+                  ("ipca_mes", lambda: dict(serie_sgs(433))), ("incc", lambda: dict(serie_sgs(7456))), ("dolar", lambda: fech_yahoo("USDBRL=X")),
+                  ("ibov", lambda: fech_yahoo("^BVSP")), ("brent", lambda: fech_yahoo("BZ=F")), ("ouro", lambda: fech_yahoo("GC=F"))):
+        try:
+            hist[k] = ultimos(fn())
+        except Exception as e:
+            print("ERRO hist", k, e, file=sys.stderr)
 
     def add(fn):
         try:
@@ -134,7 +163,9 @@ def main():
                 itens.append(i)
         for k, v in ant.get("mensal", {}).items():
             mensal.setdefault(k, v)
-        if ant.get("itens") == itens and ant.get("mensal") == mensal:
+        for k, v in ant.get("hist", {}).items():
+            hist.setdefault(k, v)
+        if ant.get("itens") == itens and ant.get("mensal") == mensal and ant.get("hist") == hist:
             print("Sem mudanças nos indicadores.")
             return
     except Exception:
@@ -143,7 +174,7 @@ def main():
     itens.sort(key=lambda i: ordem.index(i["id"]) if i["id"] in ordem else 99)
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as f:
-        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "itens": itens, "mensal": mensal}, f, ensure_ascii=False, indent=1)
+        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "itens": itens, "mensal": mensal, "hist": hist}, f, ensure_ascii=False, indent=1)
     print(json.dumps(itens, ensure_ascii=False)[:600])
 
 
