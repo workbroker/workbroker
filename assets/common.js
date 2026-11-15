@@ -178,7 +178,7 @@ const PAGINAS = [
   ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons', 'cupom cupons fluxo ntn-b juros semestrais pagamento'],
   ['Juros compostos', 'rf-calculadoras.html#compostos', 'aportes simulacao patrimonio'],
   ['Saldo parado × aplicado', 'rf-calculadoras.html#parado', 'saldo parado conta corrente inflacao perda poder de compra cdi rendimento caixa'],
-  ['Risco de crédito', 'rf-credito.html', 'renda fixa rating fgc emissor concentracao vencimentos'],
+  ['Risco de crédito · emissores em atenção', 'rf-credito.html', 'renda fixa rating emissor banco debenture basileia atencao'],
   ['Visão geral de renda fixa', 'rf.html', 'renda fixa ferramentas'],
   ['Relatório mensal', 'relatorio.html', 'apresentacao cliente mensal rentabilidade slides pdf email'],
   ['Carteira e rebalanceamento', 'carteira.html', ' alocacao over under recomendada'],
