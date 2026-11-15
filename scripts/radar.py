@@ -106,8 +106,6 @@ def tickers_cvm():
                     c = (r.get("Codigo_Negociacao") or "").strip().upper()
                     if c and c not in tk:
                         tk[c] = so_dig(r.get("CNPJ_Companhia"))
-            if tk:
-                break
         except Exception as e:
             log("FCA", a, e)
     setor = {}
@@ -152,12 +150,14 @@ def lucro_contr(C, chave=None):
         return None
     a = [(cod, d, v) for cod, (d, v) in C.items() if cod.startswith("3.") and re.search(r"atribu\w*.*controlador", d, re.I)
          and not re.search(r"n[aã]o.controlador", d, re.I)]
-    if not a:
-        a = [(cod, d, v) for cod, (d, v) in C.items() if cod.count(".") == 1 and cod.startswith("3.")
-             and re.search(r"lucro.*per[ií]odo|resultado l[ií]quido|lucro l[ií]quido|preju[ií]zo", d, re.I)]
-        a = sorted(a, key=lambda x: [int(p) for p in x[0].split(".")])[-1:]
-    else:
+    if a:
         a = sorted(a, key=lambda x: (x[0].count("."), [int(p) for p in x[0].split(".")]))[:1]
+    if not a or not a[0][2]:  # sem a linha dos controladores, ou zerada: lucro total do período
+        b = [(cod, d, v) for cod, (d, v) in C.items() if cod.count(".") == 1 and cod.startswith("3.")
+             and re.search(r"lucro.*per[ií]odo|resultado l[ií]quido|lucro l[ií]quido|preju[ií]zo", d, re.I)]
+        b = sorted(b, key=lambda x: [int(p) for p in x[0].split(".")])[-1:]
+        if b and b[0][2]:
+            a = b
     if not a:
         return None
     if chave:
