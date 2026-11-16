@@ -59,6 +59,68 @@ def yahoo(sym):
             "serie": [(d, round(c, 4)) for d, c in semanal]}
 
 
+# ---------------- Yahoo: balanços e agenda (alternativa quando a SEC bloqueia) ----------------
+_JAR = None
+
+
+def yget(url):
+    global _JAR
+    import http.cookiejar
+    if _JAR is None:
+        _JAR = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        _JAR.addheaders = list(UA.items())
+    return _JAR.open(url, timeout=60).read()
+
+
+def yahoo_fund(sym, debug):
+    """Série anual de lucro, receita, patrimônio e ações (fundamentals-timeseries) -> mesmo formato da SEC."""
+    tipos = ["annualNetIncomeCommonStockholders", "annualNetIncome", "annualTotalRevenue", "annualStockholdersEquity",
+             "annualCommonStockEquity", "annualOrdinarySharesNumber", "annualShareIssued"]
+    url = (f"https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/{sym}"
+           f"?type={','.join(tipos)}&period1=1483228800&period2={int(time.time())}")
+    j = json.loads(yget(url))
+    S = {}
+    for r in j.get("timeseries", {}).get("result", []):
+        tp = (r.get("meta", {}).get("type") or [None])[0]
+        for x in r.get(tp) or []:
+            if x and x.get("reportedValue"):
+                S.setdefault(tp, {})[x["asOfDate"][:4]] = (x["reportedValue"]["raw"], x.get("currencyCode"))
+    pega = lambda *ks: next((S[k] for k in ks if S.get(k)), {})
+    lucro = pega("annualNetIncomeCommonStockholders", "annualNetIncome")
+    pl = pega("annualCommonStockEquity", "annualStockholdersEquity")
+    rec = pega("annualTotalRevenue")
+    acs = pega("annualOrdinarySharesNumber", "annualShareIssued")
+    anos = sorted(set(lucro) | set(pl) | set(rec))[-4:]
+    debug[f"yf_{sym}"] = {k: len(v) for k, v in S.items()}
+    if not anos:
+        raise ValueError("sem séries")
+    ua = max(acs) if acs else None
+    return {"anos": [{"ano": a, "lucro": lucro.get(a, (None,))[0], "pl": pl.get(a, (None,))[0], "receita": rec.get(a, (None,))[0],
+                      "moeda": (lucro.get(a) or pl.get(a) or rec.get(a) or (None, None))[1]} for a in anos],
+            "acoes": {"qt": acs[ua][0], "data": ua} if ua else None, "fonte": "yahoo"}
+
+
+def yahoo_agenda(sym, debug):
+    """Próxima data de resultado (calendarEvents) e trimestres recentes (earningsHistory)."""
+    try:
+        yget("https://fc.yahoo.com/")
+    except Exception:
+        pass  # responde 404, mas grava o cookie
+    crumb = yget("https://query2.finance.yahoo.com/v1/test/getcrumb").decode().strip()
+    j = json.loads(yget(f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{sym}?modules=calendarEvents,earningsHistory,defaultKeyStatistics&crumb={urllib.parse.quote(crumb)}"))
+    r = j["quoteSummary"]["result"][0]
+    ds = [x.get("raw") for x in r.get("calendarEvents", {}).get("earnings", {}).get("earningsDate", []) if x.get("raw")]
+    prox = None
+    if ds:
+        d = datetime.fromtimestamp(min(ds), timezone(timedelta(hours=-3))).date()
+        fim = date(d.year, ((d.month - 1) // 3) * 3, 1) if d.month > 3 else date(d.year - 1, 12, 1)  # trimestre anterior à divulgação
+        q = (fim.month - 1) // 3 + 1
+        prox = {"tri": f"{q}T{str(fim.year)[2:]}", "d": d.isoformat(), "est": 0 if len(ds) == 1 else 1}
+    ks = r.get("defaultKeyStatistics", {})
+    debug["yf_agenda"] = {"datas": len(ds), "crumb": bool(crumb)}
+    return prox, {"acoes": (ks.get("sharesOutstanding") or {}).get("raw")}
+
+
 # ---------------- SEC ----------------
 def sec_json(url):
     time.sleep(0.15)
@@ -247,6 +309,22 @@ def main():
             docs, cal = documentos_sec(ciks["XP"], debug)
     except Exception as e:
         debug["sec"] = repr(e)[:160]
+    # a SEC costuma recusar os servidores do GitHub; aí os balanços vêm do Yahoo
+    for tk in ("XP", "NU", "INTR"):
+        if tk not in sec:
+            try:
+                sec[tk] = yahoo_fund(tk, debug)
+            except Exception as e:
+                debug[f"yf_{tk}"] = repr(e)[:120]
+    prox = proximo(cal)
+    try:
+        p2, extra = yahoo_agenda("XP", debug)
+        if p2 and (not prox or not prox.get("d") or prox.get("est")):
+            prox = p2
+        if extra.get("acoes") and sec.get("XP") and sec["XP"].get("fonte") == "yahoo":
+            sec["XP"]["acoes"] = {"qt": extra["acoes"], "data": HOJE.date().isoformat()}
+    except Exception as e:
+        debug["yf_agenda"] = repr(e)[:120]
     for tk, s in sec.items():  # valor de mercado e múltiplos com o último 20-F
         q = Q.get(tk)
         if not q or not s.get("acoes") or not s.get("anos"):
@@ -273,7 +351,7 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as f:
         json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "usd": usd, "cot": Q, "sec": sec,
-                   "docs": docs, "resultados": cal, "proximo": proximo(cal), "noticias": news, "debug": debug},
+                   "docs": docs, "resultados": cal, "proximo": prox, "noticias": news, "debug": debug},
                   f, ensure_ascii=False, separators=(",", ":"))
     log("xp.json:", os.path.getsize(SAIDA) // 1024, "KB")
 

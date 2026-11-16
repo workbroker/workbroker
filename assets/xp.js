@@ -28,7 +28,7 @@ function hero() {
         <div>Valor de mercado<b>${bi(a.mcap)}</b></div><div>P/L<b>${n2(a.pl, 1)}</b></div><div>P/VP<b>${n2(a.pvp, 2)}</b></div>
         <div>ROE<b>${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</b></div><div>Dividend yield 12m<b>${Number.isFinite(a.dy) ? n2(a.dy, 1) + '%' : '—'}</b></div><div>Dólar<b>R$ ${n2(X.usd)}</b></div>
       </div>
-      <p class="note" style="margin:10px 0 0">P/L, P/VP e ROE com o lucro e o patrimônio do último balanço anual na SEC (${a.ref_balanco || '—'}) e as ações em circulação; DY = proventos pagos em 12 meses ÷ preço.</p>
+      <p class="note" style="margin:10px 0 0">P/L, P/VP e ROE com o lucro e o patrimônio do último balanço anual (${a.ref_balanco || '—'}) e as ações em circulação; DY = proventos pagos em 12 meses ÷ preço.</p>
     </div>`;
 }
 function grafico() {
@@ -64,14 +64,14 @@ function comparacao() {
     ${L.map(k => { const a = X.cot[k]; const moeda = a.moeda === 'USD' ? 'US$ ' : 'R$ ';
       return `<tr class="${k === 'XP' ? 'xp' : ''}"><td><b>${a.nome}</b><div class="sub2">${k} · ${a.bolsa}</div></td><td class="n">${moeda}${n2(a.preco)}</td><td class="n">${pv(a.var)}</td><td class="n">${pv(a.ano)}</td><td class="n">${pv(a.a12)}</td>
       <td class="n">${bi(a.mcap)}</td><td class="n">${n2(a.pl, 1)}</td><td class="n">${n2(a.pvp, 2)}</td><td class="n">${Number.isFinite(a.roe) ? n2(a.roe, 1) + '%' : '—'}</td><td class="n">${Number.isFinite(a.dy) ? n2(a.dy, 1) + '%' : '—'}</td></tr>`; }).join('')}</tbody>`;
-  $('compNota').textContent = 'BTG, Itaú e Bradesco: indicadores calculados com os balanços da CVM (lucro de 12 meses), como no Radar de ações. XP, Nubank e Inter: último balanço anual na SEC (20-F). Valor de mercado em reais.';
+  $('compNota').textContent = 'BTG, Itaú e Bradesco: indicadores calculados com os balanços da CVM (lucro de 12 meses), como no Radar de ações. XP, Nubank e Inter: último balanço anual (20-F). Valor de mercado em reais.';
 }
 function calendario() {
   const R = X.resultados || [], P = X.proximo;
   const linha = (r, prox) => { const dt = r.d ? new Date(r.d + 'T12:00:00') : null;
     return `<${r.l ? `a href="${esc(r.l)}" target="_blank" rel="noopener"` : 'div'} class="c ${prox ? 'prox' : ''}"><span class="d">${dt ? dBR(r.d).slice(0, 5) : '—'}<small>${dt ? DIAS[dt.getDay()] + ' ' + r.d.slice(0, 4) : ''}</small></span><span><b>${r.tri}</b> ${prox ? 'próximo resultado' : 'resultado divulgado'}</span><span class="sub2">${prox ? (r.est ? 'previsão' : '') : 'release ›'}</span></${r.l ? 'a' : 'div'}>`; };
   $('cal').innerHTML = (P ? linha(P, true) : '') + [...R].reverse().slice(0, 8).map(r => linha(r)).join('') || '<p class="note">Sem datas.</p>';
-  $('calNota').textContent = 'Datas dos releases de resultado enviados à SEC (a XP divulga após o fechamento do mercado). O próximo é uma previsão pela data do mesmo trimestre no ano passado; a data oficial sai no site de RI.';
+  $('calNota').textContent = (R.length ? 'Datas dos releases de resultado enviados à SEC. ' : '') + 'A XP divulga após o fechamento do mercado. ' + (P && !P.est ? 'Data do próximo resultado conforme a agenda de mercado; confirme no site de RI.' : 'O próximo é uma previsão; a data oficial sai no site de RI.');
 }
 function perfil() {
   const linhas = [
@@ -86,18 +86,19 @@ function perfil() {
 }
 function balanco() {
   const A = X.sec?.XP?.anos || [];
-  if (!A.length) { $('tBal').innerHTML = '<tbody><tr><td class="note">Sem dados da SEC agora.</td></tr></tbody>'; return; }
+  if (!A.length) { $('tBal').innerHTML = '<tbody><tr><td class="note">Sem dados de balanço agora.</td></tr></tbody>'; return; }
   const v = x => Number.isFinite(x) ? 'R$ ' + n2(x / 1e9, 2) + ' bi' : '—';
   $('tBal').innerHTML = `<thead><tr><th>Ano</th><th class="n">Receita</th><th class="n">Lucro líquido</th><th class="n">Patrimônio</th><th class="n">ROE</th></tr></thead><tbody>
     ${[...A].reverse().map(a => `<tr><td><b>${a.ano}</b></td><td class="n">${v(a.receita)}</td><td class="n">${v(a.lucro)}</td><td class="n">${v(a.pl)}</td><td class="n">${a.lucro && a.pl ? n2(a.lucro / a.pl * 100, 1) + '%' : '—'}</td></tr>`).join('')}</tbody>`;
 }
 function listas() {
   $('news').innerHTML = (X.noticias || []).map(n => `<a href="${esc(n.l)}" target="_blank" rel="noopener"><span class="d">${n.d ? dBR(n.d).slice(0, 5) : ''}</span><span>${esc(n.t)}<div class="f">${esc(n.f || '')}</div></span></a>`).join('') || '<p class="note">Sem notícias agora.</p>';
-  $('docs').innerHTML = (X.docs || []).slice(0, 12).map(d => `<a href="${esc(d.l)}" target="_blank" rel="noopener"><span class="d">${dBR(d.d)}</span><span>${d.res ? `<b>Resultado ${d.res}</b> · ` : ''}${esc((d.t || d.f).slice(0, 140))}<div class="f">${esc(d.f)}</div></span></a>`).join('') || '<p class="note">Sem documentos agora.</p>';
+  $('docs').innerHTML = (X.docs || []).slice(0, 12).map(d => `<a href="${esc(d.l)}" target="_blank" rel="noopener"><span class="d">${dBR(d.d)}</span><span>${d.res ? `<b>Resultado ${d.res}</b> · ` : ''}${esc((d.t || d.f).slice(0, 140))}<div class="f">${esc(d.f)}</div></span></a>`).join('');
+  $('cardDocs').hidden = !(X.docs || []).length;
 }
 
 (async () => {
   try { X = await carregarDados('xp.json'); } catch { $('hero').innerHTML = '<div class="card"><p class="note">Dados ainda não disponíveis. Tente de novo mais tarde.</p></div>'; return; }
   hero(); grafico(); comparacao(); calendario(); perfil(); balanco(); listas();
-  $('rodape').innerHTML = `Fontes: Yahoo Finance (cotações, com atraso), SEC EDGAR (balanços 20-F e documentos), CVM via Radar de ações (concorrentes da B3) e Google Notícias (manchetes). Atualizado em ${new Date(X.atualizado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}. Página de informações públicas, sem relação oficial com a empresa; não é recomendação de investimento.`;
+  $('rodape').innerHTML = `Fontes: Yahoo Finance (cotações com atraso, balanços anuais e agenda de resultados), SEC EDGAR (documentos, quando disponível), CVM via Radar de ações (concorrentes da B3) e Google Notícias (manchetes). Atualizado em ${new Date(X.atualizado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}. Página de informações públicas, sem relação oficial com a empresa; não é recomendação de investimento.`;
 })();
