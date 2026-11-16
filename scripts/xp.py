@@ -321,7 +321,7 @@ def main():
         p2, extra = yahoo_agenda("XP", debug)
         if p2 and (not prox or not prox.get("d") or prox.get("est")):
             prox = p2
-        if extra.get("acoes") and sec.get("XP") and sec["XP"].get("fonte") == "yahoo":
+        if extra.get("acoes") and sec.get("XP") and not sec["XP"].get("acoes"):  # sharesOutstanding pode trazer só a classe A
             sec["XP"]["acoes"] = {"qt": extra["acoes"], "data": HOJE.date().isoformat()}
     except Exception as e:
         debug["yf_agenda"] = repr(e)[:120]

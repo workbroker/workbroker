@@ -69,7 +69,7 @@ function comparacao() {
 function calendario() {
   const R = X.resultados || [], P = X.proximo;
   const linha = (r, prox) => { const dt = r.d ? new Date(r.d + 'T12:00:00') : null;
-    return `<${r.l ? `a href="${esc(r.l)}" target="_blank" rel="noopener"` : 'div'} class="c ${prox ? 'prox' : ''}"><span class="d">${dt ? dBR(r.d).slice(0, 5) : '—'}<small>${dt ? DIAS[dt.getDay()] + ' ' + r.d.slice(0, 4) : ''}</small></span><span><b>${r.tri}</b> ${prox ? 'próximo resultado' : 'resultado divulgado'}</span><span class="sub2">${prox ? (r.est ? 'previsão' : '') : 'release ›'}</span></${r.l ? 'a' : 'div'}>`; };
+    return `<${r.l ? `a href="${esc(r.l)}" target="_blank" rel="noopener"` : 'div'} class="c ${prox ? 'prox' : ''}"><span class="d">${dt ? dBR(r.d).slice(0, 5) : '—'}<small>${dt ? DIAS[dt.getDay()] + ' ' + r.d.slice(0, 4) : ''}</small></span><span><b>${r.tri}</b> ${prox ? (r.d === new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }) ? 'resultado sai hoje' : 'próximo resultado') : 'resultado divulgado'}</span><span class="sub2">${prox ? (r.est ? 'previsão' : '') : 'release ›'}</span></${r.l ? 'a' : 'div'}>`; };
   $('cal').innerHTML = (P ? linha(P, true) : '') + [...R].reverse().slice(0, 8).map(r => linha(r)).join('') || '<p class="note">Sem datas.</p>';
   $('calNota').textContent = (R.length ? 'Datas dos releases de resultado enviados à SEC. ' : '') + 'A XP divulga após o fechamento do mercado. ' + (P && !P.est ? 'Data do próximo resultado conforme a agenda de mercado; confirme no site de RI.' : 'O próximo é uma previsão; a data oficial sai no site de RI.');
 }
