@@ -4,6 +4,7 @@ let B = null;
 const n2 = (v, d = 2) => Number.isFinite(v) ? v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const rotM = ym => ym ? `${MESES[+ym.slice(5, 7) - 1]}/${ym.slice(2, 4)}` : '';
+const dataBR = d => d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '';
 const TEMP = { otimo: 'Ótimo', bom: 'Bom', ok: 'OK', ruim: 'Ruim' };
 const faixa = (v, lim) => { for (const [nivel, f] of lim) if (f(v)) return nivel; return 'ruim'; };
 
@@ -111,8 +112,9 @@ function juroReal(selic) {
 // frase do comunicado do Copom que mais fala do tema
 let FRASES = [];
 function prepararCopom() {
-  const t = B?.copom?.texto || '';
-  FRASES = t.split(/(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/).map(s => s.trim()).filter(s => s.length > 40 && s.length < 520);
+  const t = (B?.copom?.texto || '').replace(/[\u200b\u00a0]/g, ' ');
+  FRASES = t.split(/(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/).map(s => s.replace(/\s+([.,;])/g, '$1').trim())
+    .filter(s => s.length > 40 && s.length < 520 && !/Tabela|\d+,\d+\s+\d+,\d+|procedimento usual|cen[aá]rio de refer[eê]ncia|obtid[oa] pel/i.test(s)); // fora as tabelas e notas de projeção
 }
 function fraseBC(rx) {
   if (!FRASES.length) return '';
@@ -138,7 +140,7 @@ function grafico(s, cfg) {
   const u = s.length - 1;
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${banda}
     ${ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${Y(t)}" y2="${Y(t)}" stroke="#eceaf2"/><text x="${pl - 4}" y="${Y(t) + 3}" font-size="9.5" fill="#8a87a0" text-anchor="end">${fmt(t)}</text>`).join('')}${zero}
-    <polygon points="${X(0)},${H - pb} ${pts} ${X(u)},${H - pb}" fill="rgba(255,90,0,.08)"/>
+    ${cfg.banda ? '' : `<polygon points="${X(0)},${H - pb} ${pts} ${X(u)},${H - pb}" fill="rgba(255,90,0,.08)"/>`}
     <polyline points="${pts}" fill="none" stroke="#ff5a00" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <circle cx="${X(u)}" cy="${Y(s[u][1])}" r="3.5" fill="#22105a"/>
     <text x="${pl}" y="${H - 5}" font-size="9.5" fill="#8a87a0">${rotM(s[0][0])}</text>
@@ -163,7 +165,7 @@ function cartao(k) {
     <div class="sig">${esc(c.sig)}</div>
     ${grafico(x.serie, c)}
     <div class="ref">${esc(c.ref(v, x.serie))}</div>
-    ${frase ? `<div class="bc"><b>O que o BC diz · Copom${B.copom?.data ? ' ' + new Date(B.copom.data).toLocaleDateString('pt-BR') : ''}</b>“${esc(frase)}”</div>` : ''}
+    ${frase ? `<div class="bc"><b>O que o BC diz · Copom${B.copom?.data ? ' ' + dataBR(B.copom.data) : ''}</b>“${esc(frase)}”</div>` : ''}
   </div>`;
 }
 function copom() {
@@ -171,7 +173,7 @@ function copom() {
   if (!c) { $('copom').innerHTML = '<p class="note">Comunicado indisponível agora.</p>'; return; }
   const decisao = FRASES.find(f => /decidiu|taxa selic|taxa b[aá]sica/i.test(f)) || FRASES[0] || '';
   const s = B.ind.selic?.ult?.[1];
-  $('copom').innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font-size:30px;font-weight:800">${n2(s)}%</span><span class="note">Selic ao ano${c.data ? ` · reunião de ${new Date(c.data).toLocaleDateString('pt-BR')}` : ''}${c.reuniao ? ` (${c.reuniao}ª)` : ''}</span></div>
+  $('copom').innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font-size:30px;font-weight:800">${n2(s)}%</span><span class="note">Selic ao ano${c.data ? ` · reunião de ${dataBR(c.data)}` : ''}${c.reuniao ? ` (${c.reuniao}ª)` : ''}</span></div>
     ${decisao ? `<p class="copom-t" style="margin:10px 0 0">“${esc(decisao)}”</p>` : ''}
     <p style="margin:10px 0 0"><a href="${esc(c.link || 'https://www.bcb.gov.br/publicacoes/comunicadoscopom')}" target="_blank" rel="noopener">Ler o comunicado completo no site do BC ›</a></p>`;
 }
