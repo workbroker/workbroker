@@ -53,6 +53,11 @@ jobs:
         timeout-minutes: 15
         env:
           FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
+      - name: Banco Central (uma vez por dia)
+        run: python scripts/bcb.py || true
+        timeout-minutes: 8
+        env:
+          FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
       - name: Crédito de emissores (uma vez por dia)
         run: python scripts/credito.py || true
         timeout-minutes: 20
