@@ -12,7 +12,8 @@ from datetime import datetime, timezone, timedelta, date
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data"))
 SAIDA = os.path.join(DATA_DIR, "xp.json")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36", "Accept": "*/*"}
-SEC_UA = {"User-Agent": "WorkBroker github.com/workbroker/workbroker", "Accept": "application/json,text/html,*/*"}
+# a SEC exige nome e e-mail de contato no User-Agent (endereço genérico do GitHub, não pessoal)
+SEC_UA = {"User-Agent": "WorkBroker workbroker@users.noreply.github.com", "Accept": "application/json,text/html,*/*", "Accept-Encoding": "identity"}
 HOJE = datetime.now(timezone(timedelta(hours=-3)))
 
 # ticker Yahoo -> (rótulo, nome, bolsa, ticker SEC)
@@ -178,7 +179,7 @@ def proximo(cal):
 
 
 def noticias():
-    q = urllib.parse.quote('"XP Inc" OR XPBR31 OR "XP Investimentos"')
+    q = urllib.parse.quote('"XP Inc" OR XPBR31')
     x = get(f"https://news.google.com/rss/search?q={q}&hl=pt-BR&gl=BR&ceid=BR:pt-419")
     out = []
     for it in ET.fromstring(x).iter("item"):
@@ -189,6 +190,8 @@ def noticias():
         except Exception:
             d = None
         out.append({"t": t[:200], "f": fonte, "d": d, "l": it.findtext("link")})
+    # só o que fala da XP Inc. (o portal de análises da XP aparece com relatórios sobre outras empresas)
+    out = [n for n in out if re.search(r"\bXP\b|XPBR31|XP Inc", n["t"]) and not re.search(r"\|\s*Resultados|Resultados do \dT\d\d de", n["t"])]
     out.sort(key=lambda x: x["d"] or "", reverse=True)
     return out[:12]
 

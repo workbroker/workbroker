@@ -164,7 +164,7 @@ const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
   { id: 'radar', label: 'Radar', ic: 'radar', paginas: ['radar'], grupos: [
-    { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html']] }] },
+    { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html'], ['XP Inc.', 'xp.html']] }] },
   { id: 'bcb', label: 'Banco Central', href: 'bcb.html', ic: 'gauge' },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] },
@@ -175,6 +175,7 @@ const MENU = [
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], 
+  ['XP Inc.', 'xp.html', 'xp inc xpbr31 nasdaq acao indicadores concorrentes btg itau nubank inter resultados calendario sec'],
   ['Banco Central', 'bcb.html', 'banco central bc bcb copom selic ipca inflacao focus expectativas pib ibc-br desemprego divida fiscal reservas cambio credito inadimplencia indicadores macro'],
   ['Radar de ações', 'rv-radar.html', 'radar acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
   ['Radar de FIIs', 'fiis.html', 'radar fii fiis fundos imobiliarios fiagro atencao pontos criticos dividendos pvp dy'],

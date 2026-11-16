@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>XP Inc. · WorkBroker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css?v=202611160843">
+<style>
+  .hero { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .hero .card { margin: 0; }
+  .px { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .px .p { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .px .v { font-size: 18px; font-weight: 800; }
+  .up { color: var(--good); } .dn { color: var(--bad); }
+  .sub2 { font-size: 13px; color: var(--muted); }
+  .kp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .kp div { background: #f2f3f5; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .kp b { display: block; font-size: 17px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .faixa { position: relative; height: 8px; background: linear-gradient(90deg, var(--bad-soft), #eceaf2, var(--good-soft)); border-radius: 99px; margin: 18px 0 6px; }
+  .faixa i { position: absolute; top: -5px; width: 4px; height: 18px; background: var(--indigo); border-radius: 2px; transform: translateX(-2px); }
+  .leg { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .leg button { display: inline-flex; align-items: center; gap: 6px; background: #f1f0f5; color: var(--ink); border: 0; border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 700; height: auto; }
+  .leg button i { width: 10px; height: 10px; border-radius: 50%; }
+  .leg button.off { opacity: .4; }
+  #graf svg { width: 100%; height: 280px; display: block; }
+  .duo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .duo .card { margin: 0; }
+  .cal .c { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: #f6f5fa; margin-top: 6px; font-size: 14px; text-decoration: none; color: inherit; }
+  .cal .c.prox { background: #fff1e8; }
+  .cal .c .d { font-weight: 800; color: var(--indigo); font-size: 13px; line-height: 1.2; }
+  .cal .c .d small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
+  .perfil { display: grid; gap: 6px; font-size: 14px; }
+  .perfil div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .perfil div span:first-child { color: var(--muted); }
+  .perfil div span:last-child { font-weight: 700; text-align: right; }
+  #tComp td, #tComp th { white-space: nowrap; font-variant-numeric: tabular-nums; padding: 8px; font-size: 13.5px; }
+  #tComp tr.xp td { background: #fff1e8; font-weight: 700; }
+  #tComp td:first-child, #tComp th:first-child { position: sticky; left: 0; background: #fff; }
+  #tComp tr.xp td:first-child { background: #fff1e8; }
+  .lst { display: grid; gap: 6px; }
+  .lst a { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 8px 10px; border-radius: 12px; background: #f6f5fa; color: inherit; text-decoration: none; font-size: 13.5px; line-height: 1.4; }
+  .lst a:hover { background: #fff1e8; }
+  .lst .d { color: var(--muted); font-weight: 700; font-size: 12px; }
+  .lst .f { color: var(--muted); font-size: 12px; }
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header class="top" data-page="radar"></header>
+
+<main>
+  <h1>XP Inc.</h1>
+  <p class="lead">As principais informações públicas da XP Inc. (Nasdaq: XP · BDR: XPBR31): a ação, os indicadores, a comparação com os maiores concorrentes, o calendário de resultados, os documentos e as notícias.</p>
+
+  <div class="hero" id="hero"><div class="card"><p class="note">Carregando…</p></div></div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>📈 12 meses: XP × concorrentes <small style="font-weight:600;color:var(--muted);font-size:13px">base 100 · toque para ligar e desligar</small></h2>
+    <div class="leg" id="leg"></div>
+    <div id="graf"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>⚖️ Comparação com os concorrentes</h2>
+    <div class="table-wrap"><table id="tComp"></table></div>
+    <p class="note" id="compNota" style="margin-top:8px"></p>
+  </div>
+
+  <div class="duo" style="margin-top:14px">
+    <div class="card"><h2>🗓️ Calendário de resultados</h2><div class="cal" id="cal"></div><p class="note" id="calNota" style="margin-top:8px"></p></div>
+    <div class="card"><h2>🏢 Perfil</h2><div class="perfil" id="perfil"></div>
+      <div class="links">
+        <a class="btn sm secondary" href="https://investors.xpinc.com" target="_blank" rel="noopener">Relações com investidores ›</a>
+        <a class="btn sm secondary" href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001787425&type=&dateb=&owner=include&count=40" target="_blank" rel="noopener">Documentos na SEC ›</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>📊 Balanço anual <small style="font-weight:600;color:var(--muted);font-size:13px">formulário 20-F na SEC</small></h2>
+    <div class="table-wrap"><table id="tBal"></table></div>
+  </div>
+
+  <div class="duo" style="margin-top:14px">
+    <div class="card"><h2>📰 Notícias</h2><div class="lst" id="news"></div></div>
+    <div class="card"><h2>📄 Documentos recentes na SEC</h2><div class="lst" id="docs"></div></div>
+  </div>
+
+  <p class="note" id="rodape" style="margin-top:16px"></p>
+</main>
+
+<script src="assets/common.js?v=202611160843"></script>
+<script src="assets/xp.js?v=202611160843"></script>
+</body>
+</html>
