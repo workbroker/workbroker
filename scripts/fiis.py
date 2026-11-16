@@ -144,6 +144,12 @@ def mercado(t):
     ini_ano = datetime(hoje.year, 1, 1, tzinfo=BRT)
     antes = lambda lim: next((c for d, c, _ in reversed(pts) if d < lim), None)
     rec = [c * v / 5 for d, c, v in pts[-9:-1] if v]  # média diária aproximada das últimas 8 semanas
+    # preço de 24 meses atrás; descartado se houver salto de desdobramento/grupamento não ajustado (semana com -60% ou +150%)
+    lim_d = hoje - timedelta(days=730)
+    p24 = antes(lim_d) if pts[0][0] < lim_d else None
+    jan = [c for d, c, _ in pts if d >= lim_d - timedelta(days=7)] + [preco]
+    if p24 and any(b / a < 0.4 or b / a > 2.5 for a, b in zip(jan, jan[1:]) if a):
+        p24 = None
     divs, d24 = {}, 0.0
     lim24 = (hoje - timedelta(days=730)).timestamp()
     for ev in (r.get("events", {}).get("dividends") or {}).values():
@@ -154,7 +160,7 @@ def mercado(t):
     ult_neg = pts[-1][0]
     return {
         "p": round(preco, 2), "p_ano": antes(ini_ano), "p12": antes(hoje - timedelta(days=365)),
-        "p24": antes(hoje - timedelta(days=730)) if pts[0][0] < hoje - timedelta(days=730) else None, "d24": round(d24, 4),
+        "p24": p24, "d24": round(d24, 4),
         "vol": round(sum(rec) / len(rec)) if rec else None,
         "r": sorted(divs.items(), reverse=True)[:14],
         "neg": ult_neg.strftime("%Y-%m-%d"),

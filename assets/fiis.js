@@ -558,7 +558,7 @@ function abaixoPoupanca() {
   $('ppMais').addEventListener('click', () => { limite = 1e9; desenhar(); });
   $('ppLst').addEventListener('click', e => { const b = e.target.closest('[data-fii]'); if (b) abrirFundo(b.dataset.fii); });
   const dBR = d => d ? d.split('-').reverse().join('/') : '';
-  $('ppNota').textContent = `Rendimento total = variação da cota + rendimentos pagos no período (sem reinvestir e sem impostos), comparado com a poupança de ${dBR(POUP.ini)} a ${dBR(POUP.fim)} (Banco Central, série 195). Ficam de fora fundos com menos de 24 meses de negociação. A segunda linha mostra quanto o fundo ficou atrás da poupança. Toque no fundo para ver a ficha.`;
+  $('ppNota').textContent = `Rendimento total = variação da cota + rendimentos pagos no período (sem reinvestir e sem impostos), comparado com a poupança de ${dBR(POUP.ini)} a ${dBR(POUP.fim)} (Banco Central, série 195). Ficam de fora fundos com menos de 24 meses de negociação e os que tiveram desdobramento ou grupamento de cotas no período (o histórico de preço fica distorcido). A segunda linha mostra quanto o fundo ficou atrás da poupança. Toque no fundo para ver a ficha.`;
   desenhar();
   $('poupCard').hidden = false;
 }
