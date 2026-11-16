@@ -64,6 +64,39 @@ def carteira_ibov(indice="IBOV"):
     return out
 
 
+def ifix_b3(debug):
+    """Pontos e variação do IFIX direto da B3 (cotação do dia + fechamento do ano anterior)."""
+    out = None
+    try:
+        j = json.loads(get("https://cotacao.b3.com.br/mds/api/v1/instrumentQuotation/IFIX", 30))
+        tr = (j.get("Trad") or [{}])[0]
+        q = tr.get("scty", {}).get("SctyQtn", {})
+        pts, var = q.get("curPrc"), q.get("prcFlcn")
+        if pts:
+            out = {"fonte": "B3", "pts": round(float(pts), 2), "var": round(float(var), 2) if var is not None else None}
+            dt = (j.get("BizSts") or {}).get("DtTm") or j.get("Msg", {}).get("dtTm")
+            if dt:
+                out["quando"] = dt
+        else:
+            debug["ifix_b3"] = str(j)[:200]
+    except Exception as e:
+        debug["ifix_b3"] = repr(e)[:120]
+    if out:
+        try:  # fechamento do ano anterior: maior dia com valor em dezembro
+            ano = datetime.now(timezone(timedelta(hours=-3))).year - 1
+            q = base64.b64encode(json.dumps({"language": "pt-br", "index": "IFIX", "year": str(ano)}).encode()).decode()
+            j = json.loads(get("https://sistemaswebb3-listados.b3.com.br/indexStatisticsProxy/IndexCall/GetDailyStatistics/" + q, 30))
+            dez = [r.get("rateValue12") for r in sorted(j.get("results", []), key=lambda r: int(r.get("day") or 0)) if r.get("rateValue12")]
+            if dez:
+                fech = float(str(dez[-1]).replace(".", "").replace(",", "."))
+                out["ano"] = round((out["pts"] / fech - 1) * 100, 2)
+            else:
+                debug["ifix_ano"] = str(j)[:200]
+        except Exception as e:
+            debug["ifix_ano"] = repr(e)[:120]
+    return out
+
+
 # ---------------- Cotações (Yahoo) ----------------
 def yahoo(tk):
     j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(tk)}.SA?range=1y&interval=1d&events=div", 40))
@@ -464,18 +497,26 @@ def main():
         if q:
             acoes.append(indicadores({"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **q}, c["tk"], q, c.get("qt") or 0))
     fiis = [{"tk": c["tk"], "nome": c["nome"], "peso": c["peso"], **Q[c["tk"]]} for c in cart_fii if Q.get(c["tk"])]
-    ifix = None
-    for simb in ("IFIX.SA", "XFIX11.SA"):
-        try:
-            j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{simb}?range=5d&interval=1d"))
-            r0 = j["chart"]["result"][0]; m = r0["meta"]
-            cl = [c for c in r0["indicators"]["quote"][0]["close"] if c]
-            if m.get("regularMarketPrice") and len(cl) >= 2:
-                ifix = {"fonte": simb, "pts": m["regularMarketPrice"], "var": round((m["regularMarketPrice"] / cl[-2] - 1) * 100, 2), "t": m.get("regularMarketTime")}
-                break
-        except Exception as e:
-            log("ifix", simb, e)
-    log("FIIs do IFIX com cotação:", len(fiis))
+    ifix = ifix_b3(debug)
+    # variação no ano (e, sem a B3, também o dia) pelo ETF XFIX11, que replica o IFIX
+    try:
+        j = json.loads(get("https://query1.finance.yahoo.com/v8/finance/chart/XFIX11.SA?range=1y&interval=1d"))
+        r0 = j["chart"]["result"][0]; m = r0["meta"]
+        pts = [(t, c) for t, c in zip(r0.get("timestamp") or [], r0["indicators"]["quote"][0]["close"]) if c]
+        preco = m.get("regularMarketPrice") or pts[-1][1]
+        ano_atual = datetime.fromtimestamp(m.get("regularMarketTime") or pts[-1][0], timezone.utc).year
+        base_ano = [c for t, c in pts if datetime.fromtimestamp(t, timezone.utc).year < ano_atual]
+        etf = {"var": round((preco / pts[-2][1] - 1) * 100, 2) if len(pts) >= 2 else None,
+               "ano": round((preco / base_ano[-1] - 1) * 100, 2) if base_ano else None, "t": m.get("regularMarketTime")}
+        if not ifix:
+            ifix = {"fonte": "XFIX11.SA", "pts": None, **etf}
+        else:
+            if ifix.get("ano") is None:
+                ifix["ano"] = etf["ano"]; ifix["fonte_ano"] = "XFIX11.SA"
+            ifix.setdefault("t", etf["t"])
+    except Exception as e:
+        log("ifix XFIX11", e)
+    log("FIIs do IFIX com cotação:", len(fiis), "IFIX:", ifix, {k: v for k, v in debug.items() if k.startswith("ifix")})
     outras = []
     for t, q in sorted(outras_q.items()):
         cn = tk2cn.get(t)
