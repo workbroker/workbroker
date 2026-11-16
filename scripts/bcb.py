@@ -24,7 +24,8 @@ def get(url, timeout=60):
 def sgs(cod, anos=4):
     ini = HOJE.replace(day=1, year=HOJE.year - anos).strftime("%d/%m/%Y")
     d = json.loads(get(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{cod}/dados?formato=json&dataInicial={ini}"))
-    return [(f"{x['data'][6:10]}-{x['data'][3:5]}-{x['data'][0:2]}", float(x["valor"])) for x in d if x.get("valor") not in (None, "")]
+    hoje = HOJE.strftime("%Y-%m-%d")  # a série da Selic traz datas futuras (meta vigente até a próxima reunião)
+    return [p for p in ((f"{x['data'][6:10]}-{x['data'][3:5]}-{x['data'][0:2]}", float(x["valor"])) for x in d if x.get("valor") not in (None, "")) if p[0] <= hoje]
 
 
 def mensal(pontos):
@@ -133,15 +134,22 @@ def copom(debug):
             for k in ("textoComunicado", "texto", "conteudo", "corpo", "Texto"):
                 if it.get(k):
                     texto = limpa(it[k]); break
-            ref = it.get("nroReuniao") or it.get("numeroReuniao") or it.get("reuniao")
+            ref = it.get("nro_reuniao") or it.get("nroReuniao") or it.get("numeroReuniao") or it.get("reuniao")
             if not texto and ref:  # detalhe da reunião
-                for d in (f"https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados_detalhes?nro_reuniao={ref}",):
+                for d in (f"https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados_detalhes?nro_reuniao={ref}",
+                          f"https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicado_detalhes?nro_reuniao={ref}",
+                          f"https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados?nro_reuniao={ref}"):
                     try:
-                        jj = json.loads(get(d)); x = (jj.get("conteudo") or [jj])[0]
-                        for k in ("textoComunicado", "texto"):
-                            if x.get(k): texto = limpa(x[k]); break
+                        jj = json.loads(get(d)); x = jj.get("conteudo") if isinstance(jj, dict) else jj
+                        x = (x[0] if isinstance(x, list) and x else x) or {}
+                        debug.setdefault("copom_detalhe", []).append({"u": d, "campos": list(x.keys())[:20] if isinstance(x, dict) else str(type(x))})
+                        for k in ("textoComunicado", "texto", "conteudo", "corpo"):
+                            if isinstance(x, dict) and isinstance(x.get(k), str) and len(x[k]) > 200:
+                                texto = limpa(x[k]); break
+                        if texto:
+                            break
                     except Exception as e:
-                        log("copom detalhe", e)
+                        debug.setdefault("copom_detalhe", []).append({"u": d, "erro": repr(e)[:100]})
             data = it.get("dataReferencia") or it.get("data") or it.get("dataPublicacao")
             titulo = limpa(it.get("titulo") or "")
             if texto:
