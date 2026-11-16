@@ -30,7 +30,7 @@ const lv = k => `<span class="lv ${esc(k)}">${esc(NIVEL[k] || k)}</span>`;
 const mud = k => k ? `<span class="mud">${esc(MUD[k] || k)}</span>` : '';
 
 // ---------- estado ----------
-let AUTO = {}, AUTO_META = null, IFIX = null;   // indicadores automáticos
+let AUTO = {}, AUTO_META = null, IFIX = null, POUP = null;   // indicadores automáticos
 let MAN = null;                                   // manual importado (opcional)
 let byT = {}, UT = new Set(), FORA = {}, NLOC = new Set(), PEND = new Set(), DESC = {}, GL = new Map(), ED = '', REF = {}, FM = [];
 
@@ -54,6 +54,8 @@ function calcAuto(t, a) {
   f.var12 = okp && okn(f.p12) ? f.p / f.p12 - 1 : null;
   f.tr12 = okp && okn(f.p12) ? (f.p + f.soma12) / f.p12 - 1 : null;
   f.tr_ano = okp && okn(f.p_ano) ? (f.p + f.div_ano) / f.p_ano - 1 : null;
+  f.p24 = okn(+a.p24) && +a.p24 > 0 ? +a.p24 : null; f.d24 = okn(+a.d24) ? +a.d24 : 0;
+  f.tr24 = okp && f.p24 ? (f.p + f.d24) / f.p24 - 1 : null;   // rendimento total: cota + proventos
   f.varVp = okn(f.vp) && okn(f.vp12) && f.vp12 > 0 ? f.vp / f.vp12 - 1 : null;
   // meses sem rendimento: o último pagamento foi há mais de 2 meses
   const mesesDesde = f.ultMes ? (ANO - +f.ultMes.slice(0, 4)) * 12 + (hoje.getMonth() + 1 - +f.ultMes.slice(5, 7)) : null;
@@ -527,6 +529,40 @@ function montarSobre() {
 }
 
 // ---------- montagem ----------
+// ---------- FIIs que renderam menos que a poupança em 24 meses ----------
+function abaixoPoupanca() {
+  if (!POUP || !okn(POUP.r)) return;
+  const n2 = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const pc = v => `${v > 0 ? '+' : ''}${n2(v * 100)}%`;
+  const todos = Object.values(AUTO).filter(f => okn(f.tr24) && f.tr24 < POUP.r).sort((a, b) => a.tr24 - b.tr24);
+  if (!todos.length) return;
+  let limite = 8;
+  const mn = Math.min(...todos.map(f => f.tr24), 0), mx = Math.max(POUP.r, 0.01), esc0 = mx - mn || 1;
+  const item = f => {
+    const nome = (f.nome || '').replace(/\s+(FII|FUNDO DE INVESTIMENTO IMOBILI[AÁ]RIO).*$/i, '');
+    const largura = Math.max((f.tr24 - mn) / esc0 * 100, 2);
+    return `<button class="mv-it" type="button" data-fii="${esc(f.ticker)}"><span class="tk">${esc(f.ticker)}</span>
+      <span><span class="nm">${esc(nome)}${f.seg ? ' · ' + esc(f.seg) : ''}</span><div class="bar"><i style="width:${largura}%;background:${f.tr24 < 0 ? 'var(--bad)' : 'var(--warn)'}"></i></div></span>
+      <span class="vv"><span class="${f.tr24 < 0 ? 'dn' : ''}">${pc(f.tr24)}</span><small>${pc((1 + f.tr24) / (1 + POUP.r) - 1)} vs poup.</small></span></button>`;
+  };
+  const desenhar = () => {
+    const liq = +$('ppLiq').value;
+    const L = todos.filter(f => (f.vol || 0) >= liq);
+    const base = Object.values(AUTO).filter(f => okn(f.tr24) && (f.vol || 0) >= liq).length;
+    $('ppRef').innerHTML = `Poupança em 24 meses: <b>${pc(POUP.r)}</b>${IFIX && okn(IFIX.r24) ? ` · IFIX: <b>${pc(IFIX.r24)}</b>` : ''} · <b>${L.length}</b> de ${base} fundos ficaram abaixo`;
+    $('ppLst').innerHTML = L.length ? L.slice(0, limite).map(item).join('') : '<p class="note">Nenhum fundo com essa liquidez ficou abaixo da poupança.</p>';
+    $('ppMais').hidden = L.length <= limite;
+    $('ppMais').textContent = `Ver todos (${L.length})`;
+  };
+  $('ppLiq').addEventListener('change', () => { limite = 8; desenhar(); });
+  $('ppMais').addEventListener('click', () => { limite = 1e9; desenhar(); });
+  $('ppLst').addEventListener('click', e => { const b = e.target.closest('[data-fii]'); if (b) abrirFundo(b.dataset.fii); });
+  const dBR = d => d ? d.split('-').reverse().join('/') : '';
+  $('ppNota').textContent = `Rendimento total = variação da cota + rendimentos pagos no período (sem reinvestir e sem impostos), comparado com a poupança de ${dBR(POUP.ini)} a ${dBR(POUP.fim)} (Banco Central, série 195). Ficam de fora fundos com menos de 24 meses de negociação. A segunda linha mostra quanto o fundo ficou atrás da poupança. Toque no fundo para ver a ficha.`;
+  desenhar();
+  $('poupCard').hidden = false;
+}
+
 function montar() {
   ABAS = [['busca', '🔎 Buscar fundo'], ['carteira', '📄 Carteira do cliente']];
   if (MAN) ABAS.push(['temas', '🧩 Temas do manual'], ['agenda', '📅 Agenda do manual']);
@@ -546,8 +582,9 @@ function montar() {
   try { localStorage.removeItem(CHAVE); } catch (e) {}   // importação de arquivos desativada (política da empresa)
   try {
     const d = await carregarDados('fiis.json');
-    AUTO_META = { gerado: d.gerado }; IFIX = d.ifix || null;
+    AUTO_META = { gerado: d.gerado }; IFIX = d.ifix || null; POUP = d.poup24 || null;
     Object.entries(d.f || {}).forEach(([t, a]) => { AUTO[t] = calcAuto(t, a); });
   } catch (e) { console.error(e); }
   montar();
+  abaixoPoupanca();
 })();

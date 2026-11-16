@@ -114,7 +114,7 @@ def dados_cvm(debug):
 
 # ---------- Yahoo ----------
 def grafico(simbolo):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{simbolo}?range=2y&interval=1wk&events=div"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{simbolo}?range=3y&interval=1wk&events=div"
     for tentativa in range(3):
         try:
             r = json.loads(get(url, timeout=30))["chart"]["result"][0]
@@ -144,13 +144,17 @@ def mercado(t):
     ini_ano = datetime(hoje.year, 1, 1, tzinfo=BRT)
     antes = lambda lim: next((c for d, c, _ in reversed(pts) if d < lim), None)
     rec = [c * v / 5 for d, c, v in pts[-9:-1] if v]  # média diária aproximada das últimas 8 semanas
-    divs = {}
+    divs, d24 = {}, 0.0
+    lim24 = (hoje - timedelta(days=730)).timestamp()
     for ev in (r.get("events", {}).get("dividends") or {}).values():
+        if ev["date"] >= lim24:
+            d24 += float(ev["amount"])
         d = datetime.fromtimestamp(ev["date"], BRT).strftime("%Y-%m")
         divs[d] = round(divs.get(d, 0) + float(ev["amount"]), 4)
     ult_neg = pts[-1][0]
     return {
         "p": round(preco, 2), "p_ano": antes(ini_ano), "p12": antes(hoje - timedelta(days=365)),
+        "p24": antes(hoje - timedelta(days=730)) if pts[0][0] < hoje - timedelta(days=730) else None, "d24": round(d24, 4),
         "vol": round(sum(rec) / len(rec)) if rec else None,
         "r": sorted(divs.items(), reverse=True)[:14],
         "neg": ult_neg.strftime("%Y-%m-%d"),
@@ -300,6 +304,27 @@ def resumir(txt, limite=330):
     return corpo
 
 
+def poupanca_24m(debug):
+    """Rentabilidade da poupança nos últimos 24 meses (SGS 195: rendimento por data de aniversário; usa o dia 1 de cada mês)."""
+    hoje = datetime.now(BRT)
+    ini = (hoje - timedelta(days=800)).strftime("%d/%m/%Y")
+    try:
+        j = json.loads(get(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.195/dados?formato=json&dataInicial={ini}"))
+        hj = hoje.strftime("%Y-%m-%d")
+        iso = lambda d: f"{d[6:10]}-{d[3:5]}-{d[0:2]}"
+        meses = [x for x in j if x["data"].startswith("01/") and iso(x.get("datafim") or x["data"]) <= hj]
+        meses = meses[-24:]
+        if len(meses) < 24:
+            raise ValueError(f"só {len(meses)} meses")
+        acc = 1.0
+        for x in meses:
+            acc *= 1 + float(x["valor"]) / 100
+        return {"r": round(acc - 1, 5), "ini": iso(meses[0]["data"]), "fim": iso(meses[-1].get("datafim") or meses[-1]["data"]), "fonte": "BCB SGS 195"}
+    except Exception as e:
+        debug["poupanca"] = repr(e)[:160]
+        return None
+
+
 def main():
     hoje = datetime.now(BRT)
     if os.path.exists(SAIDA) and not os.environ.get("FORCAR"):
@@ -370,16 +395,18 @@ def main():
             p12, pano = antes(hoje - timedelta(days=365)), antes(datetime(hoje.year, 1, 1, tzinfo=BRT))
             if not p12 or not pano:
                 continue
-            ifix = {"fonte": s, "r12": round(atual / p12 - 1, 4), "ano": round(atual / pano - 1, 4)}
+            p24 = antes(hoje - timedelta(days=730)) if pts[0][0] < hoje - timedelta(days=730) else None
+            ifix = {"fonte": s, "r12": round(atual / p12 - 1, 4), "ano": round(atual / pano - 1, 4), "r24": round(atual / p24 - 1, 4) if p24 else None}
             break
         except Exception:
             continue
-    log("FIIs com cotação:", len(saida), "IFIX:", ifix)
+    poup = poupanca_24m(debug)
+    log("FIIs com cotação:", len(saida), "IFIX:", ifix, "poupança 24m:", poup)
     if len(saida) < 50:
         log("poucos FIIs; mantendo o arquivo anterior")
         return
     with open(SAIDA, "w", encoding="utf-8") as fp:
-        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "f": saida, "_debug": debug}, fp, ensure_ascii=False, separators=(",", ":"))
+        json.dump({"gerado": hoje.isoformat(timespec="seconds"), "ifix": ifix, "poup24": poup, "f": saida, "_debug": debug}, fp, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":
