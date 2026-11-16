@@ -316,20 +316,21 @@ def poupanca_24m(debug):
     ini = (hoje - timedelta(days=800)).strftime("%d/%m/%Y")
     try:
         j = json.loads(get(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.195/dados?formato=json&dataInicial={ini}"))
-        hj = hoje.strftime("%Y-%m-%d")
+        um_mes = (hoje - timedelta(days=31)).strftime("%Y-%m-%d")
         iso = lambda d: f"{d[6:10]}-{d[3:5]}-{d[0:2]}"
         por_data = {}
         for x in j:  # uma linha por período (a série pode repetir datas)
-            if x["data"].startswith("01/") and iso(x.get("datafim") or x["data"]) <= hj:
+            if x["data"].startswith("01/") and iso(x["data"]) <= um_mes:  # só períodos já completos
                 por_data[iso(x["data"])] = x
         meses = [por_data[k] for k in sorted(por_data)][-24:]
-        debug["poupanca_meses"] = [(iso(x["data"]), x.get("datafim"), x["valor"]) for x in meses[-3:]] + [len(j)]
         if len(meses) < 24:
             raise ValueError(f"só {len(meses)} meses")
         acc = 1.0
         for x in meses:
             acc *= 1 + float(x["valor"]) / 100
-        return {"r": round(acc - 1, 5), "ini": iso(meses[0]["data"]), "fim": iso(meses[-1].get("datafim") or meses[-1]["data"]), "fonte": "BCB SGS 195"}
+        u = iso(meses[-1]["data"])  # fim = mês seguinte ao último aniversário
+        fim = f"{int(u[:4]) + (u[5:7] == '12')}-{int(u[5:7]) % 12 + 1:02d}-01"
+        return {"r": round(acc - 1, 5), "ini": iso(meses[0]["data"]), "fim": fim, "fonte": "BCB SGS 195"}
     except Exception as e:
         debug["poupanca"] = repr(e)[:160]
         return None
