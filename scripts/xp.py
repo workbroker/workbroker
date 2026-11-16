@@ -146,6 +146,10 @@ def documentos_sec(cik, debug):
                 item["l"] = base + alvo
                 item["t"] = titulo
                 m = re.search(r"(reports?|announces?|presents?)[^.]{0,80}(results|earnings)", txt[:1500], re.I) and TRI.search(txt[:1500])
+                mm = re.search(r"6k[-_]?([1-4])q(\d\d)", prim, re.I)  # ex.: dp229049_6k-1q25.htm
+                if mm and not m:
+                    q, a = int(mm.group(1)), 2000 + int(mm.group(2))
+                    res.append({"d": dt, "tri": f"{q}T{str(a)[2:]}", "l": item["l"]}); item["res"] = f"{q}T{str(a)[2:]}"
                 if m:
                     q = m.group(1).lower(); q = NUM_TRI.get(q, int(q[0]) if q[0].isdigit() else None)
                     a = m.group(2); a = int(a) if len(a) == 4 else 2000 + int(a)
@@ -232,7 +236,7 @@ def main():
     # SEC: XP, Nubank, Inter
     sec, docs, cal = {}, [], []
     try:
-        ciks = cik_de({"XP", "NU", "INTR"})
+        ciks = {"XP": "0001787425", "NU": "0001691493", "INTR": "0001864163"}  # CIK na SEC
         debug["ciks"] = ciks
         for tk, cik in ciks.items():
             try:
