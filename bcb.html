@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Banco Central · WorkBroker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css?v=202611160742">
+<style>
+  .top2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 6px; }
+  .top2 .card { margin: 0; }
+  .sec-h { font-size: 18px; color: var(--indigo); margin: 24px 0 10px; }
+  .igrid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .ind { background: #fff; border-radius: 22px; padding: 16px 18px; box-shadow: 0 1px 0 rgba(34,16,90,.04); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .ind .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .ind .nm { font-weight: 800; color: var(--indigo); font-size: 15px; line-height: 1.25; }
+  .ind .dt { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ind .v { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .ind .v small { font-size: 13px; color: var(--muted); font-weight: 700; margin-left: 3px; }
+  .ind .sig { font-size: 13.5px; color: #3a3650; line-height: 1.4; }
+  .ind .ref { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .ind svg { width: 100%; height: 120px; display: block; }
+  .temp { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
+  .temp i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .temp.otimo { background: #dff6ea; color: #0f7a45; } .temp.otimo i { background: #0f7a45; }
+  .temp.bom { background: #e9f6df; color: #3d7a12; } .temp.bom i { background: #57a51c; }
+  .temp.ok { background: var(--warn-soft); color: var(--warn); } .temp.ok i { background: var(--warn); }
+  .temp.ruim { background: var(--bad-soft); color: var(--bad); } .temp.ruim i { background: var(--bad); }
+  .bc { background: #f6f5fa; border-radius: 14px; padding: 10px 12px; font-size: 13px; line-height: 1.45; color: #2f2b45; }
+  .bc b { display: block; font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+  .termo { display: flex; gap: 3px; margin-top: 2px; }
+  .termo span { flex: 1; height: 5px; border-radius: 99px; background: #eceaf2; }
+  .termo.ruim span:nth-child(-n+1) { background: var(--bad); }
+  .termo.ok span:nth-child(-n+2) { background: var(--warn); }
+  .termo.bom span:nth-child(-n+3) { background: #57a51c; }
+  .termo.otimo span { background: #0f7a45; }
+  table.focus td, table.focus th { padding: 7px 8px; font-size: 14px; }
+  table.focus td.n b { font-size: 15px; }
+  .seta { font-size: 11px; font-weight: 800; margin-left: 4px; }
+  .seta.up { color: var(--bad); } .seta.dn { color: var(--good); } .seta.eq { color: var(--muted); }
+  .copom-t { font-size: 14px; line-height: 1.55; color: #2f2b45; }
+  .legenda { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header class="top" data-page="bcb"></header>
+
+<main>
+  <h1>Banco Central</h1>
+  <p class="lead">Os principais indicadores da economia com os dados oficiais do Banco Central: gráfico dos últimos três anos, o que cada um significa, a temperatura e o que o próprio BC disse sobre o tema no último comunicado do Copom.</p>
+
+  <div class="top2">
+    <div class="card" id="cardCopom"><h2>🏛️ Último Copom</h2><div id="copom"><p class="note">Carregando…</p></div></div>
+    <div class="card"><h2>🔭 O que o mercado espera <small style="font-weight:600;color:var(--muted);font-size:13px">Boletim Focus</small></h2><div id="focus"><p class="note">Carregando…</p></div></div>
+  </div>
+  <div class="legenda" id="legenda"></div>
+
+  <div id="secoes"></div>
+  <p class="note" id="rodape" style="margin-top:18px"></p>
+</main>
+
+<script src="assets/common.js?v=202611160742"></script>
+<script src="assets/bcb.js?v=202611160742"></script>
+</body>
+</html>

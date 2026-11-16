@@ -135,6 +135,7 @@ const ICON = {
   news: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  gauge: '<path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="m12 13 4-4"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor"/><path d="M7 17h10"/>',
   radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 18 6"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
 };
 const svgI = (k, sz = 20) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
@@ -164,6 +165,7 @@ const MENU = [
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
   { id: 'radar', label: 'Radar', ic: 'radar', paginas: ['radar'], grupos: [
     { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html']] }] },
+  { id: 'bcb', label: 'Banco Central', href: 'bcb.html', ic: 'gauge' },
   { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] },
     { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html']] },
@@ -173,6 +175,7 @@ const MENU = [
 ];
 const PAGINAS = [
   ['Início', 'index.html', 'home inicio painel'], 
+  ['Banco Central', 'bcb.html', 'banco central bc bcb copom selic ipca inflacao focus expectativas pib ibc-br desemprego divida fiscal reservas cambio credito inadimplencia indicadores macro'],
   ['Radar de ações', 'rv-radar.html', 'radar acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
   ['Radar de FIIs', 'fiis.html', 'radar fii fiis fundos imobiliarios fiagro atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
