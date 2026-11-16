@@ -19,7 +19,21 @@
   const quando = d.toDateString() === h.toDateString() ? 'hoje' : `pregão de ${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   document.querySelectorAll('#movFii .qd').forEach(x => { x.textContent = quando; });
   const sobe = F.filter(a => a.var > 0).length, cai = F.filter(a => a.var < 0).length;
-  el('movNota').innerHTML = `${R.ifix ? `IFIX ${pv(R.ifix.var)} · ` : ''}${sobe} cotas sobem e ${cai} caem entre os ${F.length} fundos do IFIX. Cotações de ${d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (Yahoo Finance, atualizadas mais ou menos de hora em hora). Toque no fundo para ver a ficha.`;
+  // cartões do topo, no mesmo formato do Radar de ações
+  const I = R.ifix || {};
+  const med = arr => { const v = arr.filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : NaN; };
+  const mediana = med(F.map(a => a.var));
+  const pond = F.filter(a => Number.isFinite(a.ano) && a.peso);
+  const anoPond = pond.reduce((s, a) => s + a.ano * a.peso, 0) / (pond.reduce((s, a) => s + a.peso, 0) || 1);
+  const ano = Number.isFinite(I.ano) ? I.ano : anoPond;
+  const kv = v => Number.isFinite(v) ? (v >= 0 ? 'up' : 'dn') : '';
+  el('kpisFii').innerHTML = `
+    <div class="kpi"><div class="l">IFIX</div><div class="v">${Number.isFinite(I.pts) ? Math.round(I.pts).toLocaleString('pt-BR') : Number.isFinite(I.var) ? pv(I.var) : '—'}</div><div class="s">${Number.isFinite(I.pts) && Number.isFinite(I.var) ? pv(I.var) + ' · ' : ''}${quando}</div></div>
+    <div class="kpi"><div class="l">Sobem × caem</div><div class="v"><span class="up">${sobe}</span> × <span class="dn">${cai}</span></div><div class="s">de ${F.length} fundos do índice</div></div>
+    <div class="kpi"><div class="l">Variação mediana</div><div class="v ${kv(mediana)}">${Number.isFinite(mediana) ? pv(mediana) : '—'}</div><div class="s">metade dos fundos acima disso</div></div>
+    <div class="kpi"><div class="l">IFIX no ano</div><div class="v ${kv(ano)}">${Number.isFinite(ano) ? pv(ano) : '—'}</div><div class="s">${Number.isFinite(I.ano) ? 'desde o fechamento de ' + (new Date().getFullYear() - 1) : 'fundos do índice pelo peso'}</div></div>`;
+  el('kpisFii').hidden = false;
+  el('movNota').innerHTML = `Cotações de ${d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (Yahoo Finance, atualizadas mais ou menos de hora em hora). Toque no fundo para ver a ficha.`;
   el('movFii').hidden = false;
   el('movFii').addEventListener('click', e => {
     const b = e.target.closest('[data-fii]'); if (!b) return;
