@@ -5,6 +5,8 @@ const n2 = (v, d = 2) => Number.isFinite(v) ? v.toLocaleString('pt-BR', { minimu
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const rotM = ym => ym ? `${MESES[+ym.slice(5, 7) - 1]}/${ym.slice(2, 4)}` : '';
 const dataBR = d => d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '';
+// gráfico da série no SGS (site do Banco Central): o mesmo link que o catálogo de dados abertos do BC usa
+const linkSGS = cod => `https://www3.bcb.gov.br/sgspub/consultarvalores/consultarValoresSeries.do?method=consultarGraficoPorId&hdOidSeriesSelecionadas=${cod}`;
 const TEMP = { otimo: 'Ótimo', bom: 'Bom', ok: 'OK', ruim: 'Ruim' };
 const faixa = (v, lim) => { for (const [nivel, f] of lim) if (f(v)) return nivel; return 'ruim'; };
 
@@ -157,7 +159,7 @@ function cartao(k) {
   const v = x.ult[1], t = c.temp(v, x.serie), frase = fraseBC(c.bc);
   const extra = k === 'ipca12' && B.ind.ipca_mes?.ult ? ` · no mês: ${n2(B.ind.ipca_mes.ult[1])}% (${rotM(B.ind.ipca_mes.ult[0])})` : '';
   const dataTxt = x.dia && /fim_mes|selic|dolar|reservas/.test(k) ? new Date(x.dia + 'T12:00:00').toLocaleDateString('pt-BR') : rotM(x.ult[0]);
-  return `<div class="ind">
+  return `<a class="ind" href="${linkSGS(x.cod)}" target="_blank" rel="noopener" title="Abrir a série ${x.cod} no site do Banco Central">
     <div class="hd"><div><div class="nm">${esc(x.nome)}</div><div class="dt">${dataTxt}${extra}</div></div>
       ${t ? `<span class="temp ${t}"><i></i>${TEMP[t]}</span>` : ''}</div>
     <div class="v">${valor(k, v, c)}</div>
@@ -166,7 +168,8 @@ function cartao(k) {
     ${grafico(x.serie, c)}
     <div class="ref">${esc(c.ref(v, x.serie))}</div>
     ${frase ? `<div class="bc"><b>O que o BC diz · Copom${B.copom?.data ? ' ' + dataBR(B.copom.data) : ''}</b>“${esc(frase)}”</div>` : ''}
-  </div>`;
+    <div class="abrir">Analisar no site do Banco Central <span>série ${x.cod} ›</span></div>
+  </a>`;
 }
 function copom() {
   const c = B.copom;
@@ -188,7 +191,7 @@ function focus() {
   const data = Object.values(F)[0]?.data;
   $('focus').innerHTML = Object.keys(F).length ? `<div class="table-wrap"><table class="focus"><thead><tr><th>Mediana do mercado</th><th class="n">${a0}</th><th class="n">${a1}</th></tr></thead><tbody>
     ${linhas.map(([k, n, d]) => `<tr><td>${n}</td><td class="n">${cel(F[k], a0, d)}</td><td class="n">${cel(F[k], a1, d)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="note" style="margin:6px 0 0">Projeções dos economistas consultados pelo BC${data ? `, pesquisa de ${new Date(data + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}. ▲▼ = mudança em relação à semana anterior.</p>`
+    <p class="note" style="margin:6px 0 0">Projeções dos economistas consultados pelo BC${data ? `, pesquisa de ${new Date(data + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}. ▲▼ = mudança em relação à semana anterior. <a href="https://www.bcb.gov.br/publicacoes/focus" target="_blank" rel="noopener">Ver o Focus completo no site do BC ›</a></p>`
     : '<p class="note">Focus indisponível agora.</p>';
 }
 

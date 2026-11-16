@@ -6,13 +6,17 @@
 <meta name="theme-color" content="#22105a">
 <title>Banco Central · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611160751">
+<link rel="stylesheet" href="assets/style.css?v=202611160825">
 <style>
   .top2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 6px; }
   .top2 .card { margin: 0; }
   .sec-h { font-size: 18px; color: var(--indigo); margin: 24px 0 10px; }
   .igrid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
   .ind { background: #fff; border-radius: 22px; padding: 16px 18px; box-shadow: 0 1px 0 rgba(34,16,90,.04); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  a.ind { text-decoration: none; color: inherit; transition: box-shadow .15s, border-color .15s, transform .15s; }
+  a.ind:hover { border-color: #ffc29e; box-shadow: 0 8px 24px rgba(34,16,90,.10); transform: translateY(-1px); }
+  .ind .abrir { margin-top: auto; padding-top: 6px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--orange); }
+  .ind .abrir span { color: var(--muted); font-weight: 600; }
   .ind .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .ind .nm { font-weight: 800; color: var(--indigo); font-size: 15px; line-height: 1.25; }
   .ind .dt { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -60,7 +64,7 @@
   <p class="note" id="rodape" style="margin-top:18px"></p>
 </main>
 
-<script src="assets/common.js?v=202611160751"></script>
-<script src="assets/bcb.js?v=202611160751"></script>
+<script src="assets/common.js?v=202611160825"></script>
+<script src="assets/bcb.js?v=202611160825"></script>
 </body>
 </html>
