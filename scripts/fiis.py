@@ -312,8 +312,12 @@ def poupanca_24m(debug):
         j = json.loads(get(f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.195/dados?formato=json&dataInicial={ini}"))
         hj = hoje.strftime("%Y-%m-%d")
         iso = lambda d: f"{d[6:10]}-{d[3:5]}-{d[0:2]}"
-        meses = [x for x in j if x["data"].startswith("01/") and iso(x.get("datafim") or x["data"]) <= hj]
-        meses = meses[-24:]
+        por_data = {}
+        for x in j:  # uma linha por período (a série pode repetir datas)
+            if x["data"].startswith("01/") and iso(x.get("datafim") or x["data"]) <= hj:
+                por_data[iso(x["data"])] = x
+        meses = [por_data[k] for k in sorted(por_data)][-24:]
+        debug["poupanca_meses"] = [(iso(x["data"]), x.get("datafim"), x["valor"]) for x in meses[-3:]] + [len(j)]
         if len(meses) < 24:
             raise ValueError(f"só {len(meses)} meses")
         acc = 1.0
