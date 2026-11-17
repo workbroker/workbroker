@@ -25,7 +25,7 @@ BLOCOS = {
     "juros": ["2YY=F", "^TNX", "^TYX"],
     "moedas": ["BRL=X", "EURBRL=X", "DX-Y.NYB", "EURUSD=X", "BTC-USD"],
     "medo": ["^VIX"],
-    "commodities": ["BZ=F", "CL=F", "TIO=F", "GC=F", "SI=F", "HG=F", "ZS=F", "ZC=F", "KC=F"],
+    "commodities": ["BZ=F", "CL=F", "GC=F", "SI=F", "HG=F", "ZS=F", "ZC=F", "KC=F"],
     "brasil": ["^BVSP", "SMAL11.SA", "EWZ"],
     "mundo": ["^GSPC", "^IXIC", "^DJI", "000001.SS", "000300.SS", "^HSI", "^GDAXI", "^N225", "^NSEI", "^BSESN",
               "^FTSE", "^FCHI", "FTSEMIB.MI", "^GSPTSE", "^BVSP", "^IBEX", "^KS11", "^AXJO", "^MXX", "^STOXX50E"],
