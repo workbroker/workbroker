@@ -89,12 +89,17 @@ function montar(i) {
   const curvaEstimada = n.aplicado * Math.pow(1 + rA, dAplHoje / 365);
   const curva = Number.isFinite(n.curva) ? n.curva : curvaEstimada;
   const tRestA = dias(hoje, i.a_venc) / 365;
-  const venda = modoVenda === 'valor' ? n.venda
+  // Venda em R$: o valor informado já é LÍQUIDO de IR. O bruto equivalente (para deságio e taxa implícita)
+  // é o valor que, depois do IR sobre o ganho, resulta no líquido informado.
+  const vendaLiquidaInformada = modoVenda === 'valor';
+  const aliqHoje = aIsento ? 0 : aliquotaIR(dias(i.a_dtapl, hoje));
+  const venda = vendaLiquidaInformada
+    ? (n.venda > n.aplicado ? n.aplicado + (n.venda - n.aplicado) / (1 - aliqHoje) : n.venda)
     : curva * Math.pow((1 + rA) / (1 + taxaAnual(i.a_idx, n.mtm, n.cdi, n.ipca)), tRestA);
   const taxaVendaImplicita = taxaNoIndexador(i.a_idx, (1 + rA) / Math.pow(venda / curva, 1 / tRestA) - 1, n.cdi, n.ipca);
 
   const H = dias(i.a_venc, i.b_venc) >= 0 ? i.b_venc : i.a_venc;
-  const P = { i, n, hoje, H, aIsento, bIsento, rIsento, rA, rB, rR, rTaxaUsada, curva, curvaEstimada, venda, taxaVendaImplicita };
+  const P = { i, n, hoje, H, aIsento, bIsento, rIsento, rA, rB, rR, rTaxaUsada, curva, curvaEstimada, venda, taxaVendaImplicita, vendaLiquidaInformada };
 
   // Valor bruto do título atual na curva em uma data
   P.brutoA = d => {
@@ -109,7 +114,7 @@ function montar(i) {
   P.irA = ir(aIsento, dias(i.a_dtapl, i.a_venc), VA - n.aplicado);
   P.liqVA = VA - P.irA;
   P.irVenda = ir(aIsento, dAplHoje, venda - n.aplicado);
-  P.liqVenda = venda - P.irVenda;
+  P.liqVenda = vendaLiquidaInformada ? n.venda : venda - P.irVenda;
 
   // Caminho 1: manter (+ reinvestir depois do vencimento)
   P.manter = (d, liquido = true) => {
@@ -322,15 +327,15 @@ function render() {
       <div class="kpi"><div class="l">Diferença</div><div class="v ${P.dif >= 0 ? 'good' : 'bad'}">${P.dif >= 0 ? '+' : ''}${brl(P.dif)}</div><div class="s">${pct(P.difPct)} em ${P.anos.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} anos</div></div>
       <div class="kpi"><div class="l">Taxa mínima para empatar</div><div class="v" style="font-size:17px">${fmtTaxa(P.i.b_idx, P.taxaEmpate)}</div><div class="s">sugerido: ${fmtTaxa(P.i.b_idx, P.n.bTaxa)}</div></div>
       <div class="kpi"><div class="l">Deságio na venda</div><div class="v">${brl(P.desagio)}</div><div class="s">${pct(P.desagioPct)} da curva</div></div>
-      <div class="kpi"><div class="l">IR pago na venda</div><div class="v">${brl(P.irVenda)}</div><div class="s">${P.aIsento ? 'isento' : pct(aliquotaIR(dias(P.i.a_dtapl, P.hoje)) * 100, 1) + ' sobre o ganho'}</div></div>
+      <div class="kpi"><div class="l">IR da venda</div><div class="v">${brl(P.irVenda)}</div><div class="s">${P.aIsento ? 'isento' : P.vendaLiquidaInformada ? 'já descontado do valor informado' : pct(aliquotaIR(dias(P.i.a_dtapl, P.hoje)) * 100, 1) + ' sobre o ganho'}</div></div>
     </div>
 
     <div class="table-wrap" style="margin-top:14px">
       <table>
         <thead><tr><th></th><th class="n">Manter</th><th class="n">Trocar</th></tr></thead>
         <tbody>
-          <tr><td>Hoje</td><td class="n">${brl(P.curva)} <span class="note">curva</span></td><td class="n">${brl(P.venda)} <span class="note">venda</span></td></tr>
-          <tr><td>IR na venda</td><td class="n">—</td><td class="n">${brl(-P.irVenda)}</td></tr>
+          <tr><td>Hoje</td><td class="n">${brl(P.curva)} <span class="note">curva</span></td><td class="n">${P.vendaLiquidaInformada ? `${brl(P.liqVenda)} <span class="note">venda líquida</span>` : `${brl(P.venda)} <span class="note">venda</span>`}</td></tr>
+          <tr><td>IR na venda</td><td class="n">—</td><td class="n">${P.vendaLiquidaInformada ? '<span class="note">já descontado</span>' : brl(-P.irVenda)}</td></tr>
           <tr><td>Taxa efetiva</td><td class="n">${pct(P.rA * 100)} a.a.</td><td class="n">${pct(P.rB * 100)} a.a.</td></tr>
           <tr><td>No vencimento do atual (${fmtDate(P.i.a_venc)})</td><td class="n">${brl(P.liqVA)}</td><td class="n">${brl(P.trocar(P.i.a_venc))}</td></tr>
           ${P.i.a_venc !== P.i.b_venc ? `<tr><td>Reinvestimento</td><td colspan="2" class="n">${fmtTaxa(P.i.r_idx, P.rTaxaUsada)}${P.rIsento ? ' · isento' : ''}</td></tr>` : ''}
@@ -397,7 +402,7 @@ function emailTexto(P, nome, ass) {
   return [
     Email.saudacaoTexto(nome), '',
     'Conforme conversamos, fiz uma simulação comparando manter o seu investimento atual com a troca por uma nova aplicação.', '',
-    'INVESTIMENTO ATUAL', L.atual, `Valor de venda antecipada hoje: ${brl(P.venda)}`, '',
+    'INVESTIMENTO ATUAL', L.atual, `Valor de venda antecipada hoje: ${brl(P.liqVenda)} (líquido de IR)`, '',
     'SUGESTÃO DE TROCA', L.sugestao, '',
     `RESULTADO ESTIMADO EM ${fmtDate(P.H)} (líquido de IR)`,
     `• Mantendo o atual${L.reinvTxt && L.quemReinv === 'manter' ? ` (e, após o vencimento, ${L.reinvTxt})` : ''}: ${brl(P.fim1)}`,
@@ -417,7 +422,7 @@ function emailHtml(P, nome, ass) {
     h.tabela(['', 'Investimento atual', 'Sugestão de troca'], [
       ['Ativo', esc(`${P.i.a_tipo} ${fmtTaxa(P.i.a_idx, P.n.aTaxa)}`), esc(`${P.i.b_tipo} ${fmtTaxa(P.i.b_idx, P.n.bTaxa)}`)],
       ['Vencimento', fmtDate(P.i.a_venc), fmtDate(P.i.b_venc)],
-      ['Valor hoje', `${brl(P.curva)} <span style="color:#6d6a80">(curva)</span>`, `${brl(P.venda)} <span style="color:#6d6a80">(venda)</span>`],
+      ['Valor hoje', `${brl(P.curva)} <span style="color:#6d6a80">(curva)</span>`, `${brl(P.liqVenda)} <span style="color:#6d6a80">(venda líquida)</span>`],
       [`<b>Líquido em ${fmtDate(P.H)}</b>`, `<b>${brl(P.fim1)}</b>`, `<b style="color:${h.cor.ora}">${brl(P.fim2)}</b>`],
     ]) +
     h.destaque(esc(c.txt), c.tipo) +

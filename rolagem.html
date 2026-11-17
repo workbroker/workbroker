@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Troca de ativos · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611171411">
+<link rel="stylesheet" href="assets/style.css?v=202611171656">
 <style>
   .sec-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
   .sec-title h2 { margin: 0; }
@@ -39,7 +39,7 @@
         <label class="f">Vencimento <input id="a_venc" type="date"></label>
         <label class="f"><span>Venda antecipada hoje
           <span class="seg" id="segVenda" style="margin-left:4px;vertical-align:middle"><button data-v="valor" class="on" type="button">R$</button><button data-v="taxa" type="button">Taxa</button></span></span>
-          <input id="a_venda" inputmode="decimal" placeholder="Valor bruto de venda">
+          <input id="a_venda" inputmode="decimal" placeholder="Valor líquido de venda (já sem IR)">
           <div class="combo" id="a_mtm_box" hidden><select id="a_mtm_idx" disabled></select><input id="a_mtm" inputmode="decimal" placeholder="Taxa de venda"></div>
         </label>
         <div class="full hint" id="curvaHint"></div>
@@ -89,7 +89,7 @@
     <summary style="font-size:15px">Como o cálculo funciona</summary>
     <p class="note">
       <b>Manter:</b> o título segue na curva até o vencimento; paga IR sobre todo o ganho desde a aplicação. Se o novo ativo vence depois, o valor líquido é reinvestido na taxa de reinvestimento até a mesma data.<br>
-      <b>Trocar:</b> vende hoje pelo valor de venda antecipada, paga IR sobre o ganho (se houver) e aplica o líquido no novo ativo, que começa a tabela regressiva do zero (22,5% até 180 dias, 20% até 360, 17,5% até 720, 15% acima).<br>
+      <b>Trocar:</b> vende hoje e aplica o valor líquido no novo ativo (o valor de venda em R$ é informado já líquido de IR; na venda por taxa, o IR sobre o ganho é descontado na conta), que começa a tabela regressiva do zero (22,5% até 180 dias, 20% até 360, 17,5% até 720, 15% acima).<br>
       <b>Venda por taxa:</b> o valor de venda é estimado trazendo a curva do título para a taxa de mercado informada.<br>
       <b>Taxa mínima:</b> taxa que o novo ativo precisa pagar para empatar com manter.<br>
       Simplificações: dias úteis estimados por dias corridos, IOF e custos desconsiderados, posição na curva de pós-fixados estimada pelo CDI/IPCA projetado (informe o valor real para mais precisão).
@@ -98,8 +98,8 @@
 </main>
 <footer class="foot">WorkBroker · simulação, não é garantia de rentabilidade</footer>
 
-<script src="assets/common.js?v=202611171411"></script>
-<script src="assets/email.js?v=202611171411"></script>
-<script src="assets/rolagem.js?v=202611171411"></script>
+<script src="assets/common.js?v=202611171656"></script>
+<script src="assets/email.js?v=202611171656"></script>
+<script src="assets/rolagem.js?v=202611171656"></script>
 </body>
 </html>
