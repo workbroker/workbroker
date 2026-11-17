@@ -53,6 +53,9 @@ jobs:
         timeout-minutes: 15
         env:
           FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
+      - name: Mercado agora (a cada rodada)
+        run: python scripts/mercado.py || true
+        timeout-minutes: 5
       - name: Banco Central (uma vez por dia)
         run: python scripts/bcb.py || true
         timeout-minutes: 8
