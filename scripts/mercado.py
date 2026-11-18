@@ -78,13 +78,13 @@ def di_futuro(debug):
             j = json.loads(get(f"https://cotacao.b3.com.br/mds/api/v1/instrumentQuotation/{cod}", 30))
             tr = (j.get("Trad") or [{}])[0]
             q = tr.get("scty", {}).get("SctyQtn", {})
-            if prazo == "curto":
-                debug["di_raw"] = json.dumps(j, ensure_ascii=False)[:1500]
-            taxa = q.get("curPrc")
-            ant = q.get("prvsDayAdjstmntPric") or q.get("prvsDayAdjPric") or q.get("adjstdQt") or q.get("opngPric")
-            out.append({"prazo": prazo, "cod": cod, "venc": f"{ano + n}-01-01", "taxa": taxa, "ant": ant,
+            taxa, flu = q.get("curPrc"), q.get("prcFlcn")
+            # a B3 não traz o ajuste anterior; prcFlcn é a variação % da taxa contra ele
+            ant = taxa / (1 + flu / 100) if taxa and flu is not None else None
+            out.append({"prazo": prazo, "cod": cod, "venc": f"{ano + n}-01-02", "taxa": taxa, "ant": round(ant, 3) if ant else None,
                         "bps": round((taxa - ant) * 100, 1) if taxa and ant else None,
-                        "quando": (j.get("BizSts") or {}).get("DtTm")})
+                        "min": q.get("minPric"), "max": q.get("maxPric"), "contratos": tr.get("ttlQty"),
+                        "quando": (j.get("Msg") or {}).get("dtTm")})
         except Exception as e:
             debug[f"di_{cod}"] = repr(e)[:120]
     return out
@@ -123,7 +123,7 @@ def main():
         debug["macro"] = repr(e)[:100]
     cnn = medo_cnn(debug)
     di = di_futuro(debug)
-    log("DI futuro:", di, debug.get("di_raw", "")[:1500])
+    log("DI futuro:", di)
     log("CNN Fear & Greed:", cnn)
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
