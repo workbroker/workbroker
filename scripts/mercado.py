@@ -65,6 +65,31 @@ def medo_cnn(debug):
         return None
 
 
+LETRA = "FGHJKMNQUVXZ"  # meses dos vencimentos de futuros na B3 (F = janeiro)
+
+
+def di_futuro(debug):
+    """Juros futuros (DI1) em 3 prazos: janeiro de daqui a 2, 5 e 9 anos. Cotação da B3 (taxa % a.a.)."""
+    ano = datetime.now(timezone(timedelta(hours=-3))).year
+    out = []
+    for prazo, n in (("curto", 2), ("medio", 5), ("longo", 9)):
+        cod = f"DI1F{str(ano + n)[2:]}"
+        try:
+            j = json.loads(get(f"https://cotacao.b3.com.br/mds/api/v1/instrumentQuotation/{cod}", 30))
+            tr = (j.get("Trad") or [{}])[0]
+            q = tr.get("scty", {}).get("SctyQtn", {})
+            if prazo == "curto":
+                debug["di_raw"] = json.dumps(j, ensure_ascii=False)[:1500]
+            taxa = q.get("curPrc")
+            ant = q.get("prvsDayAdjstmntPric") or q.get("prvsDayAdjPric") or q.get("adjstdQt") or q.get("opngPric")
+            out.append({"prazo": prazo, "cod": cod, "venc": f"{ano + n}-01-01", "taxa": taxa, "ant": ant,
+                        "bps": round((taxa - ant) * 100, 1) if taxa and ant else None,
+                        "quando": (j.get("BizSts") or {}).get("DtTm")})
+        except Exception as e:
+            debug[f"di_{cod}"] = repr(e)[:120]
+    return out
+
+
 def main():
     debug = {}
     simbolos = sorted({s for l in BLOCOS.values() for s in l})
@@ -97,10 +122,12 @@ def main():
     except Exception as e:
         debug["macro"] = repr(e)[:100]
     cnn = medo_cnn(debug)
+    di = di_futuro(debug)
+    log("DI futuro:", di, debug.get("di_raw", "")[:1500])
     log("CNN Fear & Greed:", cnn)
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
-        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "q": Q, "cnn": cnn, **extra, "debug": debug},
+        json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "q": Q, "cnn": cnn, "di": di, **extra, "debug": debug},
                   fh, ensure_ascii=False, separators=(",", ":"))
 
 
