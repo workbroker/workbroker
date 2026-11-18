@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>WorkBroker · Ferramentas da assessoria</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611171656">
+<link rel="stylesheet" href="assets/style.css?v=202611181510">
 </head>
 <body>
 <header class="top" data-page="inicio"></header>
@@ -21,6 +21,23 @@
     <a class="kcard" href="mercado.html"><div class="t">Dólar</div><div class="s" id="kDolS">hoje</div><div class="n" id="kDol">—</div></a>
     <a class="kcard" href="mercado.html"><div class="t">Ibovespa</div><div class="s" id="kIbovS">pontos</div><div class="n" id="kIbov">—</div></a>
   </div>
+  <a class="kdi" href="mercado.html" id="kDi" hidden>
+    <div class="kdi-h"><b>Juros futuros (DI)</b><span id="kDiS">taxa ao ano · B3</span></div>
+    <div class="kdi-g" id="kDiG"></div>
+  </a>
+  <style>
+    .kdi { display: block; margin-top: 14px; background: #ebeaf1; border-radius: 26px; padding: 16px 20px; text-decoration: none; color: #2b2838; transition: transform .12s ease, background .12s; }
+    .kdi:hover { transform: translateY(-2px); background: #e5e3ee; }
+    .kdi-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+    .kdi-h b { font-size: 15.5px; } .kdi-h span { font-size: 12.5px; color: var(--muted); }
+    .kdi-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .kdi-i { border-left: 3px solid #d6d3e3; padding-left: 12px; min-width: 0; }
+    .kdi-i .p { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+    .kdi-i .n { font-size: 32px; font-weight: 600; letter-spacing: -1px; line-height: 1.15; }
+    .kdi-i .n small { font-size: 14px; font-weight: 600; margin-left: 2px; letter-spacing: 0; }
+    .kdi-i .v { font-size: 12.5px; }
+    @media (max-width: 520px) { .kdi-i .n { font-size: 24px; } .kdi-i { padding-left: 8px; } .kdi-g { gap: 6px; } }
+  </style>
 
   <h2 style="font-size:20px;margin:26px 0 12px;color:#2b2838">Radar</h2>
   <div class="tools">
@@ -72,7 +89,7 @@
 </main>
 <footer class="foot">WorkBroker · ferramenta interna de apoio · simulações não são garantia de rentabilidade</footer>
 
-<script src="assets/common.js?v=202611171656"></script>
+<script src="assets/common.js?v=202611181510"></script>
 <script>
   const hr = new Date().getHours();
   document.getElementById('saudacao').textContent = (hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite') + ', Italo';
@@ -86,6 +103,21 @@
     const ip = g('ipca_12m'); if (ip?.sub) document.getElementById('kIpcaS').textContent = 'até ' + ip.sub;
     pint('dolar', 'kDol', 'kDolS', i => `<small>R$</small>${i.valor.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`);
     pint('ibov', 'kIbov', 'kIbovS', i => `${(i.valor / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}<small>mil</small>`);
+  }).catch(() => {});
+  // juros futuros: 3 vencimentos do DI1 (curto, médio e longo prazo)
+  carregarDados('mercado.json').then(m => {
+    const D = (m.di || []).filter(x => Number.isFinite(x.taxa));
+    if (!D.length) return;
+    const nome = { curto: 'Curto prazo', medio: 'Médio prazo', longo: 'Longo prazo' };
+    const f2 = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('kDiG').innerHTML = D.map(x => {
+      const b = x.bps;
+      const v = Number.isFinite(b) ? `<span class="${b > 0 ? 'good' : b < 0 ? 'bad' : ''}">${b > 0 ? '▲' : b < 0 ? '▼' : '='} ${Math.abs(b).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} bps</span> hoje` : '';
+      return `<div class="kdi-i"><div class="p">${nome[x.prazo] || x.prazo} · jan/${x.venc.slice(2, 4)}</div><div class="n">${f2(x.taxa)}<small>%</small></div><div class="v">${v}</div></div>`;
+    }).join('');
+    const q = D[0].quando;
+    if (q) document.getElementById('kDiS').textContent = `taxa ao ano · B3 · ${q.slice(8, 10)}/${q.slice(5, 7)} às ${q.slice(11, 16)}`;
+    document.getElementById('kDi').hidden = false;
   }).catch(() => {});
 </script>
 </body>

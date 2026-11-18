@@ -24,6 +24,7 @@
       { s: 'EURBRL=X', n: 'Euro', d: 'em reais', f: 'brl4' },
       { s: 'selic', n: 'Selic', d: 'meta ao ano', f: 'juro' },
       { s: 'cdi', n: 'CDI', d: 'ao ano', f: 'juro' },
+      { s: 'di', f: 'di' },
     ] },
     { id: 'eua', t: 'Estados Unidos', flag: 'us', col: 'Pontos', itens: [
       { s: '^GSPC', n: 'S&P 500', d: '500 maiores empresas', f: 'pts' },
@@ -90,6 +91,11 @@
   }
 
   function linha(it, pn) {
+    if (it.f === 'di') {
+      const nome = { curto: 'curto prazo', medio: 'médio prazo', longo: 'longo prazo' };
+      return (M.di || []).filter(x => Number.isFinite(x.taxa)).map(x =>
+        `<div class="ma-r"><span class="nm">DI jan/${x.venc.slice(2, 4)}<small>juros futuros · ${nome[x.prazo] || ''}</small></span><span class="vl">${fmt(x.taxa)}%</span><span class="vr">${bps(x.bps)}</span></div>`).join('');
+    }
     if (it.f === 'juro') {
       const v = (M.macro || {})[it.s];
       if (!Number.isFinite(v)) return '';
