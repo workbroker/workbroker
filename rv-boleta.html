@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Boleta de ações · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611181510">
+<link rel="stylesheet" href="assets/style.css?v=202611191109">
 <style>
   .cart { display: grid; grid-template-columns: minmax(110px,1.2fr) minmax(120px,1fr) 130px minmax(110px,1fr) 110px minmax(120px,1fr) 40px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .cart.h { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding-top: 0; }
@@ -89,9 +89,9 @@
   </div>
 </main>
 
-<script src="assets/common.js?v=202611181510"></script>
-<script src="assets/email.js?v=202611181510"></script>
-<script src="assets/ordens.js?v=202611181510"></script>
+<script src="assets/common.js?v=202611191109"></script>
+<script src="assets/email.js?v=202611191109"></script>
+<script src="assets/ordens.js?v=202611191109"></script>
 <script>
 const $ = id => document.getElementById(id);
 const B = Object.assign({ nome: '', codigo: '', email: '' }, store.get('rw_boleta_cliente', {}));
@@ -155,8 +155,8 @@ function renderC() {
   const pv = porValor(), rotAlvo = pv ? 'Valor desejado (R$)' : '% do total';
   $('cModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === C.modo));
   $('cTotalLbl').textContent = pv ? 'Orçamento total (R$) · opcional' : 'Valor total da operação (R$)';
-  $('cAjuda').innerHTML = pv ? 'Para cada ativo, digite o ticker e o <b>valor que quer comprar</b>: o <b>preço</b> vem sozinho com a cotação do site (dá para trocar). O site calcula a quantidade e mostra quanto sobra do orçamento. As ordens saem <b>a mercado</b>.'
-    : 'Informe o valor total da operação e o <b>%</b> de cada ativo. O <b>preço</b> vem sozinho pelo ticker com a cotação do site (dá para trocar) e serve só para calcular a quantidade: as ordens saem <b>a mercado</b>.';
+  $('cAjuda').innerHTML = pv ? 'Para cada ativo, digite o ticker e o <b>valor</b> da compra ou da venda: o <b>preço</b> vem sozinho com a cotação do site (dá para trocar). O orçamento é o <b>caixa que sai</b>: compras consomem e vendas devolvem caixa. O site calcula a quantidade e mostra quanto sobra. As ordens saem <b>a mercado</b>.'
+    : 'Informe o valor total da operação (caixa que sai) e o <b>%</b> de cada ativo; vendas devolvem caixa, então compras − vendas deve fechar 100%. O <b>preço</b> vem sozinho pelo ticker com a cotação do site (dá para trocar) e serve só para calcular a quantidade: as ordens saem <b>a mercado</b>.';
   $('cLinhas').innerHTML = `<div class="cart h"><div>Ativo</div><div>Operação</div><div>${rotAlvo}</div><div>Preço hoje (R$)</div><div style="text-align:right">Quantidade</div><div style="text-align:right">Valor estimado</div><div></div></div>` +
     C.itens.map(it => `<div class="cart" data-id="${it.id}">
       <label><span class="lbl">Ativo</span><input data-k="ticker" value="${esc(it.ticker)}" placeholder="PETR4" autocapitalize="characters" maxlength="12"></label>
@@ -169,27 +169,29 @@ function renderC() {
       <div><button class="danger" data-del title="Remover">✕</button></div></div>`).join('');
   atualizarC();
 }
+// compra consome caixa; venda devolve caixa
+const sinal = it => it.op === 'V' ? -1 : 1;
 function atualizarC() {
-  const total = parseNum(C.total), pv = porValor(); let soma = 0, usado = 0;
+  const total = parseNum(C.total), pv = porValor(); let soma = 0, usado = 0, comp = 0, vend = 0;
   C.itens.forEach(it => {
     const el = $('cLinhas').querySelector(`.cart[data-id="${it.id}"]`), r = calcItem(it);
-    soma += parseNum(pv ? it.valor : it.pct) || 0;
-    if (r) usado += r.valor;
+    soma += sinal(it) * (parseNum(pv ? it.valor : it.pct) || 0);
+    if (r) { usado += sinal(it) * r.valor; if (it.op === 'V') vend += r.valor; else comp += r.valor; }
     el.querySelector('[data-q]').innerHTML = `<span class="lbl">Quantidade</span>${r ? r.qtd.toLocaleString('pt-BR') + (r.pctReal !== null ? `<small>${pct(r.pctReal)} do total</small>` : '') : '—'}`;
     el.querySelector('[data-v]').innerHTML = `<span class="lbl">Valor estimado</span>${r ? brl(r.valor) + `<small>${pv ? 'desejado' : 'alvo'} ${brl(r.alvo)}</small>` : '—'}`;
   });
   if (pv) {
     const temOrc = total > 0, dif = total - soma;
     $('cKpis').innerHTML = `
-      <div class="kpi"><div class="l">Soma dos valores desejados</div><div class="v ${!temOrc ? '' : Math.abs(dif) < 0.01 ? 'soma-ok' : dif < 0 ? 'soma-ruim' : ''}">${brl(soma)}</div><div class="s">${!temOrc ? 'sem orçamento definido' : Math.abs(dif) < 0.01 ? 'fecha o orçamento' : dif > 0 ? `faltam ${brl(dif)} para o orçamento` : `passou ${brl(-dif)} do orçamento`}</div></div>
-      <div class="kpi"><div class="l">Valor estimado das ordens</div><div class="v">${brl(usado)}</div><div class="s">quantidade × preço de hoje</div></div>
+      <div class="kpi"><div class="l">${vend ? 'Compras − vendas (desejado)' : 'Soma dos valores desejados'}</div><div class="v ${!temOrc ? '' : Math.abs(dif) < 0.01 ? 'soma-ok' : dif < 0 ? 'soma-ruim' : ''}">${brl(soma)}</div><div class="s">${!temOrc ? 'sem orçamento definido' : Math.abs(dif) < 0.01 ? 'fecha o orçamento' : dif > 0 ? `faltam ${brl(dif)} para o orçamento` : `passou ${brl(-dif)} do orçamento`}</div></div>
+      <div class="kpi"><div class="l">${vend ? 'Caixa líquido das ordens' : 'Valor estimado das ordens'}</div><div class="v">${brl(usado)}</div><div class="s">${vend ? `compras ${brl(comp)} − vendas ${brl(vend)}` : 'quantidade × preço de hoje'}</div></div>
       <div class="kpi"><div class="l">Sobra do orçamento</div><div class="v ${temOrc && total - usado < 0 ? 'soma-ruim' : ''}">${temOrc ? brl(total - usado) : '—'}</div><div class="s">${temOrc ? pct((total - usado) / total * 100) + ' do orçamento' : 'informe o orçamento, se quiser'}</div></div>`;
     return;
   }
   const ok = Math.abs(soma - 100) < 0.005;
   $('cKpis').innerHTML = `
-    <div class="kpi"><div class="l">Soma dos %</div><div class="v ${ok ? 'soma-ok' : 'soma-ruim'}">${pct(soma)}</div><div class="s">${ok ? 'fecha 100%' : soma < 100 ? `faltam ${pct(100 - soma)}` : `passou ${pct(soma - 100)}`}</div></div>
-    <div class="kpi"><div class="l">Valor estimado das ordens</div><div class="v">${total > 0 ? brl(usado) : '—'}</div><div class="s">pelos preços de hoje</div></div>
+    <div class="kpi"><div class="l">${vend ? 'Compras − vendas (%)' : 'Soma dos %'}</div><div class="v ${ok ? 'soma-ok' : 'soma-ruim'}">${pct(soma)}</div><div class="s">${ok ? 'fecha 100%' : soma < 100 ? `faltam ${pct(100 - soma)}` : `passou ${pct(soma - 100)}`}</div></div>
+    <div class="kpi"><div class="l">${vend ? 'Caixa líquido das ordens' : 'Valor estimado das ordens'}</div><div class="v">${total > 0 ? brl(usado) : '—'}</div><div class="s">${vend && total > 0 ? `compras ${brl(comp)} − vendas ${brl(vend)}` : 'pelos preços de hoje'}</div></div>
     <div class="kpi"><div class="l">Sobra (ou falta)</div><div class="v">${total > 0 ? brl(total - usado) : '—'}</div><div class="s">${total > 0 ? pct((total - usado) / total * 100) + ' do total' : 'informe o valor total'}</div></div>`;
 }
 $('cModo').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b || b.dataset.m === C.modo) return; C.modo = b.dataset.m; salvarC(); renderC(); });
@@ -231,16 +233,20 @@ const addItem = op => { const it = novoItem({ op }); C.itens.push(it); salvarC()
 $('cAddC').onclick = () => addItem('C');
 $('cAddV').onclick = () => addItem('V');
 $('cIgual').onclick = () => {
-  const n = C.itens.length;
+  // divide entre as compras; o que entra com as vendas soma ao valor a dividir
+  const compras = C.itens.filter(it => it.op !== 'V'), vendas = C.itens.filter(it => it.op === 'V'), n = compras.length;
+  if (!n) { toast('Não há compras para dividir'); return; }
   if (porValor()) {
     const tot = parseNum(C.total);
     if (!(tot > 0)) { toast('Informe o orçamento total para dividir'); $('cTotal').focus(); return; }
-    const parte = Math.floor(tot / n * 100) / 100;
-    C.itens.forEach((it, i) => { it.valor = NUM2.format(i === n - 1 ? +(tot - parte * (n - 1)).toFixed(2) : parte); });
+    const disp = tot + vendas.reduce((s, it) => s + (parseNum(it.valor) || 0), 0);
+    const parte = Math.floor(disp / n * 100) / 100;
+    compras.forEach((it, i) => { it.valor = NUM2.format(i === n - 1 ? +(disp - parte * (n - 1)).toFixed(2) : parte); });
     salvarC(); renderC(); return;
   }
-  const base = Math.floor(10000 / n) / 100;
-  C.itens.forEach((it, i) => { it.pct = NUM2.format(i === n - 1 ? +(100 - base * (n - 1)).toFixed(2) : base).replace(/,00$/, ''); });
+  const disp = 100 + vendas.reduce((s, it) => s + (parseNum(it.pct) || 0), 0);
+  const base = Math.floor(disp * 100 / n) / 100;
+  compras.forEach((it, i) => { it.pct = NUM2.format(i === n - 1 ? +(disp - base * (n - 1)).toFixed(2) : base).replace(/,00$/, ''); });
   salvarC(); renderC();
 };
 $('cLimpar').onclick = () => { C.itens = [novoItem()]; C.total = ''; $('cTotal').value = ''; salvarC(); renderC(); };
@@ -253,11 +259,11 @@ $('cGerar').onclick = () => {
   const ord = prontos.filter(x => x.r.qtd > 0).map(x => ({ ticker: x.it.ticker, op: x.it.op, qtd: String(x.r.qtd), tipoPreco: 'mercado', preco: '' }));
   if (!ord.length) { toast('Nenhuma quantidade calculada'); return; }
   if (porValor()) {
-    const tot = parseNum(C.total), usado = prontos.reduce((s, x) => s + x.r.valor, 0);
+    const tot = parseNum(C.total), usado = prontos.reduce((s, x) => s + sinal(x.it) * x.r.valor, 0);
     if (tot > 0 && usado > tot + 0.005 && !confirm(`As ordens somam ${brl(usado)}, acima do orçamento de ${brl(tot)}. Gerar assim mesmo?`)) return;
   } else {
-    const soma = C.itens.reduce((s, it) => s + (parseNum(it.pct) || 0), 0);
-    if (Math.abs(soma - 100) >= 0.005 && !confirm(`Os percentuais somam ${pct(soma)}, não 100%. Gerar as ordens assim mesmo?`)) return;
+    const soma = C.itens.reduce((s, it) => s + sinal(it) * (parseNum(it.pct) || 0), 0);
+    if (Math.abs(soma - 100) >= 0.005 && !confirm(`Compras menos vendas somam ${pct(soma)}, não 100%. Gerar as ordens assim mesmo?`)) return;
   }
   if (ordens.validas().length && !confirm('Isso substitui as ordens que já estão na lista abaixo. Continuar?')) return;
   ordens.substituir(ord);
