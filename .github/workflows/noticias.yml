@@ -56,6 +56,9 @@ jobs:
       - name: Mercado agora (a cada rodada)
         run: python scripts/mercado.py || true
         timeout-minutes: 5
+      - name: Radar de ETFs e internacional (a cada rodada)
+        run: python scripts/mundo.py || true
+        timeout-minutes: 6
       - name: Banco Central (uma vez por dia)
         run: python scripts/bcb.py || true
         timeout-minutes: 8
