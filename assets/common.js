@@ -166,10 +166,10 @@ const MENU = [
   { id: 'radar', label: 'Radar', ic: 'radar', paginas: ['radar'], grupos: [
     { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html'], ['XP Inc.', 'xp.html']] }] },
   { id: 'bcb', label: 'Banco Central', href: 'bcb.html', ic: 'gauge' },
-  { id: 'invest', label: 'Investimentos', ic: 'bank', paginas: ['rf', 'rv', 'carteira'], grupos: [
-    { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] },
-    { t: 'Renda variável', itens: [['Boleta de ações', 'rv-boleta.html']] },
-    { t: 'Carteira', itens: [['Carteira e rebalanceamento', 'carteira.html']] }] },
+  { id: 'rf', label: 'Renda fixa', ic: 'bank', paginas: ['rf'], grupos: [
+    { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] }] },
+  { id: 'rv', label: 'Renda variável', href: 'rv-boleta.html', ic: 'trend' },
+  { id: 'carteira', label: 'Carteira', href: 'carteira.html', ic: 'pie' },
   { id: 'relatorio', label: 'Relatório mensal', href: 'relatorio.html', ic: 'slides' },
   { id: 'mercado', label: 'Mercado', href: 'mercado.html', ic: 'news' },
 ];
@@ -319,3 +319,17 @@ function fmtMacro(i) {
   carregar();
   setInterval(carregar, 5 * 60 * 1000);
 })();
+
+// ---------- Blocos recolhíveis: <details data-fold="chave"> lembra se ficou aberto ou fechado ----------
+function aplicarFold(root = document) {
+  const F = store.get('rw_fold', {});
+  root.querySelectorAll('details[data-fold]').forEach(d => { if (d.dataset.fold in F) d.open = F[d.dataset.fold]; });
+}
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!(d instanceof HTMLDetailsElement) || !d.dataset.fold) return;
+  const F = store.get('rw_fold', {});
+  if (F[d.dataset.fold] === d.open) return;
+  F[d.dataset.fold] = d.open; store.set('rw_fold', F);
+}, true);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => aplicarFold()); else aplicarFold();

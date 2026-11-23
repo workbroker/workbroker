@@ -389,3 +389,16 @@ body.has-ticker .table-wrap.fixo { max-height: calc(100vh - 276px); }
   main { padding: 0; }
   .table-wrap { overflow: visible; }
 }
+
+/* blocos recolhíveis (details.fold) */
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; user-select: none; position: relative; padding-right: 44px; min-height: 30px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: none; }
+details.fold > summary h2 { margin: 0; }
+details.fold[open] > summary { margin-bottom: 12px; }
+details.fold .fold-prev { font-size: 13px; color: var(--muted); min-width: 0; }
+details.fold[open] .fold-prev { display: none; }
+details.fold > summary > .chev { position: absolute; right: 0; top: 50%; margin-top: -15px; }
+.chev { margin-left: auto; width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #f1f0f6; color: var(--indigo); font-size: 14px; transition: transform .18s ease; }
+details[open] > summary .chev { transform: rotate(180deg); }
+details.fold > summary:hover .chev { background: #e7e5f0; }

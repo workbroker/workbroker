@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Radar de ações · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611191109">
+<link rel="stylesheet" href="assets/style.css?v=202611231605">
 <style>
   .kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
   .kpi .v.up, .up { color: var(--good); } .kpi .v.dn, .dn { color: var(--bad); }
@@ -79,22 +79,22 @@
     <div class="card"><h2>📉 Maiores quedas <small>Ibovespa · <span class="qd">hoje</span></small></h2><div class="lst" id="quedas"></div></div>
   </div>
 
-  <div class="card" style="margin-top:14px">
-    <h2>🏛️ As maiores do Ibovespa <small>por peso no índice</small></h2>
+  <details class="card fold" data-fold="rv-gig" style="margin-top:14px">
+    <summary><h2>🏛️ As maiores do Ibovespa <small>por peso no índice</small></h2><span class="fold-prev" id="gigPrev"></span><span class="chev">▾</span></summary>
     <div class="gig" id="gig"></div>
-  </div>
+  </details>
 
-  <div class="card" style="margin-top:14px">
-    <h2>🗓️ Calendário de resultados</h2>
+  <details class="card fold" data-fold="rv-cal" style="margin-top:14px">
+    <summary><h2>🗓️ Calendário de resultados</h2><span class="fold-prev" id="calPrev"></span><span class="chev">▾</span></summary>
     <div class="tabs" id="tabsCal"><button class="on" data-c="prox" type="button">Próximos</button><button data-c="ult" type="button">Divulgados</button></div>
     <div class="cal" id="cal"></div>
     <p class="note" id="calNota" style="margin-top:8px"></p>
-  </div>
+  </details>
 
-  <div class="card" style="margin-top:14px">
-    <h2>⚡ Toda a bolsa ao vivo <small>altas, quedas e mais negociadas · TradingView</small></h2>
+  <details class="card fold" data-fold="rv-tv" id="foldTv" style="margin-top:14px">
+    <summary><h2>⚡ Toda a bolsa ao vivo <small>altas, quedas e mais negociadas · TradingView</small></h2><span class="fold-prev">toque para abrir</span><span class="chev">▾</span></summary>
     <div class="tv" id="tv"></div>
-  </div>
+  </details>
 
   <div class="card" style="margin-top:14px">
     <div class="card-head"><h2 id="tTit">📋 Ações do Ibovespa</h2>
@@ -113,7 +113,7 @@
   </div>
 </div>
 
-<script src="assets/common.js?v=202611191109"></script>
-<script src="assets/radar.js?v=202611191109"></script>
+<script src="assets/common.js?v=202611231605"></script>
+<script src="assets/radar.js?v=202611231605"></script>
 </body>
 </html>

@@ -109,11 +109,19 @@
       <span class="vl">${VAL[it.f](q.p)}</span><span class="vr">${vr}</span></div>`;
   }
 
+  // cabeçalho clicável: fechado mostra só um resumo com os 2 primeiros ativos
+  const cab = (id, icone, titulo, resumo) => `<details class="ma-p" data-fold="ma-${id}"><summary class="ma-h">${icone}<span class="ma-t">${titulo}</span><span class="ma-prev">${resumo}</span><span class="chev">▾</span></summary>`;
+  function resumo(pn) {
+    return pn.itens.filter(it => it.f !== 'juro' && it.f !== 'di').map(it => {
+      const q = cot(it.s); if (!q || !Number.isFinite(q.p)) return '';
+      return `${it.n} <b>${VAL[it.f](q.p)}</b> ${pn.yld ? bps(Number.isFinite(q.dif) ? q.dif * 100 : NaN) : pct(Math.abs(q.var) > 25 && it.s !== 'BTC-USD' ? NaN : q.var)}`;
+    }).filter(Boolean).slice(0, 2).join('<i> · </i>');
+  }
   function painel(pn) {
     const corpo = pn.itens.map(it => linha(it, pn)).join('');
     if (!corpo) return '';
-    return `<section class="ma-p"><div class="ma-h">${pn.flag ? bandeira(pn.flag) : `<span class="ic">${pn.ic}</span>`}${pn.t}</div>
-      <div class="ma-c"><span>${pn.yld ? 'Títulos' : 'Ativo'}</span><span>${pn.col}</span><span>Variação</span></div>${corpo}</section>`;
+    return cab(pn.id, pn.flag ? bandeira(pn.flag) : `<span class="ic">${pn.ic}</span>`, pn.t, resumo(pn)) +
+      `<div class="ma-c"><span>${pn.yld ? 'Títulos' : 'Ativo'}</span><span>${pn.col}</span><span>Variação</span></div>${corpo}</details>`;
   }
 
   function painelMedo() {
@@ -141,7 +149,8 @@
         <div class="medo-esc"><span>0 · medo</span><span>25</span><span>50</span><span>75</span><span>100 · ganância</span></div>
         <p class="medo-z ${r[1]}">${r[0]} <small>${[Number.isFinite(c.ant) && `ontem ${c.ant}`, Number.isFinite(c.semana) && `há 1 semana ${c.semana}`, Number.isFinite(c.mes) && `há 1 mês ${c.mes}`].filter(Boolean).join(' · ')}</small></p></div>`;
     }
-    return `<section class="ma-p"><div class="ma-h"><span class="ic">😨</span>Índice do medo</div>${h}</section>`;
+    const rs = [v && Number.isFinite(v.p) && `VIX <b>${fmt(v.p)}</b> ${pct(v.var)}`, c && Number.isFinite(c.score) && `CNN <b>${c.score}</b>`].filter(Boolean).join('<i> · </i>');
+    return cab('medo', '<span class="ic">😨</span>', 'Índice do medo', rs) + `${h}</details>`;
   }
 
   function mundo() {
@@ -156,6 +165,8 @@
       return `<div class="mu-g"><div class="mu-pais">${bandeira(g.c)}<b>${g.p}</b><span>bolsa de ${g.b}</span></div>${rs}</div>`;
     }).join('');
     el('maMundo').innerHTML = linhas;
+    const Q = MUNDO.flatMap(g => g.i.map(([s]) => cot(s))).filter(q => q && Number.isFinite(q.var));
+    el('muPrev').innerHTML = Q.length ? `${MUNDO.length} economias · <span class="up">${Q.filter(q => q.var > 0).length} sobem</span> · <span class="dn">${Q.filter(q => q.var < 0).length} caem</span> · ${Q.filter(q => q.aberto).length} abertas agora` : '';
   }
 
   function render() {
@@ -163,9 +174,15 @@
     mundo();
     const d = new Date(M.atualizado), min = Math.round((Date.now() - d) / 60000);
     el('maQuando').textContent = `atualizado ${min < 1 ? 'agora' : min < 60 ? `há ${min} min` : 'às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    aplicarFold(el('mercadoAgora'));
     el('mercadoAgora').hidden = false;
   }
 
+  el('maTodos').addEventListener('click', () => {
+    const D = [...el('mercadoAgora').querySelectorAll('details[data-fold]')], abrir = D.some(d => !d.open);
+    D.forEach(d => { d.open = abrir; });
+    el('maTodos').textContent = abrir ? 'Recolher tudo' : 'Abrir tudo';
+  });
   async function carregar() {
     try { M = await carregarDados('mercado.json'); if (M && M.q) render(); } catch {}
   }

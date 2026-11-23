@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Mercado ao vivo · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611191109">
+<link rel="stylesheet" href="assets/style.css?v=202611231605">
 <style>
   main { max-width: 1240px; }
   .topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -76,11 +76,22 @@
   #mercadoAgora { margin-bottom: 22px; }
   .ma-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 4px 2px 10px; }
   .ma-top h2 { margin: 0; font-size: 24px; display: flex; align-items: center; }
-  .ma-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+  .ma-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
   .ma-p { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(34,16,90,.06); }
   .ma-h { display: flex; align-items: center; gap: 10px; padding: 11px 14px; color: #fff; font-weight: 800; font-size: 17px;
     background: linear-gradient(135deg, var(--indigo), var(--indigo-2)); }
   .ma-h .ic { font-size: 18px; }
+  summary.ma-h { list-style: none; cursor: pointer; flex-wrap: wrap; user-select: none; position: relative; padding-right: 54px; }
+  summary.ma-h::-webkit-details-marker { display: none; }
+  .ma-h .ma-t { white-space: nowrap; }
+  .ma-h .ma-prev { flex: 1 1 200px; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.82); min-width: 0; }
+  .ma-h .ma-prev b { color: #fff; font-weight: 700; }
+  .ma-h .ma-prev i { font-style: normal; opacity: .5; }
+  .ma-h .ma-prev .up { color: #8be3b0; } .ma-h .ma-prev .dn { color: #ffaaa3; } .ma-h .ma-prev .mut { color: rgba(255,255,255,.6); }
+  details[open] > summary.ma-h .ma-prev { display: none; }
+  .ma-h .chev { background: rgba(255,255,255,.16); color: #fff; width: 28px; height: 28px; position: absolute; right: 14px; top: 50%; margin-top: -14px; }
+  summary.ma-h:hover .chev { background: rgba(255,255,255,.26); }
+  .ma-acoes { display: flex; align-items: center; gap: 10px; }
   .flag { width: 22px; height: 15px; object-fit: cover; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
   .ma-c, .ma-r { display: grid; grid-template-columns: minmax(0, 1fr) auto 84px; gap: 10px; align-items: center; padding: 8px 14px; }
   .ma-c { background: #3b2a80; color: rgba(255,255,255,.85); font-size: 12px; font-weight: 700; padding-top: 5px; padding-bottom: 5px; }
@@ -143,12 +154,13 @@
   <div class="strip" id="strip"></div>
 
   <section id="mercadoAgora" hidden>
-    <div class="ma-top"><h2><span class="live-dot"></span>Mercado agora</h2><span class="note" id="maQuando"></span></div>
+    <div class="ma-top"><h2><span class="live-dot"></span>Mercado agora</h2><span class="ma-acoes"><span class="note" id="maQuando"></span><button class="secondary sm" id="maTodos" type="button">Abrir tudo</button></span></div>
     <div class="ma-grid" id="maGrid"></div>
-    <div class="card mu">
-      <div class="sec-h"><h2>Bolsas das maiores economias</h2><span class="note">em ordem aproximada pelo tamanho do PIB</span></div>
+    <details class="card mu fold" data-fold="ma-mundo">
+      <summary><h2>🌍 Bolsas das maiores economias</h2><span class="fold-prev" id="muPrev"></span><span class="chev">▾</span></summary>
+      <p class="note" style="margin:-4px 0 6px">Em ordem aproximada pelo tamanho do PIB.</p>
       <div id="maMundo"></div>
-    </div>
+    </details>
     <p class="note ma-nota">Cotações do Yahoo Finance, atualizadas a cada 15 minutos mais ou menos (algumas bolsas têm atraso extra). IFIX: B3. Selic e CDI: Banco Central. Medo e Ganância: CNN. Variação contra o fechamento anterior; nos títulos americanos, em pontos-base (bps, 0,01 ponto percentual).</p>
   </section>
 
@@ -191,8 +203,8 @@
   <p class="credit">Manchetes e matérias: InfoMoney (os links abrem no site original) · Cotações e notícias em tempo real: TradingView · Ações da B3 com 15 min de atraso</p>
 </main>
 
-<script src="assets/common.js?v=202611191109"></script>
-<script src="assets/mercado-agora.js?v=202611191109"></script>
+<script src="assets/common.js?v=202611231605"></script>
+<script src="assets/mercado-agora.js?v=202611231605"></script>
 <script>
 const RSS_GERAL = 'https://www.infomoney.com.br/feed/';
 const EDS = { mercados: 'Mercados', economia: 'Economia', politica: 'Política', mundo: 'Mundo' };

@@ -41,6 +41,7 @@ function altasQuedas() {
 }
 function gigantes() {
   const A = [...RD.acoes].sort((a, b) => (b.peso || b.mcap / 1e12 || 0) - (a.peso || a.mcap / 1e12 || 0)).slice(0, 12);
+  if ($('gigPrev')) $('gigPrev').innerHTML = A.slice(0, 4).map(a => `<b>${a.tk}</b> ${pv(a.var)}`).join(' · ');
   $('gig').innerHTML = A.map(a => `<button class="g" type="button" data-tk="${a.tk}">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="tk">${a.tk}</span><span style="font-size:12px;color:var(--muted)">${a.peso ? n2(a.peso, 1) + '%' : ''}</span></div>
     <div class="pr">R$ ${n2(a.preco)}</div><div style="font-weight:800;font-size:14px">${pv(a.var)}</div>
@@ -65,6 +66,10 @@ function calendario() {
       <span><b>${a.tk}</b> <span style="color:var(--muted);font-size:12.5px">${esc(a.nome || '')}</span></span>
       <span style="font-size:12.5px;color:var(--muted);text-align:right">${triRot(r.ref)}${r.est ? '<br><i>previsão</i>' : ''}</span></button>`;
   }).join('') || `<p class="note">${ABA_CAL === 'prox' ? 'Nenhuma data prevista ainda.' : 'Sem datas.'}</p>`;
+  if (ABA_CAL === 'prox' && $('calPrev')) {
+    const p = L.slice(0, 3).map(({ a, r }) => `<b>${a.tk}</b> ${dBR(r.d)}`).join(' · ');
+    $('calPrev').innerHTML = p ? `Próximos: ${p}${L.length > 3 ? ` · e mais ${L.length - 3}` : ''}` : '';
+  }
   $('calNota').innerHTML = ABA_CAL === 'prox'
     ? 'Previsão pela data em que cada empresa divulgou o mesmo trimestre no ano passado; a data oficial sai no calendário de eventos da empresa. Em destaque, as 15 maiores do índice.'
     : 'Data em que o ITR ou o balanço anual chegou à CVM (geralmente a noite da divulgação). Em destaque, as 15 maiores do índice.';
@@ -150,7 +155,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-tk]'); if (b && !e.target.closest('th')) detalhe(b.dataset.tk);
 });
 
-tvWidget($('tv'), 'hotlists', {
+// widget da TradingView só carrega quando o bloco é aberto (fechado ele mediria 0 px)
+const abrirTv = () => tvWidget($('tv'), 'hotlists', {
   colorTheme: 'light', dateRange: '1D', exchange: 'BMFBOVESPA', showChart: true, locale: 'br', largeChartUrl: '',
   isTransparent: true, showSymbolLogo: true, showFloatingTooltip: false, width: '100%', height: '100%',
   plotLineColorGrowing: 'rgba(255, 90, 0, 1)', plotLineColorFalling: 'rgba(255, 90, 0, 1)',
@@ -158,6 +164,11 @@ tvWidget($('tv'), 'hotlists', {
   belowLineFillColorGrowing: 'rgba(255, 90, 0, 0.12)', belowLineFillColorFalling: 'rgba(255, 90, 0, 0.12)',
   belowLineFillColorGrowingBottom: 'rgba(255, 90, 0, 0)', belowLineFillColorFallingBottom: 'rgba(255, 90, 0, 0)', symbolActiveColor: 'rgba(255, 90, 0, 0.10)',
 });
+let tvPronto = false;
+const tvSeAberto = () => { if (!tvPronto && $('foldTv').open) { tvPronto = true; abrirTv(); } };
+$('foldTv').addEventListener('toggle', tvSeAberto);
+setTimeout(tvSeAberto, 0);
+
 
 async function carregar() {
   try {
