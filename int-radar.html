@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22105a">
+<title>Radar internacional · WorkBroker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css?v=202611231618">
+<link rel="stylesheet" href="assets/radar-lista.css?v=202611231618">
+</head>
+<body>
+<header class="top" data-page="radar"></header>
+
+<main>
+  <h1>Radar internacional</h1>
+  <p class="lead">Bolsa americana hoje: ETFs internacionais (com uma linha explicando cada um) e as principais ações dos EUA e de grandes empresas estrangeiras negociadas em Nova York. Valores em dólar.</p>
+  <div class="tabs" id="abas"><a href="#etfs" data-a="etfs">🌎 ETFs internacionais</a><a href="#acoes" data-a="acoes">🏢 Ações internacionais</a></div>
+  <div id="rEtf" hidden><p class="note">Carregando…</p></div>
+  <div id="rAcoes" hidden><p class="note">Carregando…</p></div>
+  <p class="note" id="rodape" style="margin-top:16px"></p>
+</main>
+
+<div class="modal-bg no-print" id="dlg" hidden>
+  <div class="modal acao" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2 id="dlgT" style="font-size:18px"></h2><button class="ghost" id="dlgX" aria-label="Fechar">✕</button></div>
+    <div id="dlgB"></div>
+  </div>
+</div>
+
+<script src="assets/common.js?v=202611231618"></script>
+<script src="assets/radar-lista.js?v=202611231618"></script>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  const aba = () => location.hash === '#acoes' ? 'acoes' : 'etfs';
+  const mostrar = () => {
+    const a = aba();
+    $('rEtf').hidden = a !== 'etfs'; $('rAcoes').hidden = a !== 'acoes';
+    $('abas').querySelectorAll('a').forEach(x => x.classList.toggle('on', x.dataset.a === a));
+  };
+  window.addEventListener('hashchange', mostrar); mostrar();
+  try {
+    const D = await carregarDados('radar_mundo.json');
+    if (!D || !(D.etf || []).length) throw 0;
+    const tv = tk => tk.replace('-', '.');
+    RL.radarLista($('rEtf'), D.etf, { id: 'etf-int', moeda: 'US$', ref: ['SPY', 'QQQ'], refRot: { SPY: 'S&P 500', QQQ: 'Nasdaq-100' },
+      rotulo: 'ETFs', tituloTabela: 'Todos os ETFs internacionais', tv });
+    RL.radarLista($('rAcoes'), D.acoes || [], { id: 'acoes-int', moeda: 'US$', acoes: true, ref: ['NVDA', 'AAPL'], refRot: {},
+      rotulo: 'ações', tituloTabela: 'Todas as ações internacionais', tv });
+    $('rodape').textContent = 'Cotações do Yahoo Finance com atraso de até 15 minutos, atualizadas a cada 15 minutos mais ou menos. P/L, dividend yield, valor de mercado e datas de resultado também do Yahoo Finance. A bolsa americana abre às 10h30 ou 11h30 de Brasília, conforme o horário de verão nos EUA.';
+  } catch { ['rEtf', 'rAcoes'].forEach(i => $(i).innerHTML = '<p class="note">Os dados ainda não estão disponíveis. Tente de novo em alguns minutos.</p>'); }
+})();
+</script>
+</body>
+</html>

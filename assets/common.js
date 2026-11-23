@@ -164,7 +164,8 @@ const MENU = [
   { id: 'inicio', label: 'Início', href: 'index.html', ic: 'home' },
   { id: 'favoritos', label: 'Favoritos', ic: 'star', fav: true },
   { id: 'radar', label: 'Radar', ic: 'radar', paginas: ['radar'], grupos: [
-    { t: 'Radar', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de renda fixa', 'rf-credito.html'], ['XP Inc.', 'xp.html']] }] },
+    { t: 'Brasil', itens: [['Radar de ações', 'rv-radar.html'], ['Radar de FIIs', 'fiis.html'], ['Radar de ETFs', 'rv-etf.html'], ['Radar de renda fixa', 'rf-credito.html'], ['XP Inc.', 'xp.html']] },
+    { t: 'Radar internacional', itens: [['ETFs internacionais', 'int-radar.html#etfs'], ['Ações internacionais', 'int-radar.html#acoes']] }] },
   { id: 'bcb', label: 'Banco Central', href: 'bcb.html', ic: 'gauge' },
   { id: 'rf', label: 'Renda fixa', ic: 'bank', paginas: ['rf'], grupos: [
     { t: 'Renda fixa', itens: [['Troca de ativos', 'rolagem.html'], ['Isento × tributado', 'rf-calculadoras.html#isento'], ['Juros recebidos no tempo', 'rf-calculadoras.html#cupons'], ['Juros compostos', 'rf-calculadoras.html#compostos'], ['Saldo parado × aplicado', 'rf-calculadoras.html#parado']] }] },
@@ -178,6 +179,9 @@ const PAGINAS = [
   ['XP Inc.', 'xp.html', 'xp inc xpbr31 nasdaq acao indicadores concorrentes btg itau nubank inter resultados calendario sec'],
   ['Banco Central', 'bcb.html', 'banco central bc bcb copom selic ipca inflacao focus expectativas pib ibc-br desemprego divida fiscal reservas cambio credito inadimplencia indicadores macro'],
   ['Radar de ações', 'rv-radar.html', 'radar acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
+  ['Radar de ETFs', 'rv-etf.html', 'radar etf etfs bova11 ivvb11 smal11 hash11 indice fundos de indice altas quedas'],
+  ['ETFs internacionais', 'int-radar.html#etfs', 'radar internacional etf etfs eua spy qqq voo exterior dolar altas quedas'],
+  ['Ações internacionais', 'int-radar.html#acoes', 'radar internacional acoes stocks eua apple nvidia microsoft exterior dolar resultados'],
   ['Radar de FIIs', 'fiis.html', 'radar fii fiis fundos imobiliarios fiagro atencao pontos criticos dividendos pvp dy'],
   ['Boleta de ações', 'rv-boleta.html', 'renda variavel acoes fii ordens compra venda de acordo broker'],
   ['Troca de ativos', 'rolagem.html', 'renda fixa rolagem desagio cdb troca'],

@@ -1,0 +1,45 @@
+/* Radar de ETFs e Radar internacional (assets/radar-lista.js) */
+.kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
+.kpi .v.up, .up { color: var(--good); } .kpi .v.dn, .dn { color: var(--bad); }
+.duo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+h2 small { font-weight: 600; color: var(--muted); font-size: 13px; }
+.lst { display: grid; gap: 6px; }
+.lst .it { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: #f6f5fa; font-size: 14px;
+  width: 100%; height: auto; white-space: normal; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.lst .it:hover { background: #fff1e8; }
+.lst .it .tk { font-weight: 800; color: var(--indigo); font-size: 14px; }
+.lst .it .ds { color: var(--muted); font-size: 12.5px; line-height: 1.35; display: block; margin-top: 1px; }
+.lst .it .vv { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; font-size: 14px; }
+.lst .it .vv small { display: block; color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.bar { height: 5px; border-radius: 99px; background: #eceaf2; overflow: hidden; margin-top: 5px; }
+.bar i { display: block; height: 100%; border-radius: 99px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
+.chips button { background: #f1f0f5; color: var(--ink); border: 0; font-weight: 700; padding: 7px 12px; border-radius: 99px; font-size: 13px; height: auto; }
+.chips button.on { background: var(--indigo); color: #fff; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs a { background: #ebeaf1; color: var(--ink); font-weight: 800; padding: 10px 18px; border-radius: 99px; font-size: 14.5px; text-decoration: none; }
+.tabs a.on { background: var(--indigo); color: #fff; }
+.tl { font-size: 13.5px; }
+.tl th { cursor: pointer; white-space: nowrap; user-select: none; }
+.tl th.on::after { content: ' ▾'; } .tl th.on.asc::after { content: ' ▴'; }
+.tl td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tl td:first-child, .tl th:first-child { position: sticky; left: 0; background: #fff; z-index: 1; }
+.tl tr { cursor: pointer; }
+.tl tr:hover td { background: #faf9fc; }
+.tl .tk { font-weight: 800; color: var(--indigo); }
+.tl .ds { font-size: 11.5px; color: var(--muted); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl .ct { font-size: 12px; color: var(--muted); }
+.cal { display: grid; gap: 6px; }
+.cal .c { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: #f6f5fa; font-size: 14px;
+  width: 100%; height: auto; white-space: normal; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.cal .c .d { font-weight: 800; color: var(--indigo); font-size: 13px; line-height: 1.2; }
+.cal .c .d small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
+.busca-r { width: 100%; max-width: 280px; }
+.modal.acao { width: min(560px, 100%); }
+.ind { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ind div { background: #f2f3f5; border-radius: 12px; padding: 8px 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.ind b { display: block; font-size: 16px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.faixa { position: relative; height: 8px; background: linear-gradient(90deg, var(--bad-soft), #eceaf2, var(--good-soft)); border-radius: 99px; margin: 22px 0 6px; }
+.faixa i { position: absolute; top: -5px; width: 4px; height: 18px; background: var(--indigo); border-radius: 2px; transform: translateX(-2px); }
+.tvm { height: 220px; border-radius: 14px; overflow: hidden; margin-top: 12px; }
+@media (max-width: 520px) { .tl .ds { max-width: 190px; } .ind { grid-template-columns: repeat(2, 1fr); } }
