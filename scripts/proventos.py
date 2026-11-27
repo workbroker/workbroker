@@ -10,7 +10,7 @@ SAIDA = os.path.join(DATA_DIR, "proventos.json")
 BRT = timezone(timedelta(hours=-3))
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
       "Accept": "application/json,text/plain,*/*"}
-INTERVALO_H = 2
+INTERVALO_H = 1
 EXTRAS = 70  # ações fora do Ibovespa, as mais negociadas
 
 
@@ -192,6 +192,7 @@ def docs_plantao(cod2tk, hoje, cache_not, debug):
         nid = str(m.get("id"))
         if nid not in cache_not:
             if novos >= 350:
+                debug["pendente"] = True
                 continue
             novos += 1
             try:
@@ -221,6 +222,7 @@ def ler_docs(docs, cache, debug):
         if it and it.get("v") == 3 and (it.get("x") or "amostra" in it or it.get("erro")):
             it.update({"tks": info["tks"]}); lidos[prot] = it; continue
         if novos >= 220:
+            debug["pendente"] = True
             continue
         novos += 1
         it = {"v": 3, **info}
@@ -257,7 +259,7 @@ def main():
     try:
         ant = json.load(open(SAIDA, encoding="utf-8"))
         idade = (datetime.now(timezone.utc) - datetime.fromisoformat(ant["atualizado"])).total_seconds() / 3600
-        if idade < INTERVALO_H and not forcar:
+        if idade < INTERVALO_H and not forcar and not ant.get("pendente"):
             log(f"atualizado há {idade:.1f} h; pulando"); return
     except Exception:
         pass
@@ -348,7 +350,7 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
         json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hoje": hoje.isoformat(),
-                   "emissores": len(emissores), "p": unicos, "avisos": avisos, "noticias": cache_not, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
+                   "emissores": len(emissores), "p": unicos, "avisos": avisos, "noticias": cache_not, "pendente": bool(debug.get("pendente")), "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":

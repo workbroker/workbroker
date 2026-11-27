@@ -59,7 +59,7 @@ jobs:
       - name: Radar de ETFs e internacional (a cada rodada)
         run: python scripts/mundo.py || true
         timeout-minutes: 6
-      - name: Radar de proventos (a cada 2 horas)
+      - name: Radar de proventos (a cada hora)
         run: python scripts/proventos.py || true
         timeout-minutes: 14
         env:
