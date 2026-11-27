@@ -99,15 +99,20 @@ def ler_aviso(txt):
     t = normalizar(txt)
     tipo = "JCP" if re.search(r"juros sobre (o )?capital|\bJCP\b", t, re.I) else "Dividendo" if re.search(r"dividendo", t, re.I) else None
     valores = {}
-    for m in re.finditer(r"R\$ ?(\d{1,3}(?:\.\d{3})*,\d{2,12})(.{0,90}?)por (?:cada )?(?:acao|acoes)( (?:ordinaria|preferencial|unit))?", t, re.I):
+    for m in re.finditer(r"R\$ ?(\d{1,3}(?:\.\d{3})*,\d{2,12})((?:(?!R\$).){0,240}?)por (?:cada )?(?:acao|acoes|unit|units|certificado)( (?:ordinaria|preferencial|unit))?", t, re.I):
         ctx = t[max(0, m.start() - 60): m.end() + 40].lower()
         if "liquid" in ctx and "brut" not in m.group(2).lower():
             continue  # valor líquido de IR
         if re.search(r"milh|bilh|mil\b", m.group(2), re.I):
             continue  # total distribuído, não por ação
+        v = num(m.group(1))
+        if not v or v > 100:
+            continue  # valor total da distribuição, não por ação
         cls = (m.group(3) or "").strip().lower()
         k = "ON" if cls.startswith("ordin") else "PN" if cls.startswith("pref") else "UNIT" if cls == "unit" else "*"
-        valores.setdefault(k, num(m.group(1)))
+        if re.search(r"\bunits?\b", m.group(0)[-12:], re.I):
+            k = "UNIT"
+        valores.setdefault(k, v)
     if not valores or not tipo:
         return None
     com = re.search(r"(?:posicao acionaria|base acionaria|data[- ]com|detentores? de acoes|acionistas inscritos|titulares de acoes)[^.]{0,120}?" + DT, t, re.I)
@@ -166,20 +171,26 @@ def avisos_cvm(tk2cn, conhecidos, cache, debug, hoje):
         if p not in docs or (num(r.get("Versao")) or 0) >= (num(docs[p].get("Versao")) or 0):
             docs[p] = r
     debug["avisos_encontrados"] = len(docs)
+    debug["ipe_ultima_data"] = max((r.get("Data_Entrega") or "") for r in linhas) if linhas else None
+    debug["ipe_bancos"] = [(r.get("Data_Entrega"), r.get("Categoria"), (r.get("Assunto") or "")[:60]) for r in linhas
+                           if re.sub(r"\D", "", r.get("CNPJ_Companhia") or "") in ("60746948000112", "60872504000123") and (r.get("Data_Entrega") or "") >= lim][:12]
     from pypdf import PdfReader
     novos, lidos = 0, {}
     for p, r in sorted(docs.items(), key=lambda kv: kv[1].get("Data_Entrega") or "", reverse=True):
-        if p in cache:
+        if p in cache and cache[p].get("v") == 2:
             lidos[p] = cache[p]; continue
         if novos >= 60:
             continue  # o resto fica para a próxima rodada
         novos += 1
-        item = {"d": r.get("Data_Entrega"), "cn": re.sub(r"\D", "", r.get("CNPJ_Companhia") or ""), "a": (r.get("Assunto") or "")[:160], "l": r.get("Link_Download")}
+        item = {"v": 2, "d": r.get("Data_Entrega"), "cn": re.sub(r"\D", "", r.get("CNPJ_Companhia") or ""), "a": (r.get("Assunto") or "")[:160], "l": r.get("Link_Download")}
         try:
             b = baixar_pdf(r.get("Link_Download"))
             if b:
                 rd = PdfReader(io.BytesIO(b))
-                item["x"] = ler_aviso(" ".join((pg.extract_text() or "") for pg in rd.pages[:5]))
+                txt = " ".join((pg.extract_text() or "") for pg in rd.pages[:5])
+                item["x"] = ler_aviso(txt)
+                if not item["x"]:
+                    item["amostra"] = normalizar(txt)[:500]
         except Exception as e:
             item["erro"] = repr(e)[:80]
         lidos[p] = item
