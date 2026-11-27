@@ -218,21 +218,18 @@ def sonda_plantao(debug, hoje):
              f"dataInicial={(hoje - timedelta(days=5)).isoformat()}&dataFinal={hoje.isoformat()}")
         j = json.loads(get(u))
         debug["plantao_n"] = len(j)
-        hs = [x["NwsMsg"] for x in j if re.search(r"\((BBDC|ITUB|PETR|ITSA)\)", x["NwsMsg"].get("headline") or "")]
-        debug["plantao_bancos"] = [(m["dateTime"], m["headline"], m["id"]) for m in hs[:15]]
-        prov = [x["NwsMsg"]["headline"] for x in j if re.search(r"acionista|juros|dividend|provento", x["NwsMsg"].get("headline") or "", re.I)]
-        debug["plantao_prov"] = prov[:25]
-        m = hs[0] if hs else j[0]["NwsMsg"]
-        dn = urllib.parse.quote(m["dateTime"])
-        for u2 in (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detail?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
-                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarDetalheNoticia?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
-                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detalhe?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
-                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ObterNoticia?idNoticia={m['id']}&agencia=18&dataNoticia={dn}"):
-            try:
-                b = get(u2).decode("utf-8", "ignore")
-                debug.setdefault("plantao_det", []).append((u2.split("/Noticias/")[1][:40], re.sub(r"\s+", " ", b)[:1200]))
-            except Exception as e:
-                debug.setdefault("plantao_det", []).append((u2.split("/Noticias/")[1][:40], repr(e)[:60]))
+        hs = [x["NwsMsg"] for x in j if re.search(r"\((BBDC|ITUB|PETR|ITSA|BBAS)[)-]", x["NwsMsg"].get("headline") or "")]
+        debug["plantao_bancos"] = [(m["dateTime"], m["headline"], m["id"]) for m in hs[:20]]
+        alvo = next((m for m in hs if re.search(r"acionista|juros|dividend|provento", m["headline"], re.I)), hs[0] if hs else j[0]["NwsMsg"])
+        dn = urllib.parse.quote(alvo["dateTime"])
+        b = get(f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detail?idNoticia={alvo['id']}&agencia=18&dataNoticia={dn}").decode("utf-8", "ignore")
+        b = re.sub(r"\s+", " ", b)
+        corpo = re.sub(r"<script.*?</script>|<style.*?</style>", " ", b, flags=re.S)
+        texto = re.sub(r"<[^>]+>", " ", corpo)
+        debug["plantao_alvo"] = alvo["headline"]
+        debug["plantao_links"] = re.findall(r'href="([^"]+)"', corpo)[-15:]
+        debug["plantao_texto"] = re.sub(r"\s+", " ", texto)[-1500:]
+        debug["plantao_scripts"] = [x[:300] for x in re.findall(r"<script[^>]*>(.*?)</script>", b, flags=re.S) if "ajax" in x.lower() or "url" in x.lower()][:4]
     except Exception as e:
         debug["plantao_erro"] = repr(e)[:200]
 
