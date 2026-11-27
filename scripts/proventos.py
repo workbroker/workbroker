@@ -1,7 +1,7 @@
 """Radar de proventos: dividendos, JCP e rendimentos já aprovados das ações do Ibovespa e das mais negociadas
 fora dele, com valor por ação, data com e data de pagamento. Fonte: B3 (dados da empresa listada, cashDividends).
 Roda a cada ~2 h (ou no push com FORCAR) e grava proventos.json."""
-import base64, json, os, sys, time, urllib.request
+import base64, csv, io, json, os, re, sys, time, unicodedata, urllib.request, zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta, date
 
@@ -75,8 +75,134 @@ def proventos_emissor(codigo, conhecidos):
     return out
 
 
+# ---------------- Avisos aos acionistas na CVM (anúncios que a B3 ainda não lista) ----------------
+CVM = "https://dados.cvm.gov.br/dados/CIA_ABERTA/"
+RX_ASSUNTO = re.compile(r"juros sobre (o )?capital|\bjcp\b|dividend|provento|remunera..o aos acionistas|distribui..o de (lucros|resultados)", re.I)
+MESES = {m: i + 1 for i, m in enumerate(["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"])}
+DT = r"(\d{2}/\d{2}/\d{4})"
+
+
+def sem_acento(t):
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode()
+
+
+def normalizar(txt):
+    """Texto do PDF sem acentos, espaços simples e datas por extenso convertidas ('21 de dezembro de 2026' -> 21/12/2026)."""
+    t = re.sub(r"\s+", " ", sem_acento(txt))
+    t = re.sub(r"(\d{1,2})o? de (" + "|".join(MESES) + r") de (\d{4})",
+               lambda m: f"{int(m.group(1)):02d}/{MESES[m.group(2).lower()]:02d}/{m.group(3)}", t, flags=re.I)
+    return re.sub(r"(\d{1,2})/(\d{1,2})/(\d{4})", lambda m: f"{int(m.group(1)):02d}/{int(m.group(2)):02d}/{m.group(3)}", t)
+
+
+def ler_aviso(txt):
+    """Valor por ação (bruto), data com e data de pagamento do aviso. Devolve dict ou None."""
+    t = normalizar(txt)
+    tipo = "JCP" if re.search(r"juros sobre (o )?capital|\bJCP\b", t, re.I) else "Dividendo" if re.search(r"dividendo", t, re.I) else None
+    valores = {}
+    for m in re.finditer(r"R\$ ?(\d{1,3}(?:\.\d{3})*,\d{2,12})(.{0,90}?)por (?:cada )?(?:acao|acoes)( (?:ordinaria|preferencial|unit))?", t, re.I):
+        ctx = t[max(0, m.start() - 60): m.end() + 40].lower()
+        if "liquid" in ctx and "brut" not in m.group(2).lower():
+            continue  # valor líquido de IR
+        if re.search(r"milh|bilh|mil\b", m.group(2), re.I):
+            continue  # total distribuído, não por ação
+        cls = (m.group(3) or "").strip().lower()
+        k = "ON" if cls.startswith("ordin") else "PN" if cls.startswith("pref") else "UNIT" if cls == "unit" else "*"
+        valores.setdefault(k, num(m.group(1)))
+    if not valores or not tipo:
+        return None
+    com = re.search(r"(?:posicao acionaria|base acionaria|data[- ]com|detentores? de acoes|acionistas inscritos|titulares de acoes)[^.]{0,120}?" + DT, t, re.I)
+    ex = re.search(r"ex[- ](?:direito|juros|jcp|dividendos?|proventos?)[^.]{0,80}?" + DT, t, re.I)
+    pag = re.search(r"(?:pagamento|pagos|creditados|serao pagos|sera pago|sera efetuado|sera realizado)[^.]{0,140}?" + DT, t, re.I)
+    iso = lambda m: data_iso(m.group(1)) if m else None
+    c = iso(com)
+    if not c and ex:  # data com = dia útil anterior à data ex (aproximação: dia anterior, pulando fim de semana)
+        d = date.fromisoformat(iso(ex)) - timedelta(days=1)
+        while d.weekday() >= 5:
+            d -= timedelta(days=1)
+        c = d.isoformat()
+    return {"tipo": tipo, "valores": valores, "com": c, "pag": iso(pag)}
+
+
+def baixar_pdf(link):
+    m = re.search(r"numProtocolo=(\d+)", link or "")
+    if not m:
+        return None
+    pag = f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={m.group(1)}"
+    corpo = json.dumps({"codigoInstituicao": "1", "numeroProtocolo": m.group(1), "token": "", "versaoCaptcha": ""}).encode()
+    r = json.loads(urllib.request.urlopen(urllib.request.Request(
+        "https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx/ExibirPDF", data=corpo,
+        headers={**UA, "Content-Type": "application/json; charset=utf-8", "X-Requested-With": "XMLHttpRequest", "Referer": pag}), timeout=90).read())
+    d = r.get("d") or ""
+    if not d or d.startswith(":ERRO:"):
+        return None
+    b = base64.b64decode(d.split(",")[-1])
+    return b if b[:4] == b"%PDF" else None
+
+
+def avisos_cvm(tk2cn, conhecidos, cache, debug, hoje):
+    """Documentos dos últimos 45 dias sobre JCP/dividendos das empresas acompanhadas, lidos do PDF."""
+    cn2tk = {}
+    for tk, cn in tk2cn.items():
+        if tk in conhecidos:
+            cn2tk.setdefault(cn, []).append(tk)
+    lim = (hoje - timedelta(days=45)).isoformat()
+    linhas = []
+    for a in sorted({hoje.year, (hoje - timedelta(days=45)).year}):
+        try:
+            z = zipfile.ZipFile(io.BytesIO(get(CVM + f"DOC/IPE/DADOS/ipe_cia_aberta_{a}.zip", 300)))
+            for nm in z.namelist():
+                linhas += list(csv.DictReader(io.TextIOWrapper(z.open(nm), encoding="latin-1"), delimiter=";"))
+        except Exception as e:
+            debug[f"ipe_{a}"] = repr(e)[:100]
+    docs = {}
+    for r in linhas:
+        cn = re.sub(r"\D", "", r.get("CNPJ_Companhia") or "")
+        if cn not in cn2tk or (r.get("Data_Entrega") or "") < lim:
+            continue
+        txt = f"{r.get('Assunto') or ''} {r.get('Tipo') or ''} {r.get('Especie') or ''}"
+        if r.get("Categoria") not in ("Aviso aos Acionistas", "Comunicado ao Mercado", "Fato Relevante") or not RX_ASSUNTO.search(sem_acento(txt)):
+            continue
+        p = r.get("Protocolo_Entrega")
+        if p not in docs or (num(r.get("Versao")) or 0) >= (num(docs[p].get("Versao")) or 0):
+            docs[p] = r
+    debug["avisos_encontrados"] = len(docs)
+    from pypdf import PdfReader
+    novos, lidos = 0, {}
+    for p, r in sorted(docs.items(), key=lambda kv: kv[1].get("Data_Entrega") or "", reverse=True):
+        if p in cache:
+            lidos[p] = cache[p]; continue
+        if novos >= 60:
+            continue  # o resto fica para a próxima rodada
+        novos += 1
+        item = {"d": r.get("Data_Entrega"), "cn": re.sub(r"\D", "", r.get("CNPJ_Companhia") or ""), "a": (r.get("Assunto") or "")[:160], "l": r.get("Link_Download")}
+        try:
+            b = baixar_pdf(r.get("Link_Download"))
+            if b:
+                rd = PdfReader(io.BytesIO(b))
+                item["x"] = ler_aviso(" ".join((pg.extract_text() or "") for pg in rd.pages[:5]))
+        except Exception as e:
+            item["erro"] = repr(e)[:80]
+        lidos[p] = item
+    debug["avisos_lidos_agora"] = novos
+    out = []
+    for p, it in lidos.items():
+        x = it.get("x")
+        if not x:
+            continue
+        tks = cn2tk.get(it["cn"], [])
+        for tk in tks:
+            cls = {"3": "ON", "4": "PN", "5": "PN", "6": "PN", "11": "UNIT"}.get(tk[4:], "*")
+            v = x["valores"].get(cls) or x["valores"].get("*") or (len(x["valores"]) == 1 and next(iter(x["valores"].values()))) or None
+            if not v:
+                continue
+            out.append({"tk": tk, "tipo": x["tipo"], "valor": v, "aprov": it["d"], "com": x["com"], "pag": x["pag"],
+                        "ref": "", "fonte": "aviso", "doc": it["l"]})
+    return out, lidos
+
+
 def main():
     forcar = os.environ.get("FORCAR") == "1"
+    ant = None
     try:
         ant = json.load(open(SAIDA, encoding="utf-8"))
         idade = (datetime.now(timezone.utc) - datetime.fromisoformat(ant["atualizado"])).total_seconds() / 3600
@@ -121,19 +247,38 @@ def main():
                         p["yield"] = round(p["valor"] / a["preco"] * 100, 2)
                     todos.append(p)
     log("emissores:", len(emissores), "falhas:", falhas, "proventos:", len(todos), list(debug.items())[:5])
+    # anúncios recentes pelos avisos da CVM (a B3 só lista depois da data ex)
+    cache = (ant or {}).get("avisos") or {}
+    try:
+        tk2cn = json.load(open(os.path.join(DATA_DIR, "radar_base.json"), encoding="utf-8"))["fund"]["tk2cn"]
+        av, avisos = avisos_cvm(tk2cn, conhecidos, cache, debug, hoje)
+    except Exception as e:
+        av, avisos = [], cache
+        debug["avisos"] = repr(e)[:160]
+    b3 = {(p["tk"], p["tipo"], p["com"]) for p in todos}
+    b3v = {(p["tk"], round(p["valor"] or 0, 4)) for p in todos}
+    for p in av:
+        if (p["tk"], p["tipo"], p["com"]) in b3 or (p["tk"], round(p["valor"], 4)) in b3v:
+            continue  # a B3 já tem
+        a = info.get(p["tk"], {})
+        p.update({"nome": a.get("nome"), "preco": a.get("preco"), "ibov": p["tk"] in ibov})
+        if a.get("preco"):
+            p["yield"] = round(p["valor"] / a["preco"] * 100, 2)
+        todos.append(p)
+    log("avisos da CVM:", len(av), {k: v for k, v in debug.items() if k.startswith("avis") or k.startswith("ipe")})
     if falhas > len(emissores) * 0.5:
         log("Falhas demais; mantendo o arquivo anterior."); return
     # remove repetidos (a B3 às vezes lista o mesmo provento duas vezes)
     vistos, unicos = set(), []
     for p in todos:
-        k = (p["tk"], p["tipo"], p["valor"], p["com"], p["pag"])
+        k = (p["tk"], p["tipo"], round(p["valor"] or 0, 6), p["com"])
         if k not in vistos:
             vistos.add(k); unicos.append(p)
     unicos.sort(key=lambda p: (p["aprov"] or "", p["tk"]), reverse=True)
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
         json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hoje": hoje.isoformat(),
-                   "emissores": len(emissores), "p": unicos, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
+                   "emissores": len(emissores), "p": unicos, "avisos": avisos, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":
