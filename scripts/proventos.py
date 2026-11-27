@@ -218,13 +218,21 @@ def sonda_plantao(debug, hoje):
              f"dataInicial={(hoje - timedelta(days=5)).isoformat()}&dataFinal={hoje.isoformat()}")
         j = json.loads(get(u))
         debug["plantao_n"] = len(j)
-        debug["plantao_ex"] = json.dumps(j[:3], ensure_ascii=False)[:900]
-        alvo = next((x for x in j if re.search(r"BBDC|ITUB|ITAU|BRADESCO", json.dumps(x, ensure_ascii=False), re.I)), j[0] if j else None)
-        if alvo:
-            m = alvo.get("NwsMsg") or alvo
-            u2 = (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarDetalheNoticia?idNoticia={m.get('id')}&agencia=18&"
-                  f"dataNoticia={urllib.parse.quote(str(m.get('dtHrCriacao') or m.get('dateTime') or ''))}")
-            debug["plantao_det"] = get(u2).decode("utf-8", "ignore")[:1500]
+        hs = [x["NwsMsg"] for x in j if re.search(r"\((BBDC|ITUB|PETR|ITSA)\)", x["NwsMsg"].get("headline") or "")]
+        debug["plantao_bancos"] = [(m["dateTime"], m["headline"], m["id"]) for m in hs[:15]]
+        prov = [x["NwsMsg"]["headline"] for x in j if re.search(r"acionista|juros|dividend|provento", x["NwsMsg"].get("headline") or "", re.I)]
+        debug["plantao_prov"] = prov[:25]
+        m = hs[0] if hs else j[0]["NwsMsg"]
+        dn = urllib.parse.quote(m["dateTime"])
+        for u2 in (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detail?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
+                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarDetalheNoticia?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
+                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detalhe?idNoticia={m['id']}&agencia=18&dataNoticia={dn}",
+                   f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ObterNoticia?idNoticia={m['id']}&agencia=18&dataNoticia={dn}"):
+            try:
+                b = get(u2).decode("utf-8", "ignore")
+                debug.setdefault("plantao_det", []).append((u2.split("/Noticias/")[1][:40], re.sub(r"\s+", " ", b)[:1200]))
+            except Exception as e:
+                debug.setdefault("plantao_det", []).append((u2.split("/Noticias/")[1][:40], repr(e)[:60]))
     except Exception as e:
         debug["plantao_erro"] = repr(e)[:200]
 
