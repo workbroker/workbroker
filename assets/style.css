@@ -393,7 +393,7 @@ body.has-ticker .table-wrap.fixo { max-height: calc(100vh - 276px); }
 /* blocos recolhíveis (details.fold) */
 details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; user-select: none; position: relative; padding-right: 44px; min-height: 30px; }
 details.fold > summary::-webkit-details-marker { display: none; }
-details.fold > summary::after { content: none; }
+details.fold > summary::after, details.fold[open] > summary::after { content: none !important; }
 details.fold > summary h2 { margin: 0; }
 details.fold[open] > summary { margin-bottom: 12px; }
 details.fold .fold-prev { font-size: 13px; color: var(--muted); min-width: 0; }

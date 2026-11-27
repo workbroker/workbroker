@@ -179,6 +179,7 @@ const PAGINAS = [
   ['XP Inc.', 'xp.html', 'xp inc xpbr31 nasdaq acao indicadores concorrentes btg itau nubank inter resultados calendario sec'],
   ['Banco Central', 'bcb.html', 'banco central bc bcb copom selic ipca inflacao focus expectativas pib ibc-br desemprego divida fiscal reservas cambio credito inadimplencia indicadores macro'],
   ['Radar de ações', 'rv-radar.html', 'radar acoes bolsa ibovespa altas quedas calendario resultados dy pl pvp roe indicadores'],
+  ['Proventos (dividendos e JCP)', 'rv-radar.html', 'radar proventos dividendos jcp juros sobre capital proprio data com pagamento agenda'],
   ['Radar de ETFs', 'rv-etf.html', 'radar etf etfs bova11 ivvb11 smal11 hash11 indice fundos de indice altas quedas'],
   ['ETFs internacionais', 'int-radar.html#etfs', 'radar internacional etf etfs eua spy qqq voo exterior dolar altas quedas'],
   ['Ações internacionais', 'int-radar.html#acoes', 'radar internacional acoes stocks eua apple nvidia microsoft exterior dolar resultados'],

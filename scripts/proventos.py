@@ -238,8 +238,8 @@ def ler_docs(docs, cache, debug):
     out = []
     for prot, it in lidos.items():
         x = it.get("x")
-        if not x:
-            continue
+        if not x or not (x.get("com") or x.get("pag")):
+            continue  # sem data com nem pagamento: leitura duvidosa
         for tk in it["tks"]:
             cls = {"3": "ON", "4": "PN", "5": "PN", "6": "PN", "11": "UNIT"}.get(tk[4:], "*")
             v = x["valores"].get(cls) or x["valores"].get("*") or (len(x["valores"]) == 1 and next(iter(x["valores"].values()))) or None
@@ -330,6 +330,8 @@ def main():
         p.update({"nome": a.get("nome"), "preco": a.get("preco"), "ibov": p["tk"] in ibov})
         if a.get("preco"):
             p["yield"] = round(p["valor"] / a["preco"] * 100, 2)
+            if p["yield"] > 25:
+                continue  # valor implausível para um provento (provável erro de leitura)
         todos.append(p)
     log("avisos:", len(av), {k: v for k, v in debug.items() if k.split("_")[0] in ("ipe", "plantao", "pdfs", "ler")})
     if falhas > len(emissores) * 0.5:

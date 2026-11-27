@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#22105a">
 <title>Radar de ações · WorkBroker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff5a00%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-size=%2213%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3EWB%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css?v=202611231618">
+<link rel="stylesheet" href="assets/style.css?v=202611271455">
 <style>
   .kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
   .kpi .v.up, .up { color: var(--good); } .kpi .v.dn, .dn { color: var(--bad); }
@@ -42,6 +42,29 @@
   #tAcoes tr:hover td { background: #faf9fc; }
   #tAcoes .tk { font-weight: 800; color: var(--indigo); }
   #tAcoes .nm { font-size: 11.5px; color: var(--muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  .pv-filtros { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 10px; }
+  .pv-filtros input[type=search] { flex: 1 1 200px; max-width: 280px; }
+  .pv-filtros .chips button, .pv-abas button { background: #f1f0f5; color: var(--ink); border: 0; font-weight: 700; padding: 7px 12px; border-radius: 99px; font-size: 13px; height: auto; }
+  .pv-filtros .chips button.on, .pv-abas button.on { background: var(--indigo); color: #fff; }
+  .pv-filtros .chips, .pv-abas { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pv-abas { margin-bottom: 10px; }
+  .pv-filtros .chips button, .pv-abas button { width: auto !important; display: inline-block; font-size: 13px !important; line-height: 1.2; }
+  .pv-filtros input[type=checkbox] { width: auto !important; height: auto; margin: 0; }
+  .pvl { display: grid; gap: 6px; }
+  .pv { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 12px; background: #f6f5fa; font-size: 14px; }
+  .pv.hoje { background: #fff1e8; }
+  .pv .d { font-weight: 800; color: var(--indigo); font-size: 13.5px; line-height: 1.2; }
+  .pv .d small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
+  .pv > span { text-align: left; }
+  .pv .vv { text-align: right; }
+  .pv .tk { font-weight: 800; color: var(--indigo); }
+  .pv .nm { color: var(--muted); font-size: 12.5px; }
+  .pv .mt { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .pv .mt a { color: var(--orange, #ff5a00); font-weight: 700; }
+  .pv .vv { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pv .vv small { display: block; font-weight: 600; color: var(--muted); font-size: 11.5px; }
+  .tp { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #e9f7ef; color: #11743f; vertical-align: 1px; }
+  .tp.jcp { background: #eef0ff; color: #3b3fb5; } .tp.out { background: #f1f0f5; color: var(--muted); }
   .tv { height: 560px; border-radius: 16px; overflow: hidden; }
   @media (max-width: 520px) { .tv { height: 520px; } }
   .modal.acao { width: min(560px, 100%); }
@@ -91,6 +114,11 @@
     <p class="note" id="calNota" style="margin-top:8px"></p>
   </details>
 
+  <details class="card fold" data-fold="rv-prov" id="foldProv" style="margin-top:14px">
+    <summary><h2>💰 Proventos anunciados <small>dividendos e JCP</small></h2><span class="fold-prev" id="provPrev">carregando…</span><span class="chev">▾</span></summary>
+    <div id="provCorpo"></div>
+  </details>
+
   <details class="card fold" data-fold="rv-tv" id="foldTv" style="margin-top:14px">
     <summary><h2>⚡ Toda a bolsa ao vivo <small>altas, quedas e mais negociadas · TradingView</small></h2><span class="fold-prev">toque para abrir</span><span class="chev">▾</span></summary>
     <div class="tv" id="tv"></div>
@@ -113,7 +141,8 @@
   </div>
 </div>
 
-<script src="assets/common.js?v=202611231618"></script>
-<script src="assets/radar.js?v=202611231618"></script>
+<script src="assets/common.js?v=202611271455"></script>
+<script src="assets/proventos.js?v=202611271455"></script>
+<script src="assets/radar.js?v=202611271455"></script>
 </body>
 </html>
