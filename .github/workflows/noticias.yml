@@ -59,6 +59,11 @@ jobs:
       - name: Radar de ETFs e internacional (a cada rodada)
         run: python scripts/mundo.py || true
         timeout-minutes: 6
+      - name: Radar de proventos (a cada 2 horas)
+        run: python scripts/proventos.py || true
+        timeout-minutes: 8
+        env:
+          FORCAR: ${{ github.event_name == 'push' && '1' || '' }}
       - name: Banco Central (uma vez por dia)
         run: python scripts/bcb.py || true
         timeout-minutes: 8
