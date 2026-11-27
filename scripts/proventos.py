@@ -191,7 +191,7 @@ def docs_plantao(cod2tk, hoje, cache_not, debug):
     for prio, dt, m, cod in cand:
         nid = str(m.get("id"))
         if nid not in cache_not:
-            if novos >= 120:
+            if novos >= 350:
                 continue
             novos += 1
             try:
@@ -213,14 +213,14 @@ def docs_plantao(cod2tk, hoje, cache_not, debug):
 
 
 def ler_docs(docs, cache, debug):
-    """Baixa e lê os PDFs ainda não lidos (no máximo 90 por rodada); devolve proventos e o cache atualizado."""
+    """Baixa e lê os PDFs ainda não lidos (no máximo 220 por rodada); devolve proventos e o cache atualizado."""
     from pypdf import PdfReader
     novos, lidos = 0, {}
     for prot, info in sorted(docs.items(), key=lambda kv: kv[1]["d"], reverse=True):
         it = cache.get(prot)
         if it and it.get("v") == 3:
             it.update({"tks": info["tks"]}); lidos[prot] = it; continue
-        if novos >= 90:
+        if novos >= 220:
             continue
         novos += 1
         it = {"v": 3, **info}
