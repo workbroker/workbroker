@@ -113,7 +113,7 @@ def ler_aviso(txt):
         if re.search(r"\bunits?\b", m.group(0)[-12:], re.I):
             k = "UNIT"
         valores.setdefault(k, v)
-    if not valores or not tipo:
+    if not valores or not tipo or not re.search(r"aprov|declar|deliber|distribui", t, re.I):
         return None
     com = re.search(r"(?:posicao acionaria|base acionaria|data[- ]com|detentores? de acoes|acionistas inscritos|titulares de acoes)[^.]{0,120}?" + DT, t, re.I)
     ex = re.search(r"ex[- ](?:direito|juros|jcp|dividendos?|proventos?)[^.]{0,80}?" + DT, t, re.I)
@@ -128,12 +128,9 @@ def ler_aviso(txt):
     return {"tipo": tipo, "valores": valores, "com": c, "pag": iso(pag)}
 
 
-def baixar_pdf(link):
-    m = re.search(r"numProtocolo=(\d+)", link or "")
-    if not m:
-        return None
-    pag = f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={m.group(1)}"
-    corpo = json.dumps({"codigoInstituicao": "1", "numeroProtocolo": m.group(1), "token": "", "versaoCaptcha": ""}).encode()
+def baixar_pdf(protocolo):
+    pag = f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={protocolo}"
+    corpo = json.dumps({"codigoInstituicao": "1", "numeroProtocolo": str(protocolo), "token": "", "versaoCaptcha": ""}).encode()
     r = json.loads(urllib.request.urlopen(urllib.request.Request(
         "https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx/ExibirPDF", data=corpo,
         headers={**UA, "Content-Type": "application/json; charset=utf-8", "X-Requested-With": "XMLHttpRequest", "Referer": pag}), timeout=90).read())
@@ -144,15 +141,12 @@ def baixar_pdf(link):
     return b if b[:4] == b"%PDF" else None
 
 
-def avisos_cvm(tk2cn, conhecidos, cache, debug, hoje):
-    """Documentos dos últimos 45 dias sobre JCP/dividendos das empresas acompanhadas, lidos do PDF."""
-    cn2tk = {}
-    for tk, cn in tk2cn.items():
-        if tk in conhecidos:
-            cn2tk.setdefault(cn, []).append(tk)
-    lim = (hoje - timedelta(days=45)).isoformat()
+def docs_ipe(cn2tk, hoje, debug):
+    """Dados abertos da CVM (IPE): avisos/fatos/comunicados sobre proventos dos últimos 90 dias.
+    A base costuma ter alguns dias de atraso; o plantão da B3 cobre os mais recentes."""
+    lim = (hoje - timedelta(days=90)).isoformat()
     linhas = []
-    for a in sorted({hoje.year, (hoje - timedelta(days=45)).year}):
+    for a in sorted({hoje.year, (hoje - timedelta(days=90)).year}):
         try:
             z = zipfile.ZipFile(io.BytesIO(get(CVM + f"DOC/IPE/DADOS/ipe_cia_aberta_{a}.zip", 300)))
             for nm in z.namelist():
@@ -167,71 +161,92 @@ def avisos_cvm(tk2cn, conhecidos, cache, debug, hoje):
         txt = f"{r.get('Assunto') or ''} {r.get('Tipo') or ''} {r.get('Especie') or ''}"
         if r.get("Categoria") not in ("Aviso aos Acionistas", "Comunicado ao Mercado", "Fato Relevante") or not RX_ASSUNTO.search(sem_acento(txt)):
             continue
-        p = r.get("Protocolo_Entrega")
-        if p not in docs or (num(r.get("Versao")) or 0) >= (num(docs[p].get("Versao")) or 0):
-            docs[p] = r
-    debug["avisos_encontrados"] = len(docs)
+        m = re.search(r"numProtocolo=(\d+)", r.get("Link_Download") or "")
+        if m:
+            docs[m.group(1)] = {"d": r.get("Data_Entrega"), "tks": cn2tk[cn], "a": (r.get("Assunto") or "")[:160], "o": "cvm"}
+    debug["ipe_docs"] = len(docs)
     debug["ipe_ultima_data"] = max((r.get("Data_Entrega") or "") for r in linhas) if linhas else None
-    debug["ipe_bancos"] = [(r.get("Data_Entrega"), r.get("Categoria"), (r.get("Assunto") or "")[:60]) for r in linhas
-                           if re.sub(r"\D", "", r.get("CNPJ_Companhia") or "") in ("60746948000112", "60872504000123") and (r.get("Data_Entrega") or "") >= lim][:12]
+    return docs
+
+
+PLANTAO = "https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/"
+RX_TIPO_NOT = re.compile(r"Aviso aos Acionistas|Fato Relevante|Comunicados? ao Mercado|Juros|Dividend|Provento", re.I)
+
+
+def docs_plantao(cod2tk, hoje, cache_not, debug):
+    """Plantão de notícias da B3 (tempo real): avisos, fatos relevantes e comunicados dos últimos 30 dias.
+    O detalhe de cada notícia traz o link do documento na CVM (ID = protocolo)."""
+    j = json.loads(get(f"{PLANTAO}ListarTitulosNoticias?agencia=18&palavra=&dataInicial={(hoje - timedelta(days=29)).isoformat()}&dataFinal={hoje.isoformat()}"))
+    cand = []
+    for x in j:
+        m = x.get("NwsMsg") or {}
+        h = m.get("headline") or ""
+        c = re.search(r"\(([A-Z0-9]{4})(?:-[A-Z0-9]+)?\)", h)
+        if not c or c.group(1) not in cod2tk or not RX_TIPO_NOT.search(h) or "Subscricao" in h:
+            continue
+        prio = 0 if re.search(r"Aviso aos Acionistas|Juros|Dividend|Provento", h, re.I) else 1
+        cand.append((prio, m.get("dateTime") or "", m, c.group(1)))
+    cand.sort(key=lambda t: (t[0], [-ord(ch) for ch in t[1]]))
+    docs, novos = {}, 0
+    for prio, dt, m, cod in cand:
+        nid = str(m.get("id"))
+        if nid not in cache_not:
+            if novos >= 120:
+                continue
+            novos += 1
+            try:
+                b = get(f"{PLANTAO}Detail?idNoticia={nid}&agencia=18&dataNoticia={urllib.parse.quote(dt)}").decode("utf-8", "ignore")
+                mm = re.search(r"frmExibirArquivoIPEExterno\.aspx\?ID=(\d+)", b)
+                cache_not[nid] = mm.group(1) if mm else ""
+            except Exception as e:
+                debug.setdefault("plantao_erros", []).append(repr(e)[:60])
+                continue
+        prot = cache_not.get(nid)
+        if prot:
+            docs[prot] = {"d": dt[:10], "tks": cod2tk[cod], "a": (m.get("headline") or "")[:160], "o": "b3"}
+    ativos = {str(c[2].get("id")) for c in cand}
+    for k in [k for k in cache_not if k not in ativos]:
+        del cache_not[k]  # notícia saiu da janela de 30 dias
+    debug["plantao_candidatos"] = len(cand)
+    debug["plantao_detalhes_agora"] = novos
+    return docs
+
+
+def ler_docs(docs, cache, debug):
+    """Baixa e lê os PDFs ainda não lidos (no máximo 90 por rodada); devolve proventos e o cache atualizado."""
     from pypdf import PdfReader
     novos, lidos = 0, {}
-    for p, r in sorted(docs.items(), key=lambda kv: kv[1].get("Data_Entrega") or "", reverse=True):
-        if p in cache and cache[p].get("v") == 2:
-            lidos[p] = cache[p]; continue
-        if novos >= 60:
-            continue  # o resto fica para a próxima rodada
+    for prot, info in sorted(docs.items(), key=lambda kv: kv[1]["d"], reverse=True):
+        it = cache.get(prot)
+        if it and it.get("v") == 3:
+            it.update({"tks": info["tks"]}); lidos[prot] = it; continue
+        if novos >= 90:
+            continue
         novos += 1
-        item = {"v": 2, "d": r.get("Data_Entrega"), "cn": re.sub(r"\D", "", r.get("CNPJ_Companhia") or ""), "a": (r.get("Assunto") or "")[:160], "l": r.get("Link_Download")}
+        it = {"v": 3, **info}
         try:
-            b = baixar_pdf(r.get("Link_Download"))
+            b = baixar_pdf(prot)
             if b:
-                rd = PdfReader(io.BytesIO(b))
-                txt = " ".join((pg.extract_text() or "") for pg in rd.pages[:5])
-                item["x"] = ler_aviso(txt)
-                if not item["x"]:
-                    item["amostra"] = normalizar(txt)[:500]
+                txt = " ".join((pg.extract_text() or "") for pg in PdfReader(io.BytesIO(b)).pages[:5])
+                it["x"] = ler_aviso(txt)
+            else:
+                it["erro"] = "sem pdf"
         except Exception as e:
-            item["erro"] = repr(e)[:80]
-        lidos[p] = item
-    debug["avisos_lidos_agora"] = novos
+            it["erro"] = repr(e)[:80]
+        lidos[prot] = it
+    debug["pdfs_lidos_agora"] = novos
     out = []
-    for p, it in lidos.items():
+    for prot, it in lidos.items():
         x = it.get("x")
         if not x:
             continue
-        tks = cn2tk.get(it["cn"], [])
-        for tk in tks:
+        for tk in it["tks"]:
             cls = {"3": "ON", "4": "PN", "5": "PN", "6": "PN", "11": "UNIT"}.get(tk[4:], "*")
             v = x["valores"].get(cls) or x["valores"].get("*") or (len(x["valores"]) == 1 and next(iter(x["valores"].values()))) or None
-            if not v:
-                continue
-            out.append({"tk": tk, "tipo": x["tipo"], "valor": v, "aprov": it["d"], "com": x["com"], "pag": x["pag"],
-                        "ref": "", "fonte": "aviso", "doc": it["l"]})
+            if v:
+                out.append({"tk": tk, "tipo": x["tipo"], "valor": v, "aprov": it["d"], "com": x["com"], "pag": x["pag"], "ref": "",
+                            "fonte": "aviso", "doc": f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={prot}"})
     return out, lidos
-
-
-def sonda_plantao(debug, hoje):
-    """Teste: plantão de notícias da B3 (avisos em tempo real)."""
-    try:
-        u = (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarTitulosNoticias?agencia=18&palavra=&"
-             f"dataInicial={(hoje - timedelta(days=5)).isoformat()}&dataFinal={hoje.isoformat()}")
-        j = json.loads(get(u))
-        debug["plantao_n"] = len(j)
-        hs = [x["NwsMsg"] for x in j if re.search(r"\((BBDC|ITUB|PETR|ITSA|BBAS)[)-]", x["NwsMsg"].get("headline") or "")]
-        debug["plantao_bancos"] = [(m["dateTime"], m["headline"], m["id"]) for m in hs[:20]]
-        alvo = next((m for m in hs if re.search(r"acionista|juros|dividend|provento", m["headline"], re.I)), hs[0] if hs else j[0]["NwsMsg"])
-        dn = urllib.parse.quote(alvo["dateTime"])
-        b = get(f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/Detail?idNoticia={alvo['id']}&agencia=18&dataNoticia={dn}").decode("utf-8", "ignore")
-        b = re.sub(r"\s+", " ", b)
-        corpo = re.sub(r"<script.*?</script>|<style.*?</style>", " ", b, flags=re.S)
-        texto = re.sub(r"<[^>]+>", " ", corpo)
-        debug["plantao_alvo"] = alvo["headline"]
-        debug["plantao_links"] = re.findall(r'href="([^"]+)"', corpo)[-15:]
-        debug["plantao_texto"] = re.sub(r"\s+", " ", texto)[-1500:]
-        debug["plantao_scripts"] = [x[:300] for x in re.findall(r"<script[^>]*>(.*?)</script>", b, flags=re.S) if "ajax" in x.lower() or "url" in x.lower()][:4]
-    except Exception as e:
-        debug["plantao_erro"] = repr(e)[:200]
 
 
 def main():
@@ -283,14 +298,29 @@ def main():
     log("emissores:", len(emissores), "falhas:", falhas, "proventos:", len(todos), list(debug.items())[:5])
     # anúncios recentes pelos avisos da CVM (a B3 só lista depois da data ex)
     cache = (ant or {}).get("avisos") or {}
-    sonda_plantao(debug, hoje)
-    log("plantão:", {k: v for k, v in debug.items() if k.startswith("plantao")})
+    cache_not = (ant or {}).get("noticias") or {}
+    docs = {}
     try:
         tk2cn = json.load(open(os.path.join(DATA_DIR, "radar_base.json"), encoding="utf-8"))["fund"]["tk2cn"]
-        av, avisos = avisos_cvm(tk2cn, conhecidos, cache, debug, hoje)
+        cn2tk = {}
+        for tk, cn in tk2cn.items():
+            if tk in conhecidos:
+                cn2tk.setdefault(cn, []).append(tk)
+        docs.update(docs_ipe(cn2tk, hoje, debug))
+    except Exception as e:
+        debug["ipe"] = repr(e)[:160]
+    try:
+        cod2tk = {}
+        for tk in conhecidos:
+            cod2tk.setdefault(tk[:4], []).append(tk)
+        docs.update(docs_plantao(cod2tk, hoje, cache_not, debug))
+    except Exception as e:
+        debug["plantao"] = repr(e)[:160]
+    try:
+        av, avisos = ler_docs(docs, cache, debug)
     except Exception as e:
         av, avisos = [], cache
-        debug["avisos"] = repr(e)[:160]
+        debug["ler_docs"] = repr(e)[:160]
     b3 = {(p["tk"], p["tipo"], p["com"]) for p in todos}
     b3v = {(p["tk"], round(p["valor"] or 0, 4)) for p in todos}
     for p in av:
@@ -301,7 +331,7 @@ def main():
         if a.get("preco"):
             p["yield"] = round(p["valor"] / a["preco"] * 100, 2)
         todos.append(p)
-    log("avisos da CVM:", len(av), {k: v for k, v in debug.items() if k.startswith("avis") or k.startswith("ipe")})
+    log("avisos:", len(av), {k: v for k, v in debug.items() if k.split("_")[0] in ("ipe", "plantao", "pdfs", "ler")})
     if falhas > len(emissores) * 0.5:
         log("Falhas demais; mantendo o arquivo anterior."); return
     # remove repetidos (a B3 às vezes lista o mesmo provento duas vezes)
@@ -314,7 +344,7 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SAIDA, "w", encoding="utf-8") as fh:
         json.dump({"atualizado": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hoje": hoje.isoformat(),
-                   "emissores": len(emissores), "p": unicos, "avisos": avisos, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
+                   "emissores": len(emissores), "p": unicos, "avisos": avisos, "noticias": cache_not, "debug": debug}, fh, ensure_ascii=False, separators=(",", ":"))
 
 
 if __name__ == "__main__":
