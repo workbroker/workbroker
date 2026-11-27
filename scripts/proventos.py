@@ -1,7 +1,7 @@
 """Radar de proventos: dividendos, JCP e rendimentos já aprovados das ações do Ibovespa e das mais negociadas
 fora dele, com valor por ação, data com e data de pagamento. Fonte: B3 (dados da empresa listada, cashDividends).
 Roda a cada ~2 h (ou no push com FORCAR) e grava proventos.json."""
-import base64, csv, io, json, os, re, sys, time, unicodedata, urllib.request, zipfile
+import base64, csv, io, json, os, re, sys, time, unicodedata, urllib.parse, urllib.request, zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta, date
 
@@ -211,6 +211,24 @@ def avisos_cvm(tk2cn, conhecidos, cache, debug, hoje):
     return out, lidos
 
 
+def sonda_plantao(debug, hoje):
+    """Teste: plantão de notícias da B3 (avisos em tempo real)."""
+    try:
+        u = (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarTitulosNoticias?agencia=18&palavra=&"
+             f"dataInicial={(hoje - timedelta(days=5)).isoformat()}&dataFinal={hoje.isoformat()}")
+        j = json.loads(get(u))
+        debug["plantao_n"] = len(j)
+        debug["plantao_ex"] = json.dumps(j[:3], ensure_ascii=False)[:900]
+        alvo = next((x for x in j if re.search(r"BBDC|ITUB|ITAU|BRADESCO", json.dumps(x, ensure_ascii=False), re.I)), j[0] if j else None)
+        if alvo:
+            m = alvo.get("NwsMsg") or alvo
+            u2 = (f"https://sistemasweb.b3.com.br/PlantaoNoticias/Noticias/ListarDetalheNoticia?idNoticia={m.get('id')}&agencia=18&"
+                  f"dataNoticia={urllib.parse.quote(str(m.get('dtHrCriacao') or m.get('dateTime') or ''))}")
+            debug["plantao_det"] = get(u2).decode("utf-8", "ignore")[:1500]
+    except Exception as e:
+        debug["plantao_erro"] = repr(e)[:200]
+
+
 def main():
     forcar = os.environ.get("FORCAR") == "1"
     ant = None
@@ -260,6 +278,8 @@ def main():
     log("emissores:", len(emissores), "falhas:", falhas, "proventos:", len(todos), list(debug.items())[:5])
     # anúncios recentes pelos avisos da CVM (a B3 só lista depois da data ex)
     cache = (ant or {}).get("avisos") or {}
+    sonda_plantao(debug, hoje)
+    log("plantão:", {k: v for k, v in debug.items() if k.startswith("plantao")})
     try:
         tk2cn = json.load(open(os.path.join(DATA_DIR, "radar_base.json"), encoding="utf-8"))["fund"]["tk2cn"]
         av, avisos = avisos_cvm(tk2cn, conhecidos, cache, debug, hoje)
