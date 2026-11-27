@@ -218,7 +218,7 @@ def ler_docs(docs, cache, debug):
     novos, lidos = 0, {}
     for prot, info in sorted(docs.items(), key=lambda kv: kv[1]["d"], reverse=True):
         it = cache.get(prot)
-        if it and it.get("v") == 3:
+        if it and it.get("v") == 3 and (it.get("x") or "amostra" in it or it.get("erro")):
             it.update({"tks": info["tks"]}); lidos[prot] = it; continue
         if novos >= 220:
             continue
@@ -229,6 +229,8 @@ def ler_docs(docs, cache, debug):
             if b:
                 txt = " ".join((pg.extract_text() or "") for pg in PdfReader(io.BytesIO(b)).pages[:5])
                 it["x"] = ler_aviso(txt)
+                if not it["x"]:
+                    it["amostra"] = re.sub(r"\s+", " ", txt)[:700] if re.search(r"juros|dividend|provento", sem_acento(txt[:4000]), re.I) else ""
             else:
                 it["erro"] = "sem pdf"
         except Exception as e:
