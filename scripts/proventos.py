@@ -99,7 +99,7 @@ def ler_aviso(txt):
     t = normalizar(txt)
     tipo = "JCP" if re.search(r"juros sobre (o )?capital|\bJCP\b", t, re.I) else "Dividendo" if re.search(r"dividendo", t, re.I) else None
     valores = {}
-    for m in re.finditer(r"R\$ ?(\d{1,3}(?:\.\d{3})*,\d{2,12})((?:(?!R\$).){0,240}?)por (?:cada )?(?:acao|acoes|unit|units|certificado)( (?:ordinaria|preferencial|unit))?", t, re.I):
+    for m in re.finditer(r"R\$ ?(\d{1,3}(?:\.\d{3})*,\d{2,12})((?:(?!R\$).){0,240}?)por (?:cada )?(?:acao|acoes|unit|units|certificado)( (?:ordinarias? (?:e|ou) preferencia(?:l|is)|ordinarias?|preferencia(?:l|is)|unit))?", t, re.I):
         ctx = t[max(0, m.start() - 60): m.end() + 40].lower()
         if "liquid" in ctx and "brut" not in m.group(2).lower():
             continue  # valor líquido de IR
@@ -109,7 +109,7 @@ def ler_aviso(txt):
         if not v or v > 100:
             continue  # valor total da distribuição, não por ação
         cls = (m.group(3) or "").strip().lower()
-        k = "ON" if cls.startswith("ordin") else "PN" if cls.startswith("pref") else "UNIT" if cls == "unit" else "*"
+        k = "*" if " e " in cls or " ou " in cls else "ON" if cls.startswith("ordin") else "PN" if cls.startswith("pref") else "UNIT" if cls == "unit" else "*"
         if re.search(r"\bunits?\b", m.group(0)[-12:], re.I):
             k = "UNIT"
         valores.setdefault(k, v)
@@ -219,13 +219,13 @@ def ler_docs(docs, cache, debug):
     novos, lidos = 0, {}
     for prot, info in sorted(docs.items(), key=lambda kv: kv[1]["d"], reverse=True):
         it = cache.get(prot)
-        if it and it.get("v") == 3 and (it.get("x") or "amostra" in it or it.get("erro")):
+        if it and it.get("v") == 4:
             it.update({"tks": info["tks"]}); lidos[prot] = it; continue
         if novos >= 220:
             debug["pendente"] = True
             continue
         novos += 1
-        it = {"v": 3, **info}
+        it = {"v": 4, **info}
         try:
             b = baixar_pdf(prot)
             if b:
@@ -246,7 +246,9 @@ def ler_docs(docs, cache, debug):
             continue  # sem data com nem pagamento: leitura duvidosa
         for tk in it["tks"]:
             cls = {"3": "ON", "4": "PN", "5": "PN", "6": "PN", "11": "UNIT"}.get(tk[4:], "*")
-            v = x["valores"].get(cls) or x["valores"].get("*") or (len(x["valores"]) == 1 and next(iter(x["valores"].values()))) or None
+            V = x["valores"]
+            # valor da classe; sem classe no texto vale para todas; empresa só com ON: ON vale para o ticker 3
+            v = V.get(cls) or V.get("*") or (V.get("UNIT") if tk.endswith("11") else None)
             if v:
                 out.append({"tk": tk, "tipo": x["tipo"], "valor": v, "aprov": it["d"], "com": x["com"], "pag": x["pag"], "ref": "",
                             "fonte": "aviso", "doc": f"https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx?NumeroProtocoloEntrega={prot}"})
